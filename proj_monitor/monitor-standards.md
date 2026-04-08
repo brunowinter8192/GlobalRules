@@ -66,6 +66,23 @@ BEFORE using tmux variables (`#{...}`) in code: verify with `tmux display-messag
 - Concrete failure (2026-03-27): `#{session_name}` in `respawn-pane -t` chain — tmux passed it literally. Fix: `run-shell` wrapper.
 - Concrete failure (2026-03-27): `#{pane_activity}` empty. `#{window_activity}` works.
 
+## Proxy Log Investigation
+
+When searching for a specific message format in proxy logs (e.g., rejection messages, error patterns):
+- **Trigger it yourself first.** Running `sleep 10` + ESC is 10x faster than grepping through 800MB JSONL with wrong patterns.
+- Only grep logs when you need historical data or pattern frequency analysis.
+- The monitor's Proxy Pane shows live requests — use it to see the current format.
+
+Concrete failure (2026-04-09): 3 failed grep attempts searching for ESC-rejection message format in proxy logs. User triggered it themselves in 5 seconds.
+
+## Pane Module Architecture
+
+Each pane is its own module under `src/`. Pattern:
+- `*_pane.py` contains: module-level state, `run_*_loop()`, helpers, formatting
+- `monitor.py` is the core orchestrator (~460 lines), imports pane loops lazily
+- `formatter.py` has shared formatting only (~230 lines)
+- Cross-module state: pane modules access monitor.py globals via `from . import monitor as _monitor`
+
 ## Reference Patterns for Interactive Panes
 
 When building a new interactive pane (scroll + expand/collapse + click), use the **Tokens Pane** (`run_tokens_loop()` in monitor.py) as reference. It has working:
@@ -85,15 +102,15 @@ Concrete failure (2026-04-04): Hooks-Pane went through 5 iterations — Rules-Pa
 
 mitmproxy **hot-reloads** addon scripts when the file changes on disk. This resets `ProxyAddon` state (`prev_messages_by_model`) → BP3 can't find unchanged prefix → cache invalidation.
 
-**Live-Copy protection (implemented):** `claude_proxy_start.sh` copies `proxy_addon.py` to `.proxy_addon_live.py` and loads the copy. Git merges on the original don't trigger hot-reload.
+**Live-Copy protection (implemented):** `claude_proxy_start.sh` copies `proxy_addon.py` to `.proxy_addon_live.py` and loads the copy. Git merges on the original don't trigger hot-reload. Worker proxies also use live-copy (`.proxy_addon_worker_{name}.py`) since iterative-dev commit b8930f3.
 
 **Rules:**
 - NEVER edit `proxy_addon.py` directly during a live session if the proxy was started WITHOUT live-copy (old proxy instances)
 - When multiple proxy changes are needed: batch them in one worker, merge once = one potential reload
-- Live-copy is only active for proxies started AFTER commit 648fc42
 - Hot-reload cannot be disabled in mitmproxy (hardcoded `reload=True` in script.py)
 
 Concrete failure (2026-04-08): Worker merged proxy_addon.py changes → mitmproxy hot-reloaded → state reset → 145k CC cache rebuild. Three separate merges in one session = three rebuilds.
+Concrete failure (2026-04-09): Worker proxy (spawned before live-copy fix) loaded proxy_addon.py directly → git merge triggered hot-reload → 41k CC rebuild. Fixed: worker proxies now use live-copy.
 
 ## Anti-Patterns
 
