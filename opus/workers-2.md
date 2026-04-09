@@ -47,13 +47,20 @@ Opus tendency: "while we're at it, also test X" → adds variables the user didn
 
 Concrete failure (2026-04-07): User said "wir testen nur stealth". Opus sent worker 7-test matrix including settle_seconds + Tor + stealth patches. Worker changed variables the user explicitly excluded. User corrected 2x.
 
-### Reusing Workers (worker_send)
+### Reusing Workers (worker_send) — AGGRESSIVE REUSE
 
 Workers retain full context. After completion, send follow-up tasks via `worker_send` instead of spawning new workers.
 
-**ALWAYS prefer `worker_send` over new spawn** when the follow-up builds on the worker's previous work.
+**ALWAYS prefer `worker_send` over new spawn.** The threshold for spawning a new worker is HIGH:
+- Idle worker exists that touched the same files/domain → `worker_send`. No exceptions.
+- Follow-up task builds on previous work → `worker_send`. Even if the task feels "different" (e.g., switching from pydoll to patchright testing in the same test suite).
+- New spawn is ONLY justified when: (a) no idle worker has relevant context, OR (b) idle worker is below 30% context.
+
+**Before EVERY `worker_spawn`:** Check `worker_list`. If ANY idle worker has context overlap with the new task → use `worker_send`. Ask yourself: "Does an existing worker already know these files?" If yes → reuse.
 
 **Context Budget Rule:** Below 30% context remaining → do NOT send follow-ups. Worker can die mid-task. Above 30%: follow-ups OK for small tasks. For large follow-ups, spawn fresh worker.
+
+Concrete failure (2026-04-09): engine-tuning worker idle at 41% context, knows entire test suite (engine_selectors.py, stealth_config.py, 27/28 scripts). Opus spawned new patchright-test worker for a Brave test that uses the same directory and queries. User corrected: "warum ein neuer worker?" — engine-tuning should have received the task via worker_send.
 
 ### Course Correction
 

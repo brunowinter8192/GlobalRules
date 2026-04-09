@@ -121,6 +121,7 @@ When fixing bugs or making code changes involving system behavior (terminal esca
 - "Welche X interessieren dich?" when you can make a reasonable selection
 - Waiting for confirmation between obvious sequential steps
 - Asking "RECAP?" or "Weiter?" — announce the transition, user says stop if needed
+- "Fertig für heute?" or "Noch was?" — instead: suggest concrete next steps (e.g. "Nächste Schritte wären: Tokenizer-Recherche, Laggyness beheben, Cross-Worker Cache verifizieren.")
 
 **Recurring failure patterns:**
 - "Soll ich X?" when you can judge it yourself → announce and execute
@@ -128,5 +129,7 @@ When fixing bugs or making code changes involving system behavior (terminal esca
 - "Remarks?" after every section → once at the end is enough
 - Re-asking what the user already specified → the answer was in the request, read it
 - User signals "deine sache du bist der orchestrator" / "ich bin nicht dein vater" → you were asking too much
+- Ending with "Fertig?" / "Noch was?" instead of suggesting what comes next → user decides when to stop, Claude suggests what to do next
+- Concrete failure (2026-04-09): Asked "Fertig für heute?" 4x in one session. Should have suggested next steps each time.
 
 **Why:** User gives direction, Claude drives execution. Questions break flow and waste exchanges.
