@@ -96,5 +96,7 @@ Manual `python3 -c` analysis in Bash is an anti-pattern. Reusable analysis belon
 - `01_extract.py` — Session JSONL extraction
 - `02_cache_timeline.py` — Cache behavior over time
 - `03_cache_rebuild_context.py` — Cache rebuild root cause analysis
+- `04_cache_validation.py` — Cache validation checks
+- `05_req_breakdown.py` — Forensic per-segment token attribution (tiktoken cl100k_base); writes MD reports to `04_reports/`. Supports cross-session byte-diff for prefix attribution (`--prev-proxy-log`).
 
 When adding new analysis: follow existing script patterns in `dev/session_analysis/`.
