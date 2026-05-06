@@ -70,15 +70,35 @@ def process_data(df):
 
 ## Module Complexity Thresholds
 
+### Hard Ceiling — 400 LOC
+
+No source file exceeds 400 LOC. Hard limit, not a heuristic. When a file approaches the ceiling, split by concern — extract a structural responsibility into its own module. Cosmetic shrinking (trimming blank lines, condensing comments) is not a split and does not count.
+
+This complements the split-candidate heuristic below: 200 LOC with functional groups = consider splitting; 400 LOC = MUST split, regardless of internal structure.
+
+### Split Candidate
+
 A new module is warranted when ANY of these are exceeded:
 
-1. **Lines of Code:** > 400 LOC with distinct functional groups
+1. **Lines of Code:** > 200 LOC with distinct functional groups
 2. **Function Count:** > 15 functions (likely multiple responsibilities)
 3. **Single Responsibility:** Module handles multiple unrelated concerns
 
 **Additional Indicators:**
 - Function > 50 LOC → Extract helper functions (not new module)
 - > 5 cross-module imports → Review dependencies, may indicate over-coupling
+
+### LOC Threshold Interpretation
+
+LOC thresholds are HEURISTICS for flagging split candidates, not magic numbers to hit. When a file sits near the threshold:
+
+1. **First question:** Does a concern-based extraction improve readability? (e.g. browser handling vs reporting vs CLI — three clear concerns that belong in three separate files.) If yes → split by concern.
+2. **Second question:** If no structural concern emerges and the file sits just above the threshold (e.g. 202 LOC against a 200-rule) → **LEAVE IT**. Do NOT trim blank lines, condense comments, or cosmetic-split to hit the number.
+3. **Never** propose a refactor whose only justification is "hit the LOC target". A refactor without a readability/concern argument is noise, not improvement.
+
+Worker prompts that include LOC targets must phrase them as "heuristic / guideline — not law" and explicitly permit "leave at N+ε if no structural split exists" as an acceptable outcome.
+
+Concrete failure (2026-04-15): Refactor worker proposed trimming 4 blank lines from `engine_selectors.py` (202 LOC) to hit 198. No structural argument — just cosmetic. Caught at plan review.
 
 ## Import Convention
 

@@ -2,6 +2,38 @@
 
 Development scripts for testing, debugging, and experimentation.
 
+## dev/ Purpose — Analysis Only, Not Debug-Script Dumping
+
+Three different activities get easily mixed in debugging — this rule separates them:
+
+1. **Live-Verification of source-code fix.** Worker builds fix in worktree, Opus or user restarts the application (Monitor, server, pipeline), triggers the scenario, observes result. Standard loop, no script.
+
+2. **Forensics on existing data.** Example: "does this code line wrap after `truncate_visible` or not?" — can't be triggered live without manipulating the live environment. Load the real data source (JSONL, log), call the function with a real entry, measure properties. Without such a script you speculate in circles. Script lives in the worker worktree or `/tmp/`, throwaway — once the analysis clarifies root cause, the script is worthless.
+
+3. **Assertion across many data points after a fix.** Example: pair-alignment in `render_messages` across 145 stripped entries. Live-test would mean 145 manual expand-clicks, infeasible. Script does it in milliseconds. Decision point: does the assertion have permanent regression-guard value? Then fold the test case into an EXISTING test file in `dev/`. Just historical value for the one fix? Then worktree or `/tmp/`, gone on merge.
+
+**What goes in `dev/` (permanent value):**
+- Benchmarks (pipeline performance measurements)
+- Evals (retrieval/reranker/quality evaluation suites)
+- Investigation modules for a documented problem (see `documentation.md` → "dev/ Investigation Modules")
+- Growing unit-test suites / assertion libraries
+
+**What does NOT go in `dev/` (one-shot value):**
+- Forensics scripts of a session (Category 2)
+- One-shot fix verifiers (Category 3 without regression value)
+
+**Rule of thumb:** "is this script still useful in 3 months?" Yes → `dev/`. No → worktree or `/tmp/`.
+
+**Examples (from Monitor_CC):**
+- `dev/display/screenshot_panes.py` → permanent analysis tool ✅
+- `dev/display/test_hover_map.py` → growing assertion library, new test cases come per fix ✅
+- `dev/splade_truncation/` → investigation module for documented problem ✅
+- `verify_my_session_fix_works.py` → one-shot, does NOT belong in `dev/`. Worktree or `/tmp/` ❌
+
+**Worker consequence:** when forensics or one-shot assertion is needed, the worker builds the script in the worktree (not staged on merge — explicitly do not stage) or under `/tmp/`. When a one-shot assertion becomes a permanent regression guard, the test case is folded into an EXISTING `test_*.py` in `dev/` — no new file per fix.
+
+Concrete failure (2026-04-21, Monitor_CC Proxy-Hover-Session): worker built `verify_strip_pair.py`, `verify_tab_expand.py`, `verify_tab_expand_all.py` — three one-shot fix verifiers in `dev/display/`. Under the new convention these belong in worktree or `/tmp/` — the permanent value (stripped-msg pair assertion) was folded into `test_hover_map.py`, the individual files deleted.
+
 ## Structure
 
 ```
@@ -57,11 +89,3 @@ dev/
 9. **MD output, never console** — dev scripts write results to MD files in their report directories. Console output is limited to the report file path. Analysis happens by reading the MD together, not by dumping into the terminal.
 10. **Python execution** — ALL Python commands MUST use `./venv/bin/python` (not `python` or `python3`). The system Python does not have project dependencies installed.
 11. **Rate limiting** — when a suite script makes multiple HTTP requests to external services, include a 1-2s delay between requests to avoid triggering rate limits or engine suspensions.
-
-## Library Debugging
-
-When scraping or content extraction has issues:
-1. Read `requirements.txt` to identify which library handles the functionality
-2. Look up the library's GitHub repo — read source code, issues, docs
-3. Build the fix based on actual library API, not assumptions
-4. Test with a debug script in `dev/` before modifying production code

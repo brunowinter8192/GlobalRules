@@ -2,6 +2,16 @@
 
 Three documentation layers, each with distinct audience and scope.
 
+## Artifact Density
+
+User-Chat is prose (see `global/chat-output.md`). Everything Claude reads or produces as ARTIFACT — code, DOCS.md, CLAUDE.md, rules/, decisions/, code-comments — is machine-readable and token-dense.
+
+Concrete: tables instead of prose where multiple dimensions need comparison, keywords instead of full sentences, references to `file:line` instead of explanatory paragraphs, no rhetorical filler ("furthermore", "as we can see", "importantly", "it's worth noting"). Where a paragraph IS needed, it is dense — no repetition, no opening sentences that say nothing.
+
+The user reads code and docs through Claude. Token-dense input leaves more context budget for actual work. Every line of prose in a DOCS.md or rule is context cost without information gain over the structured alternative.
+
+Applies to every project, not only Monitor_CC.
+
 ## CLAUDE.md (Root)
 
 **Audience:** AI (Claude Code sessions).
@@ -88,21 +98,94 @@ DOCS.md files that have darunterliegende DOCS MUST include a tree section mappin
 - If a subdirectory has no own DOCS.md (single-file, documented in current DOCS), it does NOT appear in the tree
 - The tree is the navigation structure for AI and developers
 
-### Module Documentation Format
+### DOCS.md Format (Standard)
+
+Purpose: when read FIRST at the start of an exploration, the DOCS.md should let Claude answer in ~30 seconds: Is this my problem? Which modules are affected? Is any module dead or too large? Where are the landmines?
+
+#### Subdir DOCS.md Structure
 
 ```markdown
-## module_name.py
+# src/<package>/
 
-**Purpose:** What this module does.
-**Input:** What it takes.
-**Output:** What it returns.
+## Role
+One paragraph — what this package does in the bigger picture, when to touch it, when NOT to touch it.
+
+## Public Interface
+What `__init__.py` exports. One line per export. If `__init__.py` is empty: say so and state the actual entry path (e.g. "loaded via `mitmproxy -s`").
+
+## Flow (if relevant)
+3-5 lines: data in → processing → data out. Skip for pure-utility packages.
+
+## Modules
+
+### <module>.py (<LOC> LOC)
+
+**Purpose:** one sentence.
+**Reads:** data sources (shared state, files, stdin).
+**Writes:** outputs (stdout, files, shared state, mutated state).
+**Called by:** list of files/packages. Empty list = DEAD CODE, flag explicitly.
+**Calls out:** external package dependencies (not stdlib, not `constants`/`utils`).
+
+---
+
+## State (only if package has module-level mutable state)
+Which module owns the state, who mutates, who reads.
+
+## Gotchas (optional)
+Module-specific landmines. Direct text. No rule-link references (rules are always invoked).
 ```
 
-**Rules:**
-- NO function-level documentation (only Purpose/Input/Output)
+#### Root DOCS.md (e.g. `src/DOCS.md`)
+
+```markdown
+# src/ — <Project>
+
+## Role
+One paragraph: what this src tree does.
+
+## Entry Points
+- `workflow.py` → which subpackages it imports
+- External loaders (mitmproxy, tmux, etc.) → which file
+
+## Directory Map
+
+| Subdir | Role | LOC | Modules |
+|---|---|---|---|
+| core/ | Session polling orchestrator | 496 | 3 |
+| ... |
+
+## Flow (Main Session)
+Numbered 4-6 step pipeline.
+
+## Shared State
+Where module-level state lives, who mutates, who reads. Table if multiple state surfaces.
+
+## Root-Level Files
+Table: File | LOC | Why at root.
+
+## Subdir DOCS
+Links to each subdir DOCS.md.
+```
+
+#### Signal-by-design
+
+The format is designed so that scanning the DOCS.md surfaces problems without reading code:
+
+- **LOC per module** → refactor candidate visible (>300 = flag)
+- **Called by: []** → dead code flag
+- **LOC in Directory Map summed across subdirs** → package-level size comparison
+- **State section** → shared mutable surface visible at a glance
+- **Gotchas** → landmines documented where they live, not in release notes
+
+#### Rules
+
+- NO function-level documentation (only module-level Purpose/Reads/Writes/Called-by/Calls-out)
+- LOC numbers must match actual `wc -l` output of the file
+- Called-by must match actual grep results — not stale
 - Describe WHAT not HOW
-- Include Usage examples for scripts (how to run from project root)
+- Include Usage examples for dev/ scripts (how to run from project root)
 - Include CLI flags table for scripts with argparse
+- When stale: fix before using. Stale DOCS is worse than no DOCS.
 
 ### Directories That Do NOT Need DOCS
 

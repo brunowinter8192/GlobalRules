@@ -2,6 +2,16 @@
 
 Pipeline decision records documenting the rationale for each implementation choice.
 
+## Artifact Density
+
+User-Chat is prose (see `global/chat-output.md`). Everything Claude reads or produces as ARTIFACT — code, DOCS.md, CLAUDE.md, rules/, decisions/, code-comments — is machine-readable and token-dense.
+
+Concrete: tables instead of prose where multiple dimensions need comparison, keywords instead of full sentences, references to `file:line` instead of explanatory paragraphs, no rhetorical filler ("furthermore", "as we can see", "importantly", "it's worth noting"). Where a paragraph IS needed, it is dense — no repetition, no opening sentences that say nothing.
+
+The user reads code and docs through Claude. Token-dense input leaves more context budget for actual work. Every line of prose in a DOCS.md or rule is context cost without information gain over the structured alternative.
+
+Applies to every project, not only Monitor_CC.
+
 ## Structure (MANDATORY)
 
 Every decision file has these sections in order:

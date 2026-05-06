@@ -1,0 +1,104 @@
+{
+  "system2_rules": {
+    "global": {
+      "files": [
+        "global/communication-1.md",
+        "global/communication-2.md",
+        "global/documentation.md",
+        "global/tool-use.md",
+        "global/verify-before-execution.md"
+      ]
+    },
+    "opus": {
+      "files": [
+        "opus/beads.md",
+        "opus/chat-output.md",
+        "opus/decisions.md",
+        "opus/environment.md",
+        "opus/workers-1.md",
+        "opus/workers-2.md",
+        "opus/workers-3.md"
+      ]
+    },
+    "worker": {
+      "files": [
+        "worker/worker-rules.md",
+        "worker/code-organization.md",
+        "worker/code-standards.md",
+        "worker/dev-convention.md"
+      ]
+    },
+    "projects": {
+      "Monitor_CC": {
+        "path_contains": "Monitor_CC",
+        "files": [
+          "proj_monitor/dev-verification.md",
+          "proj_monitor/monitor-standards.md"
+        ]
+      },
+      "RAG": {
+        "path_contains": "MCP/RAG",
+        "files": [
+          "proj_rag/project-rules.md",
+          "proj_rag/rag-standards.md",
+          "proj_rag/server-ops.md",
+          "proj_rag/workers.md"
+        ]
+      },
+      "searxng": {
+        "path_contains": "MCP/searxng",
+        "files": [
+          "proj_searxng/engines.md",
+          "proj_searxng/stealth-testing.md"
+        ]
+      },
+      "wise2627": {
+        "path_contains": "wise2627",
+        "files": [
+          "opus/chat-output.md"
+        ],
+        "exclusive": true,
+        "exclusive_model_families": ["opus"]
+      }
+    },
+    "exclude_projects": []
+  },
+  "tool_injection": {
+    "exclude_projects": [
+      "wise2627"
+    ]
+  },
+  "model_override": {
+    "enabled": true,
+    "model": "claude-opus-4-7",
+    "thinking": {
+      "type": "adaptive",
+      "display": "omitted"
+    },
+    "effort": "high",
+    "max_tokens": 128000
+  },
+  "model_override_worker": {
+    "enabled": true,
+    "model": "claude-sonnet-4-6",
+    "thinking": {"type": "adaptive", "display": "omitted"},
+    "effort": "max",
+    "max_tokens": 64000
+  },
+  "pyright_diagnostics_strip": {
+    "enabled": true
+  },
+  "context_management": {
+    "enabled": false,
+    "clear_tool_uses": {
+      "enabled": true,
+      "trigger_input_tokens": 100000,
+      "keep_tool_uses": 5,
+      "clear_at_least_tokens": 10000
+    },
+    "clear_thinking": {
+      "enabled": false,
+      "keep_thinking_turns": 2
+    }
+  }
+}
