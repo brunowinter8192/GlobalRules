@@ -1,6 +1,26 @@
 # Documentation Hierarchy
 
-Three documentation layers, each with distinct audience and scope.
+Documentation lives in two parallel chains.
+
+**External-facing chain** (human users finding the project on GitHub):
+- README.md — entry-point + setup + features for someone external
+
+**AI-internal chain** (granularity gradient for AI exploration, coarse → fine):
+- DOCS.md (root) — project entry-point: pipeline components / key files / documentation tree to subdir DOCS.md. Indexed in `<Project>-meta`.
+- decisions/*.md — per-pipeline-step rationale, FINAL STATE ONLY (prose-level: IST/Evidenz/SOLL/Quellen). Format spec: see `## decisions/` below.
+- decisions/OldThemes/<topic>/ — process documentation: iterations, alternatives explored, superseded values, dead ends. Format spec: see `### OldThemes` below.
+- src/<package>/DOCS.md — per-module structured map (Role/Modules/LOC/Called-by)
+- source code — full detail
+- dev/*.md — investigations, probes, evals (sit beside the chain, not inside)
+
+Read coarser layers FIRST. Each layer answers different questions:
+- DOCS.md (root): "What is this project, what are the pipeline components, where do I start?"
+- decisions/: "What is the current production choice and what is it based on?"
+- decisions/OldThemes/: "How did we arrive at the current choice? What did we try, what was rejected, what's still pending?"
+- DOCS.md (subdir): "Which module does what, who calls whom?"
+- code: "How exactly is this done?"
+
+**No CLAUDE.md in the AI-internal chain.** Claude Code auto-injects CLAUDE.md at session start as a system-reminder — indexing it in RAG creates a duplicate context surface (one via system-reminder, one via RAG-search) and a manual-maintenance drift hazard (project structure trees, key-files tables, pipeline-component tables) that the rest of the chain already covers redundantly. Projects do NOT carry a CLAUDE.md. Root DOCS.md is the entry-point. README.md handles the external-facing chain. If a project genuinely needs auto-injected per-session context that DOCS.md cannot provide, route it through `~/.claude/shared-rules/proj_<name>/` instead.
 
 ## Artifact Density
 
@@ -12,64 +32,131 @@ The user reads code and docs through Claude. Token-dense input leaves more conte
 
 Applies to every project, not only Monitor_CC.
 
-## CLAUDE.md (Root)
+## No Bead References in Docs
 
-**Audience:** AI (Claude Code sessions).
-**Purpose:** Maps root level for AI navigation. Contains project overview, pipeline components, key files, startup instructions.
-**Scope:** Root-level structure. References `data/` and `decisions/` with their purpose. Links to DOCS.md for module details.
+`decisions/*.md`, `decisions/OldThemes/**/*.md`, `**/DOCS.md`, `sources/sources.md` NEVER reference beads. The direction is one-way: beads point to docs, docs don't point back.
 
-**Not a substitute for DOCS.md.** CLAUDE.md provides orientation; DOCS.md provides module documentation.
+**Why:**
+1. Beads close. A doc-reference to a closed bead becomes stale immediately (the bead ID is in the archive, the work it represented is now codified in the doc itself).
+2. Beads are ephemeral work-trackers, not citations. The decision's rationale, evidence, and pending status must be self-contained in the doc.
+3. Bead IDs leak into RAG search noise: a query for "pending eval execution" should return the SOLL block, not a bead-tracker pointer.
 
-## README.md (Root)
+**Forms to use INSTEAD:**
 
-**Audience:** External user (human). Someone who finds the repo on GitHub.
-**Purpose:** Understand what this is, decide if they need it, get it running.
-**Scope:** User-facing only. No internal architecture, no directory trees, no stack decisions.
+| Case | Use |
+|---|---|
+| Pending work | SOLL section: `Pending — needs <concrete description>.` |
+| Cross-cutting work | Prose summary inline in the relevant `decisions/<step>.md`. Bead tracks the work privately. |
+| Process / iteration history | `decisions/OldThemes/<topic>/` as canonical record. Bead is the tracker only. |
+| Cross-project reference | Cite the other project's doc path with `(<ProjectName>)` suffix, e.g., `see dev/watchdog_scope/proposal_phaseA_v2.md (Monitor_CC)`. Drift check skips paths followed by `(<Name>)`. |
 
-**Section Order:**
+A doc currently referencing a bead → drift, fix at Recap (mechanical: grep for `Bead [A-Z][a-z_]*-[a-z0-9]{3,}` or just `Bead ` in indexed paths).
 
-### 1. Header + One-Liner
-Plugin name + one sentence: what problem it solves.
+## decisions/
 
-### 2. Features
-Bullet list of capabilities. What the user GETS, not how it works internally.
+Pipeline decision records — FINAL STATE ONLY. Each file documents the current production choice (IST), the evidence backing it (Evidenz), and the recommendation for change if any (SOLL). The process that led to the current choice — alternatives evaluated, superseded values, iteration history — lives in `decisions/OldThemes/<topic>/`, NOT here. A decision file is the crystallized conclusion; OldThemes is the working memory that produced it.
 
-### 3. Quick Start
-3-5 copy-paste lines to install and use. Plugin install → restart → first command.
+Rule: any value or comparison that is NOT the current production state belongs in OldThemes, even if it was true last week. decisions/ files do not carry historical alternatives.
 
-### 4. Prerequisites
-What must exist before setup (Docker, Python, hardware). Note what auto-starts.
+**IST update timing.** IST in `decisions/<step>.md` reflects current production state. When code changes functionally, IST MUST be updated in the SAME commit cycle as the code change — never deferred. Code-changed-without-IST-update at Recap = drift, blocks session close. Pure refactors with no behavior change update `<package>/DOCS.md` (module shape) but do not touch `decisions/<step>.md` unless a specific path mention becomes stale.
 
-### 5. Setup
-Step-by-step manual installation. Copy-paste commands. Reference .env.example for config.
+**SOLL → IST direction.** IST changes follow SOLL. There is no "IST functional change without preceding SOLL change". Workflow: (1) discuss in session, alternatives go to OldThemes/, (2) SOLL emerges with dev/ evidence and lands in `decisions/<step>.md` SOLL + Evidenz, (3) migrate IST → match SOLL in the same cycle (code + IST update together). Skipping (2) = process violation; the eval/verification must precede the code change.
 
-### 6. Usage
+### Structure (MANDATORY)
 
-#### MCP Tools
-Table: Tool | What it does | Example prompt. User perspective, not API signatures.
+Every decision file has these sections in order:
 
-#### Skills & Commands
-Which slash commands the plugin provides, what each does, when to use it.
+#### Status Quo (IST)
+What is CURRENTLY in production code. Code paths, config values, behavior. This section describes reality — not what should be.
 
-#### Agents
-Which subagents the plugin includes, what they handle, how they get dispatched.
+#### Evidenz
+Measurements from dev/ scripts, external research, benchmarks. Data that informs the recommendation.
 
-### 7. Workflows
-Brief explanation of main workflows (e.g., PDF→RAG pipeline). Enough to understand the flow, not implementation details. Detailed docs → DOCS.md.
+**Internal eval results — MUST cite script AND report-MD AND dataset.** When a decision is justified by a measurement run, the Evidenz section contains the actual numbers (sweep table, baseline values, summary) inline — not just a link. For each cited measurement:
+- The dev/ script that produced it (e.g. `dev/retrieval/A_retrieval_eval.py`)
+- The report-MD path (e.g. `dev/retrieval/A_retrieval_eval_reports/baseline_2026-04-28.md`)
+- The dataset / collection / sample size (e.g. `test_db` on `rag_test`, 250 chunks, 17 queries)
 
-### 8. Troubleshooting
-`<details>` collapsible blocks for common problems. Problem → Solution format.
+Result-MDs under `dev/<area>/<script>_reports/` are PRIMARY EVIDENCE — they MUST be lifted into the relevant `decisions/<step>.md` Evidenz in the same session as the eval run. Numbers living only in the report artifact = the canonical IST/Evidenz/SOLL record is incomplete and RAG-search on `<Project>-meta` cannot find them.
 
-### 9. License
+External evidence (papers, benchmarks from outside research) cites collection + document name from RAG (e.g. `RAG_reference: Fusion_Functions_Hybrid_Retrieval`).
 
-**Rules:**
-- NO directory trees (→ CLAUDE.md)
-- NO stack decisions or architecture rationale (→ decisions/)
-- NO internal module docs (→ DOCS.md)
-- NO function signatures or code internals
-- Environment variables: maintain .env.example in repo, README references it
-- Keep it scannable: someone should understand the plugin in 2 minutes
-- README stops where DOCS begins. No redundancy.
+#### Recommendation (SOLL)
+What the config SHOULD be based on evidence. Three formats:
+
+- **Change:** `X → Y` — Current config should change. State the concrete new value and why.
+- **Keep:** `X (no change needed)` — Current config is optimal. One line is enough.
+- **Pending:** `Evaluation not done` — No recommendation yet. State what eval is needed. One line is enough.
+
+**Brevity rule:** When SOLL = IST (Keep) or SOLL is unknown (Pending), keep it short — one line per point. Only Change items need detailed justification. This keeps decision files scannable.
+
+When IST ≠ SOLL → migration needed. The diff across ALL decision files = the complete migration plan.
+
+#### Offene Fragen
+Unanswered questions that affect the recommendation.
+
+#### Quellen
+RAG Collection references, papers, URLs used as evidence. External sources only — internal eval reports belong in Evidenz, not here.
+
+### Path & Symbol References
+
+When citing code in decisions/, OldThemes/, or DOCS.md, the **symbol** (function/constant/class name) is the durable anchor — paths are navigation hints. When code moves, the symbol stays; only the path needs an update.
+
+**Preferred form** (symbol primary, path in parens):
+```
+`embed_query()` (defined in `src/rag/search_primitives.py`, called via `retriever.py` imports)
+`CC_ALPHA = 0.8` in `src/rag/fusion.py`
+```
+
+**Discouraged form** (path is the anchor, drifts when code moves):
+```
+Code: src/rag/retriever.py:embed_query()
+```
+
+**Rationale:** a symbol survives `grep -rn '\bsymbol\b' src/` to find its current location. A wrong path silently misleads readers. The Recap-time drift check (see `~/.claude/shared-rules/opus/workers-3.md` § 1.3.3) verifies that paths exist AND named symbols resolve in source code.
+
+**When path is the anchor (legitimate, do not symbol-ize):**
+- dev/ script paths in Evidenz (the path IS the artifact: `dev/retrieval/A_retrieval_eval.py`)
+- Report-MD references in Evidenz (the path IS the citation: `dev/retrieval/A_retrieval_eval_reports/baseline_2026-04-28.md`)
+- Decision-file cross-references (`see decisions/box_architecture.md`)
+- DOCS.md module listings (the file IS the documented unit, e.g., `### server_manager.py (1061 LOC)`)
+- Data files (`sources/sources.md`, `dev/retrieval/queries_test_db.json`)
+
+In these cases both the path and any cited content must resolve at Recap.
+
+### Rules
+
+- **IST reflects production code** — not experiments, not plans, not "what we want"
+- **SOLL is evidence-based** — every recommendation cites specific eval results from dev/
+- **SOLL emergence and changes require dev/ verification** — A SOLL section (Change/Keep/Pending) is added OR modified only when supported by concrete numbers from a dev/ eval, probe, or measurement run THIS session OR explicitly cited from a past report-MD in Evidenz. SOLL changes from opinion/discussion alone are FORBIDDEN — discussion belongs in `decisions/OldThemes/<topic>/` until evidence emerges. Files without eval get a minimal SOLL stub: `## Recommendation (SOLL)\nPending — needs evaluation.`
+- **Migration is deferred** — decision files document WHAT should change, not WHEN. All migrations execute in one batch after complete pipeline eval.
+- **Eval results propagate to decisions/ in the same session** — when a sweep / baseline / benchmark run produces numbers that inform a pipeline choice, the relevant `decisions/<step>.md` Evidenz section is updated with: numbers inline + dev/ script path + report-MD path + dataset reference. Reports living only in `dev/<area>/<script>_reports/` without a decision-file uplift = drift, caught at Recap.
+- **Evidenz from sources only** — Evidenz tables and comparisons MUST come from actually read sources (RAG search results, file reads, GitHub API). NEVER present data from training knowledge as Evidenz. If you haven't read the source in this session, it's an ASSUMPTION, not Evidenz.
+
+### OldThemes
+
+`decisions/OldThemes/<topic>/` is process documentation. It tracks how a decision was reached: alternatives evaluated, superseded values, dead ends, iteration history, open questions per iteration. The corresponding `decisions/<step>.md` only carries the final crystallized choice — OldThemes is the working memory that produced it.
+
+**Purpose split:**
+
+| File | Content | Scope |
+|---|---|---|
+| `decisions/<step>.md` | Current prod IST + Evidenz that backs it + SOLL recommendation | Final state only |
+| `decisions/OldThemes/<topic>/...` | Process: what was tried, what was rejected, what's pending, why current SOLL was chosen | Full history |
+
+**Values in OldThemes ≠ current status quo.** A number measured in iteration 3 is preserved in OldThemes as historical record, not as IST. Only what is currently in production code lives in `decisions/<step>.md`.
+
+**SOLL derives from OldThemes progress.** A decision file's SOLL (Change / Keep / Pending) is the conclusion of the process documented in the matching OldThemes folder. If OldThemes has not converged yet, SOLL stays Pending. If OldThemes shows convergence, SOLL crystallizes the chosen value and `decisions/<step>.md` cites the matching OldThemes file in Evidenz.
+
+**Demotion rule.** When new evidence supersedes an older measurement (new collection, new methodology, new code), the older measurement moves from `decisions/<step>.md` Evidenz to `decisions/OldThemes/<topic>/`. decisions/ never carries stale evidence; OldThemes preserves it for attribution and traceability.
+
+**Naming:**
+- Root-level files `decisions/OldThemes/<topic>.md` — single-file themes (e.g. `connection_hang_cascade.md`, `infra03_dynamic_ports.md`, `null_embedding_qwen3_prefix.md`).
+- Subfolder `decisions/OldThemes/<topic>/` — multi-file themes. Files inside have free naming (date-based, purpose-based, both OK).
+
+**Subfolder-Trigger:** when a topic grows beyond a single file → create a subfolder, move existing file in, rename if needed.
+
+**Indexing:** OldThemes is indexed in `<Project>-features` (separate from `<Project>-meta` which covers decisions/DOCS/CLAUDE/sources). Search `<Project>-features` to find process history for a topic; search `<Project>-meta` to find current state.
 
 ## DOCS.md
 
@@ -247,6 +334,36 @@ Per-script: one-liner purpose + usage example. Scripts explain themselves via do
 **Key difference to src/ DOCS:** src/ modules document what code DOES. dev/ investigation modules document what we KNOW about a problem — scripts are tools within that investigation.
 
 **When to use:** Any dev/ directory that exists because of a specific bug, performance issue, or behavioral question (not benchmarks or eval suites).
+
+### dev/ vs src/ for Exploratory Rewrites (NON-NEGOTIABLE)
+
+Architectural alternatives — library swaps (httpx vs pydoll), engine rewrites (browser → HTTP), technique replacements, alternative-implementation evaluations — live in `dev/` until empirical evidence has converged on a known-good fix that addresses the actual production problem. `src/` stays untouched during the exploration.
+
+**Why:** Touching `src/` commits the work to a binary outcome — merge or drop. If the rewrite turns out to be architecturally correct but does NOT fix the production issue (the common case in non-trivial investigations), the choice becomes (a) merge an incomplete fix that adds untested code paths to production for no symptom resolution, or (b) drop the branch and lose all the proof-of-concept work. Both options are bad.
+
+A `dev/` artifact survives both decisions. The exploration is preserved as reference even when the conclusion is "this approach alone does not solve the production problem". Next time the question comes up — same project, same problem, or six months later when context has shifted — the probe script and report are still in the tree.
+
+**Pattern:**
+- Production module `src/X.py` → UNCHANGED during investigation
+- Parallel implementation `dev/<area>/X_<technique>_probe.py` (or sub-suite if multi-file)
+- Investigation report `dev/<area>/01_reports/X_<technique>_<YYYYMMDD>.md`
+- Smoke test invokes the probe directly, NOT through the production path
+- Decision to port to `src/` is a SEPARATE step from the decision to investigate
+
+**Touch src/ only when ALL three hold:**
+1. Empirical evidence (smoke / benchmark / live test) confirms the new approach solves the actual production problem
+2. The user has green-lit shipping the change
+3. The port from dev/ probe to src/ is itself a contained, scoped task — no further architectural exploration mid-port
+
+**Anti-pattern (concrete):** Worker rewrites `src/X.py` directly inside their worktree. Smoke shows the rewrite is architecturally clean but the original production symptom persists (because the root cause was elsewhere). Now we have a fork: merge the rewrite anyway (production gets new untested code without symptom relief) or drop the branch (worktree gets pruned, branch fades, the proof-of-concept evaporates). The dev/ pattern is the structural prevention for this fork.
+
+**Worker prompt rule:** when a Phase A/B prompt asks for an architectural alternative, the prompt MUST specify "build as dev/ probe, do NOT modify src/" unless the user has explicitly green-lit src/ surgery upfront. The default for any phrase like "rewrite X using Y" / "migrate X from A to B" / "swap library Z" is dev/ probe FIRST.
+
+**Does NOT apply to:**
+- Scoped bug fixes (the bug location IS the change location — usually src/)
+- Refactors with known endpoints (rename, extract function, move module)
+- Changes the user has explicitly green-lit as production-targeted up front
+- Production-pipeline integration of an already-validated dev/ probe
 
 ## sources/sources.md
 

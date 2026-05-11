@@ -29,13 +29,6 @@
       ]
     },
     "projects": {
-      "Monitor_CC": {
-        "path_contains": "Monitor_CC",
-        "files": [
-          "proj_monitor/dev-verification.md",
-          "proj_monitor/monitor-standards.md"
-        ]
-      },
       "RAG": {
         "path_contains": "MCP/RAG",
         "files": [
