@@ -1,6 +1,6 @@
 # Workers (continued 2)
 
-## Worker Phase 5: Merge + Lifecycle
+## Worker Phase 6: Merge + Lifecycle
 
 ### Merging
 
@@ -140,7 +140,7 @@ Wait for remarks. When user has no remarks → run verification together.
 ```
 SESSION:
   PLAN      — Steps 1-5 (Session Scope, Investigation, Gap Analysis, Worker Scope, Deliverables/KPIs)
-  IMPLEMENT — Worker Phases 1-5 (per dispatched worker; see below)
+  IMPLEMENT — Worker Phases 1-6 (per dispatched worker; see below)
   RECAP     — Session end (Recap section below)
 
 WORKER PHASES (within IMPLEMENT, per worker):
@@ -148,7 +148,8 @@ WORKER PHASES (within IMPLEMENT, per worker):
   Phase 2: EVALUATE    — Cross-model comparison of findings; Go or iterate
   Phase 3: GO          — Worker implements after convergence
   Phase 4: REVIEW      — Read changed files, verify code quality
-  Phase 5: MERGE       — Merge, verify live, reuse or kill in RECAP
+  Phase 5: RECAP       — Opus-triggered ("recap"), worker syncs DOCS.md/decisions, drift-clean
+  Phase 6: MERGE       — Merge, verify live, reuse or kill in RECAP
 ```
 
 ---
@@ -251,15 +252,21 @@ Every finding → 1.3.1.
 ```
 <YYYY-MM-DD_HHMMSS>_<project>_<topic-slug>.md
 ```
-Inside:
+
+**Brevity template (MANDATORY per improvement):** keep it tight. Problem one sentence, How one sentence, Rule 2-3 sentences, Example concrete with file:line or session reference. Stagings exceeding ~30 lines per improvement are too verbose — tighten until they fit.
+
 ```
 # <YYYY-MM-DD> — <PROJECT_NAME>: <session topic in 5 words>
 
-## <target rule file path> → <section>
-<proposed improvement text, ready to paste>
+## <target rule file path> → <section name>
+
+**Problem:** <one sentence: what went wrong>
+**How it should be:** <one sentence: correct behavior>
+**Rule:** <2-3 sentences: the codified rule>
+**Concrete example:** <date or task name, file:line if applicable, what happened, why it was wrong, what right would have been>
 ```
 
-One md per session. Multiple improvements = multiple sections in the same file.
+One md per session. Multiple improvements = multiple 4-block sections in the same file. Headers, intros, rationale-prose above and below the 4 blocks: NOT permitted — if the rule needs more context than the 4 blocks provide, the rule is wrong-shaped, not the staging.
 
 **Mandatory when:** new empirical findings, process errors needing rule changes, architecture decisions, workflow improvements.
 

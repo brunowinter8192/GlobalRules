@@ -23,7 +23,6 @@ Write + Exec on a one-shot probe is pure waste — one extra tool call, one extr
 
 **`python3 -c`:** when the `-c` string exceeds 300 chars including escaping — switch to heredoc (or Write once iteration starts). Argument-level quote escaping in `-c` is worse than heredoc quoting for medium scripts.
 
-Concrete failure (2026-04-23): `sidecar_inspect.py` was a one-shot probe (one question: "which entries have `stripped_sidecar_content` in modifications?"). Created via Write, run via Bash, result read once, thrown away. Two tool calls for what a heredoc would have done in one. No iteration followed. Pure call-count waste. Justification at the time was "Faulheit" — 2 calls instead of 1 is not laziness, it is a concrete cost.
 
 ### 2. No Bash for file creation → Write tool
 
@@ -42,7 +41,6 @@ Concrete failure (2026-04-23): `sidecar_inspect.py` was a one-shot probe (one qu
 - Prefer the Grep tool over bash `grep -rn` for code search — safer defaults, structured results.
 - For one-off bash grep: add explicit file scope (`grep -n <pattern> <specific_file>`) rather than `-r` over a whole tree.
 
-Concrete failure (2026-04-19): `grep -rn "from queries import\|import queries" src/ dev/ workflow.py` without `--include` — `src/logs/` contained proxy JSONL with "queries" thousands of times. Output hit 75 MB. The Grep tool with `glob: "*.py"` returned the same information in milliseconds.
 
 ### 4. Context window hygiene — verbose output to file, not context (CRITICAL)
 
@@ -80,7 +78,6 @@ searxng-cli search_batch "query 1" "query 2" "query 3" "query 4"
 
 **The test before redirecting:** is the output mostly noise you'll grep through, or is it the data you'll evaluate as a whole? Noise → file. Data-as-whole → direct.
 
-**Anti-pattern observed (2026-05-06):** Ran `searxng-cli search_batch` with redirect to /tmp + 8 chunked sed/grep reads to inspect 60 URLs. Net cost: 9 tool calls, same total bytes ending up in context as one direct call would have produced. Plus tool-call orchestration overhead. The right move was foreground call (no `&`, no redirect) — search results are signal, not noise.
 
 - NEVER run `./venv/bin/python script.py` without `> /tmp/file.md 2>&1` (dev scripts are noisy)
 - NEVER run `cat` on a file that might be large — use `head`, `tail`, `grep`
@@ -97,7 +94,6 @@ When 2 tool calls in a row fail or don't deliver the desired result: **STOP IMME
 - After 2 failures: the answer is RESEARCH (Web/GitHub search, read source code, read docs), not RETRY
 - Same error in a different wrapper = same bug. After 2nd failure: analyze the error pattern, ask what the common denominator is.
 
-Concrete failure (2026-03-26): User asked 3× for needed sources. Response was more bash commands instead of naming concrete GitHub issues, tmux docs, or web searches to consult.
 
 ### 6. Never dispatch parallel Bash calls
 
@@ -109,7 +105,6 @@ Multiple Bash tool_use blocks in the same turn get serialized by the runtime —
 
 Applies to ALL Bash invocations, not just `ls` — git, grep, cat, worker-cli, anything. Other tools (Read, Write, Edit, Grep, Glob) can be dispatched in parallel safely; only Bash has this cancel behavior.
 
-Concrete failure (2026-04-22): worker proxy-strip-full dispatched 4 parallel `ls <path>` calls to probe the gitignored MCP schema directory. All but one were cancelled with `Cancelled: parallel tool call Bash(ls ...)`. Cost: 4× Bash input chars for 1 useful result.
 
 ### 7. Tool failure → immediate action (CRITICAL)
 
@@ -127,7 +122,6 @@ Tool call fails silently → do NOT continue with workaround or fallback without
 3. Can't fix it? (needs user credentials, hardware, manual step) → stop, explain what's needed
 4. NEVER: silently switch to plan B without disclosing plan A failed
 
-Concrete failure (2026-03-28): RAG `search` failed with "llama-server not found". Claude fell back to `read_document` silently and only mentioned the issue in results. User had to say "starte den server wenn er nicht läuft".
 
 ### 8. `<persisted-output>` blocks: grep the full file, never settle for the preview
 
@@ -155,11 +149,11 @@ The preview is bait. It suggests "this is everything you can see" and the natura
 
 **The mistake to avoid:** answering questions, drawing conclusions, or planning next steps from preview content alone. If preview content looks like it answers the question, that is coincidence — the full file may contain the actual answer or a different signal entirely.
 
-Concrete failure (2026-04-27): During the ham-bead audit review on Monitor_CC, three REQs (#66, #137, #145 of `api_requests_opus_monitor_cc_1777294641.jsonl`) contained `<persisted-output>` blocks. The preview was treated as the full output; the persisted files at `~/.claude/projects/.../tool-results/*.txt` were never grepped. User flagged: "anstatt dann alle infos zu holen die du brauchst stoppst du belässt es bei den preview infos. das entspricht aber nicht der wahrheit."
 
 **>100KB persisted: don't re-grep on the persisted file.** When an initial Bash call produces a persisted-output >100KB (typical with recursive grep over `~/.claude/` matching plugin cache + JSONL session files), a follow-up grep on the same persisted file with the same pattern produces almost the same size — persisted again, too large for Read. Don't drill down on the over-broad pattern. Instead: (a) tighten the pattern (what was too broad?), (b) narrow scope (which files explicitly?), (c) re-run with narrow scope from the start.
 
-Concrete failure (2026-04-28, RAG): `grep -rn "Always use the full absolute paths" ~/.claude/` matched in plugin cache (1.0.0 + 1.1.0) AND in JSONL session files for every prior session discussion of the quote → 137KB persisted. Attempted to open with Read: file too large. Re-grep on the persisted file with same pattern: another 137KB persisted. Re-run with `grep -n` on three explicitly named files brought the result in 5 seconds.
+**Don't chunk-read small persisted files.** When the persisted file is up to roughly 100 KB / ≤2000 lines, ONE Read call covers the whole content (Read's default limit is 2000 lines, raise via `limit=N` if needed). Reading in 100/200/rest chunks across three sequential Read tool_use blocks is pure overhead — three roundtrips, three tool_result payloads, for content that fits in one. Chunked reading is only justified for genuinely huge files (hundreds of MB, log archives) where a full Read would itself blow the context window. Decision rule before Read: estimate file size from the persisted-output header (`Output too large (NMB)`); if the size is under ~200 KB, read it all at once with `limit=` set generously, not in increments.
+
 
 ### 9. Read before Edit/Write — non-negotiable
 
@@ -171,7 +165,6 @@ The Edit and Write tools fail on files that haven't been read in the current ses
 
 The per-tool reference at the bottom of this file (Edit / Write sections) carries the same rule, but it gets overlooked because it lives in a reference table rather than the Hard Rules. This is a Hard Rule.
 
-Concrete failure (2026-04-28 aggregate of 10 sessions): 4 of 23 failures were Edit-without-Read on `DOCS.md` and `sources.md` files (sources.md once, DOCS.md three times across `src/proxy/`, `src/input/`, plus the same `src/proxy/DOCS.md` again in a later session).
 
 ### 10. Branch-name ambiguity in repos with same-named directories
 
@@ -190,7 +183,6 @@ Alternatives that also work:
 
 `workers-2` prescribes `git -C <project_root>/.claude/worktrees/<name> diff dev` for code review of worker branches. In a Monitor_CC-shaped repo (with `dev/` at root) this triggers the ambiguity error every time. Use `git -C <worktree> diff dev --` or `git -C <worktree> diff main` instead.
 
-Concrete failure (2026-04-28 aggregate): 4 of 23 failures were `git -C <worktree> diff dev` exiting 128 with the ambiguity error. Monitor_CC has a `dev/` directory at root.
 
 ### 11. Diagnostic Bash chains: `;` not `&&`
 
@@ -208,23 +200,40 @@ echo "=== refs ==="; grep X file; ls dir/; echo "=== done ==="
 
 Same principle: `2>/dev/null` swallows stderr but does NOT change exit codes — adding it does not save the chain.
 
-Concrete failure (2026-04-28 aggregate): ~4 of 23 failures were `&&`-chained diagnostic blocks (multi-`echo` headers around `grep` / `find` / `ls`) where a benign no-match exit-1 killed the chain. Output was half-rendered, the actual probe output never arrived.
 
-### 12. `sleep N && command` is runtime-blocked — use background timer
+### 12. `sleep` commands are forbidden — single narrow exception for Opus worker-polling (NON-NEGOTIABLE)
 
-CC's tool-use runtime blocks any Bash call of the form `sleep N && <command>` (or `sleep N; <command>`, or `sleep N && echo X && <command>`) and returns `<tool_use_error>Blocked: sleep N followed by: <command>`. The block fires before any sleep happens — there is no way around it inside a single Bash call.
+**Hard ban: any Bash tool call containing `sleep` is FORBIDDEN, with exactly one allowed form documented below.** Observed violation pattern: workers chain-spam `sleep 180 && echo done` → `sleep 60` → `sleep 30` → `sleep 60` → `sleep 180` waiting on their own internal long-running tasks. Each iteration burns 1-2% context for zero progress, pollutes the waste-pane, and indicates the underlying task is mis-architected.
 
-**Rule:** to wait and then act, split the wait from the action:
+**Workers: zero sleep, ever.** No polling own background tasks, no "let the system settle", no "wait for output to appear", no "give the GPU service a moment". If a worker's task takes longer than the 10-minute `Bash` tool timeout ceiling, restructure:
 
-1. Background timer: `Bash(command="sleep 120 && echo done", run_in_background=true)` — the bare `sleep N && echo done` form is allowed only as the entire backgrounded command, not chained with anything else.
-2. Wait for the completion message (the user's "Background command completed" notification arrives as a normal turn input).
-3. NEXT turn: run the actual check as a fresh foreground call (`worker-cli status <name> c`, `ps aux ...`, etc.).
+- Split into shorter Bash calls (e.g. 4 queries × separate Bash call instead of one 13-min batch)
+- Use foreground Bash with explicit `timeout=600000` (10-min max, the tool's hard ceiling)
+- Write incremental progress to `/tmp/<name>.log`, finalize after natural completion
+- Background-spawn + sleep-poll is the explicit anti-pattern — do NOT use it
 
-This is also the canonical worker-polling flow described in `opus-workers-2`. The block in tool-use exists to prevent foreground sleeps from stalling the API stream.
+The instinct "I just need to wait for X seconds and then check" is wrong. The right framing is: the work either completes within the foreground Bash call, or it gets restructured. There is no waiting.
 
-**Forbidden:** chaining `sleep` with any other command in the same Bash call, foreground OR backgrounded (except the literal `sleep N && echo done` background-timer form). The runtime blocks both directions.
+**Opus: one allowed form, narrow.** The single exception:
 
-Concrete failure (2026-04-28 aggregate): 2 of 23 failures were exactly this pattern (`sleep 60 && worker-cli status req-cascade-doc c`; `sleep 60 && echo "=== 60s post-restart ===" && ps aux | grep workflow ...`). The runtime block fires immediately, so the cost is the failed tool call plus a re-issue, but it pollutes the call history and breaks the polling flow.
+```
+Bash(command="sleep N && echo done", run_in_background=true)
+```
+
+- Exact form only, no variations, no additional chaining
+- Used by Opus to schedule the next status-check on a dispatched **worker** (not on Opus's own background scripts, not on Opus's own pipeline runs)
+- Single timer at a time (Background Task Discipline, Rule 6 / Rule 14)
+- The user receives "Background command completed" as a turn input, then Opus checks `worker-cli status` foreground in the next turn
+
+This is the canonical worker-polling flow (`opus-workers-2`). It exists because Opus needs to free the API stream while a worker runs in a separate tmux session. Workers themselves don't have this constraint — they can let foreground Bash run up to 10 min directly, no sleep needed.
+
+**Self-check before any Bash call** (mandatory): does the command contain the literal token `sleep`? If yes:
+
+- Worker context → DELETE the call, restructure the task per the bullet list above
+- Opus context → confirm ALL THREE: exact form `sleep N && echo done`, AND `run_in_background=true`, AND polling a worker (not Opus's own pipeline). Otherwise DELETE.
+
+**Runtime backstop:** CC's tool-use runtime already blocks `sleep N && <other_command>` (chained with anything other than `echo done`), returning `<tool_use_error>Blocked: sleep N followed by: <command>`. This is a hard backstop against the most common violation. The discipline rule above is stricter — it bans the pattern at the design level, before the runtime has to catch it.
+
 
 ### 13. Worktree path is `.claude/worktrees/` — never `.claire/`
 
@@ -234,11 +243,8 @@ The worktree directory in every project is `.claude/worktrees/<name>/`. There is
 
 **Detection:** if a tool call returns `<tool_use_error>File does not exist. Note: your current working directory is /Users/.../.claude/worktrees/<name>.` — the cwd is correct but the path argument has the typo. The fix is rewriting the file_path with `.claude/`.
 
-Concrete failure (2026-04-28 aggregate of 44 sessions): 7 of 66 failures (16% of the new-batch cluster, largest new pattern) had `.claire/worktrees/` in the tool input. Same-session counts: ttfb-fix worker had 96 occurrences of `.claire` against 126 of `.claude` — the model writes both forms inside one session. Affected tools: Edit (5×), Read (1×), Write (1×). Path examples: `.claire/worktrees/ttfb-fix/src/proxy_display/pane.py`, `.claire/worktrees/ctrl-r-heal/src/tmux_launcher.py`, `.claire/worktrees/tag-3audits/dev/tool_use_analysis/tag_presence_audit.py`.
-
 **Same-class typo: `..claude/...`** (two dots, no slash). Real paths have `..` only as `../` (relative parent traversal). Any path matching `\.\.[a-z]` (two consecutive dots immediately followed by a lowercase letter) is a typo with overwhelming probability — it is virtually never a valid path component.
 
-Concrete failure (2026-04-30): `Read .../.claude/worktrees/cmd2skill/..claude-plugin/plugin.json` — should have been `.claude-plugin/plugin.json`. Tool returned "File does not exist" but cwd-hint correctly pointed to the worktree, confirming the path-arg typo.
 
 ### 14. Background Bash is a deliberate choice, never a default
 
@@ -253,7 +259,6 @@ Setting `run_in_background=true` on a Bash tool call MUST be a conscious decisio
 - Anything you'll read the output of within the same response
 - "Just to be safe" / "in case it takes long"
 
-Concrete failure (2026-04-28, Monitor_CC session): three accidental background-bash spawns within one session — `grep -lrn "automated background" /Users/...` (foreground intent, ran as bg by default mistake) created a 113KB persisted-output cascade. Output was needed inline. Result: 2 extra tool calls to retrieve the persisted file content + context pollution from `<persisted-output>` blocks in subsequent REQs.
 
 ### 15. zsh-Quoting bei wiederholten Pfad-Aufrufen
 
@@ -265,7 +270,6 @@ bash splittet `$VAR` mit Whitespace beim Erweitern in Argumente. zsh **nicht** �
 2. **Two-Variable-Split:** `PY=/full/python; CLI=/full/cli.py; $PY $CLI ...` — jede Variable enthält genau einen Pfad ohne Whitespace.
 3. **Wrapper-Script in `~/.local/bin/`:** Ein 3-Zeilen-Bash-Wrapper (`#!/usr/bin/env bash` + `exec /full/python /full/cli.py "$@"`), `chmod +x`, dann nur noch `cmd-name search ...`. Pattern bei rag-cli, gh-cli, reddit-cli, arxiv-cli.
 
-Concrete failure (2026-04-28, RAG arxiv-Search): `A="/Users/.../python /Users/.../cli.py"` als Variable, `$A search ...` produzierte `(eval):2: no such file or directory: /Users/.../python /Users/.../cli.py` für jede der fünf Queries silent. Re-Run mit Two-Variable-Split funktionierte. Aufwand: eine wasted Iteration plus Erkenntnis dass arxiv-Plugin keinen Wrapper hatte.
 
 ### 16. cd-Drift across Bash-Tool-Calls
 
@@ -273,7 +277,6 @@ Bash-Tool-Calls in einer Session teilen die cwd. Ein `cd /target` in Call N änd
 
 **Rule:** wenn ein Bash-Call `cd "$WORKTREE"` oder ähnlichen Direktwechsel enthält, MUSS der letzte Schritt im selben Call zurück in die main cwd cd'en (`cd /full/main/repo/path` am Ende). Alternativ: durchgängig `git -C <path>` und absolute Pfade, ohne überhaupt zu cd'en.
 
-Concrete failure (2026-04-28, RAG-Session): beim Phase-4-Diff-Review eines Worktrees `cd "$WORKTREE" && grep ...` gemacht. Subsequent Calls liefen aus dem Worktree und produzierten irreführende Befunde (`ls dev/retrieval/A_retrieval_eval_reports/*20260428*` zeigte "no matches", weil der Worktree die heute-Reports natürlich nicht hat — die liegen im Main-Working-Tree). Hätte `cd /Users/.../RAG` als letzter Step im selben Call sofort gefixed.
 
 ---
 
@@ -452,10 +455,10 @@ If all sections are `(none)` → nothing to commit, skip.
 |---|---|---|
 | Commit (inside repo/worktree cwd) | `gc "<message>"` | Wrapper: stages tracked modifications + commits. Add filenames as extra args to stage specific files. |
 | Commit (explicit path) | `git -C <repo_path> commit -am "<message>"` | Use when cwd is outside target repo. `-am` stages tracked mods. For untracked: `git -C <path> add <files> && git -C <path> commit -m "<msg>"`. |
-| Push | `git -C <repo_path> push` | Falls back to `-u origin <branch>` if no upstream |
-| Push with upstream | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For first push on new branch |
+| Push (NON-plugin repo) | `git -C <repo_path> push` | Falls back to `-u origin <branch>` if no upstream. **Use `plugin-publish` if `.claude-plugin/plugin.json` exists.** |
+| Push with upstream (NON-plugin repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For first push on new branch. |
 | Post-commit check | `git -C <repo_path> status --short` | Empty output = clean working tree. `.beads/` entries can be treated as clean. |
-| Plugin sync | `~/.claude/plugins/cache/brunowinter-plugins/iterative-dev/1.0.0/plugin-sync.sh <name> <repo_path>` | Plugin repos only (`.claude-plugin/plugin.json` must exist). Restart session after sync. |
+| Push (PLUGIN repo) — replaces `git push` | `cd <plugin-source-repo> && plugin-publish` | One-step: git push + cache-sync + version-bump + MCP-server-restart. **Always use this for any repo with `.claude-plugin/plugin.json`.** Never plain `git push` on a plugin repo — cache stays stale. See `situational/plugins.md`. |
 
 ##### Commit Flow
 
@@ -464,8 +467,9 @@ When user asks to commit:
 1. **Check + Stage** — `git-check [repo_path]`
 2. **Commit** — `gc "<message>"` (if cwd inside repo) OR `git -C <repo> commit -am "<message>"` (explicit path)
 3. **Post-check** — `git -C <repo> status --short` → empty = proceed; non-empty with non-`.beads/` paths → stage + commit again
-4. **Push** — `git -C <repo> push` (retry with `-u origin <branch>` on first push)
-5. **Plugin-sync** (if plugin repo) — run AFTER push
+4. **Push** — first check: does `<repo>/.claude-plugin/plugin.json` exist?
+   - **YES (plugin repo):** `cd <repo> && plugin-publish` — does git push + cache-sync + version-bump + MCP-restart. NEVER `git push` here, the cache would stay stale.
+   - **NO (regular repo):** `git -C <repo> push` (retry with `-u origin <branch>` on first push).
 
 ##### Commit Message Format
 
@@ -502,7 +506,7 @@ HEREDOC for routine fixes is waste. Single-line `-m` is the default.
 
 When committing multiple repos (e.g., project + plugin source):
 - Run the full flow for each repo sequentially
-- Plugin-sync the plugin repo AFTER its push
+- Plugin repos: use `plugin-publish` instead of `git push` (handles cache + restart automatically)
 
 ##### Rules (Safety Protocol)
 
@@ -513,6 +517,60 @@ When committing multiple repos (e.g., project + plugin source):
 - NEVER create empty commits
 - If push fails → report error, do NOT retry
 - Commit only when user explicitly asks
+
+#### RAG CLI
+
+Indexed-document search and lookup. All RAG operations via `rag-cli` (`~/.local/bin/rag-cli`).
+
+| Operation | Command |
+|---|---|
+| List collections | `rag-cli list_collections [--filter PATTERN]` |
+| List documents | `rag-cli list_documents <collection> [--document PATTERN] [--filter PATTERN]` |
+| Search dense | `rag-cli search <query> <collection> [--top-k N] [--document PATTERN]` |
+| Search hybrid | `rag-cli search_hybrid <query> <collection> [--top-k N] [--no-rerank]` |
+| Search BM25 | `rag-cli search_keyword <query> <collection> [--top-k N] [--document PATTERN]` |
+| Read context | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
+| Delete | `rag-cli delete --collection <name> [--document <doc>]` |
+| Server preset | `rag-cli server {status\|list\|start\|stop\|restart} [name]` |
+| Server arbitrary | `rag-cli server start --model PATH --port N --mode {embedding\|rerank} [--name LABEL]` |
+| Server by port | `rag-cli server {stop\|restart} --port N` |
+
+##### Rules
+
+- NEVER start `llama-server` oder splade direkt. `rag-cli server start <preset>` oder arbitrary-start verwenden.
+- NEVER GPU-Prozesse außerhalb `rag-cli` killen. `rag-cli server stop <preset>` oder `stop --port N` verwenden.
+- Direkt search-Befehl absetzen, kein vorheriges `rag-cli server start` nötig.
+- Bei persisted-output: File komplett in EINEM Read-Call lesen, kein offset/limit Chunking.
+- Indexierte Collections in `data/documents/<collection>/` → rag-cli. Lokale Source-Files → Read-Tool, nicht rag-cli.
+
+##### RAG: Multi-Model Awareness
+
+The RAG box exposes multiple model variants per class (embedding, reranker) plus splade. The full preset list is dynamic — never assume the legacy names (`embedding`, `reranker`, `splade`) cover everything; they are prefixes.
+
+Discovery:
+
+```bash
+rag-cli server presets         # human-readable list of all configured presets
+rag-cli server presets --json  # JSON for scripts
+rag-cli server status          # which preset(s) running + health
+rag-cli server list            # all running servers + idle countdown
+```
+
+`rag-cli server presets` shows: name, mode (embedding/rerank/splade), model_path, default_port, and a `default` flag (true = used by `rag-cli server start` without a name + by `ensure_ready` for search/index workflows).
+
+Switching a variant:
+
+```bash
+rag-cli server stop embedding-8b
+rag-cli server start embedding-0.6b
+```
+
+Client-side `find_server_url("embedding")` does a prefix-match across all running servers — `embedding-0.6b` will then serve search requests until you switch back. Same for `reranker`. Splade has only one variant.
+
+Anti-patterns:
+- Assuming `embedding` / `reranker` / `splade` are the only valid preset names — they're prefixes. Use `rag-cli server presets` to see the full list.
+- Hardcoding preset names in downstream scripts. Always pull from `rag-cli server presets --json`.
+- Calling `start_arbitrary` to launch a known model variant — that bypasses preset config. Use `rag-cli server start <name>` instead.
 
 ### Grep
 - **Brace escaping:** literal braces must be escaped — use `interface\{\}` to find `interface{}` in Go code. Without escaping, the pattern silently matches nothing.

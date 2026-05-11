@@ -11,8 +11,6 @@ Multi-engine smoke runs cause severe memory pressure on the shared-Chrome archit
 3. If multiple workers must remain alive: cap engine count at 3 (Google + DDG + Mojeek), or split the run into 2 batches.
 4. Watch Activity Monitor / `vm_stat` during the run. Spike >50% used memory → abort, restart the smoke after killing background workers.
 
-Concrete failure (2026-05-03, end of session): 4-engine smoke triggered Ghostty memory display "5TB working memory" (kernel virtual memory pressure). OOM-killer terminated tmux server → all worker sessions died. Lobsters worker had not yet committed any work — entire Phase A lost.
-
 ## Engine-Name vs Backend Verification
 
 searxng's engine modules wrap diverse backends — module name is NOT a reliable indicator of the underlying API/scrape strategy. Before claiming "engine X provides a different implementation than Y" within the searxng-engine landscape, READ the source of X. Examples of name-vs-backend mismatch:
@@ -22,5 +20,3 @@ searxng's engine modules wrap diverse backends — module name is NOT a reliable
 - A `mojeek.py` module might use the official Mojeek API instead of scraping
 
 **Rule:** before proposing a searxng engine as alternative implementation strategy: one file read (`gh-cli get_file_content searxng searxng searx/engines/<name>.py`, `cat`, or `grep -l <api_endpoint>`) verifies the backend. Without this, the claim is speculation.
-
-Concrete failure (2026-05-03): proposed `searxng/hackernews.py` as scrape-based alternative to the Algolia-API-based HN engine that had been dropped. Claim was based on assumption from the module name. User pushback: "hatten wir nicht diesen HN schon probiert und die API war nicht free tier freundlich?" Verification revealed `hackernews.py` ALSO uses `hn.algolia.com/api/v1` — same backend, same free-tier limits. Claim retracted.

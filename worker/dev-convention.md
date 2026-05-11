@@ -32,8 +32,6 @@ Three different activities get easily mixed in debugging — this rule separates
 
 **Worker consequence:** when forensics or one-shot assertion is needed, the worker builds the script in the worktree (not staged on merge — explicitly do not stage) or under `/tmp/`. When a one-shot assertion becomes a permanent regression guard, the test case is folded into an EXISTING `test_*.py` in `dev/` — no new file per fix.
 
-Concrete failure (2026-04-21, Monitor_CC Proxy-Hover-Session): worker built `verify_strip_pair.py`, `verify_tab_expand.py`, `verify_tab_expand_all.py` — three one-shot fix verifiers in `dev/display/`. Under the new convention these belong in worktree or `/tmp/` — the permanent value (stripped-msg pair assertion) was folded into `test_hover_map.py`, the individual files deleted.
-
 ## Structure
 
 ```

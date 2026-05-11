@@ -98,8 +98,6 @@ LOC thresholds are HEURISTICS for flagging split candidates, not magic numbers t
 
 Worker prompts that include LOC targets must phrase them as "heuristic / guideline — not law" and explicitly permit "leave at N+ε if no structural split exists" as an acceptable outcome.
 
-Concrete failure (2026-04-15): Refactor worker proposed trimming 4 blank lines from `engine_selectors.py` (202 LOC) to hit 198. No structural argument — just cosmetic. Caught at plan review.
-
 ## Import Convention
 
 - Prefer absolute imports (`from src.module.submodule import name`)

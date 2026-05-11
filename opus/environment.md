@@ -38,8 +38,3 @@ Run this in Claude's Bash tool (not your interactive shell) to see what's actual
 PATH. Pick a location from that list. If nothing user-writeable is listed, `~/.local/bin`
 is the default — create the dir if missing.
 
-Concrete failure (2026-04-15): Placed 4 research plugin wrappers in `~/bin/` with
-`export PATH="$HOME/bin:$PATH"` appended to `~/.zshrc`. User's interactive shell picked
-it up; Claude's Bash tool did not (no `.zshrc` sourcing in non-interactive mode). Second
-migration to `~/.local/bin/` required — including `mv` 4 files, revert `.zshrc` export,
-`rmdir ~/bin`. Option C (`~/.local/bin` from the start) would have been one step.

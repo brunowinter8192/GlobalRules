@@ -3,7 +3,13 @@
 
 These rules apply to every worker session. Run the Pre-Edit Check to determine your mode.
 
-## 1. Worktree Isolation
+## 1. Code Investigation — Docs + decisions via RAG
+
+Bei jeder Frage zur Beschaffenheit des Codes — warum ist X so, ist Y verifiziert, was war die Wahl-Begründung, wie wird Z verwendet — zuerst `rag-cli search_hybrid "<query>" <Project>-meta` absetzen. Die Meta-Collection indexiert DOCS.md (auch unter dev/), decisions/, CLAUDE.md. Wenn der Context existiert, findet RAG ihn. Code-Read kommt danach für Detail.
+
+**Commit-Logs sind keine Evidenz-Quelle und werden NICHT für Wahl-Begründungen, Verifikations-Aussagen oder historische Inferenzen herangezogen.** Sie sind absichtlich kurz gehalten — dokumentieren Was, nicht Warum. Alle Info zu Wahl + Begründung + Verifikation lebt ausschließlich in DOCS.md + decisions/. Wenn dort nichts steht: Aussage ist "nicht dokumentiert / unverifiziert", nicht "im git log nachschauen".
+
+## 2. Worktree Isolation
 
 ### Pre-Edit Check (ONCE, before your first file edit)
 
@@ -46,9 +52,7 @@ Worktrees contain symlinked dependency directories (`venv`, `.venv`, `node_modul
 
 **Rule:** NEVER `git add` or commit: `venv/`, `.venv/`, `node_modules/`, or any dependency directory. Even if `git status` shows them as untracked.
 
-Concrete failure (2026-04-03): dev-reorg worker committed `venv` symlink from worktree. After merge, project's venv became a circular symlink pointing to itself. Had to recreate venv from scratch.
-
-## 2. Completion Checklist (MANDATORY)
+## 3. Completion Checklist (MANDATORY)
 
 Your worker prompt includes a **Completion Checklist** section — task-specific verification items defined by the orchestrator.
 
@@ -98,9 +102,7 @@ When a script, run, or tool produces unexpected output — empty results, parse 
 
 **Exception:** The Completion Checklist step "spot-check one query by hand" is explicit verification, not debugging. Debug = you hit something you didn't expect. Spot-check = you validate what you built.
 
-Concrete failure (2026-04-16, engines-rca smoke run): Worker's script hit `div.g` count = 0 for Query 1. Worker wrote `/tmp/debug_google.py`, diagnosed a consent-banner issue, edited the main script to handle it, restarted the run — all autonomously. User had to interrupt manually. A single STOP + report would have let Opus evaluate whether the whole session direction was still valid.
-
-## 3. Implementation Rules
+## 4. Implementation Rules
 
 ### Execution
 
@@ -123,8 +125,6 @@ When a script you wrote runs successfully and produces correct output: **STOP**.
 
 The signal "the script ran, the output is correct" → next action is COMMIT, not polish. A script that has been edited to trim 4-character comments down to 3-character comments is wasting context budget on no behavioral change. Once functional, capture-and-commit; let format-pedantry happen in a follow-up if needed.
 
-Concrete failure (2026-05-04, snippet_quality_analysis worker): script ran clean at commit 4f6e012, then the worker spent ~5 minutes on a comment-trim loop (one tiny Edit at a time, e.g. "Parse smoke report, compute all metrics, write markdown report" → "Parse smoke report, compute metrics, write report"). Caused a context drop from 57% → 22% with no functional benefit, plus an Opus redirect to stop the polishing.
-
 ### Verification Before Commit
 
 Before your final commit, verify your work:
@@ -143,7 +143,7 @@ Before your final commit, verify your work:
 - Do NOT run the MCP server or make MCP tool calls (you don't have the Chrome session)
 - Do NOT run `bd` commands (bead CLI) — worktrees copy `.beads/` state, and bd operations corrupt the main repo's bead data
 - Do NOT create beads (via MCP tools or CLI) — not in RECAP, not during work, not ever. Beads are the parent session's (Opus) responsibility. Only create beads if the user EXPLICITLY instructs you to
-- Do NOT create README.md or DOCS.md files unless explicitly instructed in the worker prompt — by default, documentation is the parent session's responsibility (Opus glue work)
+- Do NOT create README.md or DOCS.md files during Phase B (task implementation) unless explicitly instructed in the worker prompt — documentation creation is Opus glue work. **EXCEPTION:** during Worker Recap (§ 6), you UPDATE existing DOCS.md for files you touched, and may CREATE a new DOCS.md in narrow conditions (new multi-module package without one). The recap-mode exception is mandatory; the Phase-B default remains "no docs unless asked".
 
 ### File-Move Checklist
 
@@ -155,4 +155,111 @@ When your task involves moving files to a new subdirectory, every move requires 
 4. **Grep verification:** `grep -rn 'from \.\|from \.\.' <affected_subdirs> | grep <moved_module_name>` — confirms every reference resolved correctly.
 5. **Smoke test:** run the entry-point or a targeted import check (`python -c "import <top_level_package>"`) — must NOT raise ModuleNotFoundError.
 
-Concrete failure (2026-04-20, panes-refactor): Worker moved 4 pane files to src/panes/. Smoke-test crashed with `ModuleNotFoundError: No module named 'src.token_pane'`. Root cause: lazy `from . import monitor as _monitor` inside run-functions was not updated — the dot resolved to `src.panes` after the move instead of `src`. Worker missed it; Opus had to send a correction in a follow-up commit.
+## 5. Architectural Alternatives Belong in dev/
+
+When a worker prompt asks for an architectural alternative — library swap (httpx vs pydoll, requests vs httpx), engine rewrite (browser → HTTP, sync → async), technique replacement, or alternative-implementation evaluation — the implementation MUST live in `dev/` as a probe, NOT modify `src/` directly. This mirrors `~/.claude/shared-rules/global/documentation.md` "dev/ vs src/ for Exploratory Rewrites" but acts as a defensive layer at the worker side.
+
+**Trigger phrases that mean "dev/ probe, not src/ surgery":**
+- "rewrite X using Y" (where Y is a different library/technique than current)
+- "migrate X from A to B"
+- "swap library Z"
+- "implement alternative architecture"
+- "test if approach W works for X"
+
+**Required worker behavior on these prompts:**
+
+1. Phase A FIRST step: re-read the prompt and confirm whether `src/` is supposed to be touched or whether this is an exploratory probe. If unclear, ASK Opus before reading any source files.
+2. If the prompt explicitly says "modify src/X.py" but does NOT include an empirical convergence claim ("evidence shows the new approach solves the production problem"), flag this back to Opus: "Should this be a dev/ probe instead? The current rule (documentation.md) says architectural alternatives stay in dev/ until evidence converges."
+3. Only proceed with src/ edits when Opus confirms the dispatch is intentional (existing fix, not architectural exploration) OR when the prompt explicitly cites convergence evidence.
+
+**Why the defensive layer:** Opus may dispatch a src/-modifying prompt for an architectural alternative without realizing the rule applies (happened 2026-05-08 with the searxng Scholar HTTP migration — went directly into src/, smoke showed incomplete fix, work was discarded but the empirical proof would have been preserved had it lived in dev/). The worker-side check catches the dispatch before the wasted work begins.
+
+## 6. Worker Recap (MANDATORY when triggered)
+
+When Opus sends `recap` or `mach recap` after task completion: STOP all other work and execute the recap pass below. Recap produces ONE additional commit on your branch with all drift-correction edits.
+
+**Scope:** YOUR task. Files you touched in Phase B (and any follow-up tasks Opus dispatched), the docs that describe them, the Phase A/B discussion trail with Opus. NOT session-wide concerns (beads, RAG sync, other workers' changes, rule files in `~/.claude/shared-rules/` — those are Opus's responsibility).
+
+**Why recap exists:** you have intimate context about WHAT you changed. Opus operates at higher altitude and misses per-task details — LOC drift after a code edit, DOCS.md call-graph changes, decisions/ symbol citations that became stale, design discussion that should land in OldThemes. Per-task recap catches drift at the source.
+
+### Step 1 — Self-Audit
+
+```bash
+git -C <worktree> diff dev --name-only --
+```
+
+This is your touched-file inventory for the recap.
+
+### Step 2 — DOCS.md Sync
+
+For each `src/` file you touched: check the corresponding `<package>/DOCS.md`. UPDATE in the recap commit if any of these are now inconsistent with the file as you left it:
+- LOC count of the module (run `wc -l <module>` to verify against DOCS.md heading)
+- Called-by listing (new caller? caller removed?)
+- Calls-out listing (new external dependency? dependency removed?)
+- State surface (new module-level mutable state? state removed?)
+- Gotchas (new landmine your change introduced? old landmine you fixed?)
+
+CREATE a new `DOCS.md` only when you ADDED a new module to a package without one, and the package now has multiple modules. Single-file packages stay documented in parent DOCS.md per the global documentation rules.
+
+### Step 3 — decisions/ IST Consistency
+
+If you edited `decisions/<file>.md` IST sections during your task: spot-grep `src/` for each named function / constant / path you added or preserved. If a symbol you cited isn't in `src/`, you introduced stale-ref drift. Fix the citation in the recap commit.
+
+Prefer "symbol primary, path in parens" form per `~/.claude/shared-rules/global/documentation.md` § Path & Symbol References.
+
+### Step 4 — Discussion-Trail Persistence
+
+If your Phase A/B had substantial back-and-forth with Opus — alternatives evaluated, edge-cases triaged, design decisions discussed, multiple Q&A rounds on the same topic — extract that discussion to `decisions/OldThemes/<topic>/<task_or_date>.md`. The conversation history is otherwise lost on session end.
+
+"Substantial" = more than one round of Q&A on the same topic. Single edge-case clarifications don't need persistence.
+
+### Step 5 — Drift Check
+
+```bash
+docs-drift-check
+```
+
+Run from worktree root. Report in the recap output:
+- Pre-task drift count (note this BEFORE your first edit if you didn't already)
+- Post-recap drift count
+- Any NEW findings introduced by your task — if non-zero, fix in the recap commit
+
+### Step 6 — Commit + Report
+
+Commit ALL recap edits as ONE commit:
+
+```
+docs: recap for <task name>
+```
+
+Output the recap report (after committing, before going idle):
+
+```
+RECAP REPORT:
+- Touched files (task commits): <list>
+- DOCS.md updates: <list or "none">
+- decisions/ IST corrections: <list or "none">
+- OldThemes extracts: <list or "none">
+- Drift count: pre <X> → post <Y>
+- Recap commit SHA: <hash>
+```
+
+### What does NOT belong in worker recap
+
+- Bead operations (create / comment / close) — Opus's responsibility
+- RAG sync (`rag-cli update_docs`) — Opus's responsibility
+- Cross-worker changes (other workers' commits) — Opus's responsibility
+- Rule files in `~/.claude/shared-rules/` — Opus's responsibility (cache-bruch territory)
+- Code-issues beyond docs — beyond recap scope; flag in the report, do NOT fix
+
+Recap is doc-hygiene + decision-IST + OldThemes persistence for what YOU touched. Nothing else.
+
+### When the trigger arrives but recap can't fit
+
+If Opus sends `recap` and you genuinely cannot complete it (context too tight, blocked on a tool issue, unclear scope), output:
+
+```
+RECAP SKIPPED: <reason>
+```
+
+Then go idle. Opus's session-end Recap will absorb the drift cleanup. Do NOT half-commit a partial recap.

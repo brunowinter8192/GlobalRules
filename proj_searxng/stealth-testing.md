@@ -24,8 +24,6 @@ Shared-NAT contexts (public library, coworking, university, coffeeshop) carry tw
 
 When context is shared-NAT: either defer volume-heavy tests to a non-shared context, OR proceed with explicit user acknowledgment that baseline is noisy and other users are affected.
 
-Concrete failure (2026-04-22): ran 4 back-to-back 30-query Google stress-tests from a public library WLAN. Library context only mentioned by user mid-session during Layer-5 mitigation discussion. The 4×30 batch put the library NAT-exit-IP into Google's `/sorry/` reCAPTCHA state — other library users doing unrelated Google searches got CAPTCHAs because of our test. Baseline data also noise-contaminated. Context-awareness should come BEFORE the first stress-run, not after the 4th.
-
 ## Single-Variable Testing Protocol
 
 ### Per Test Run
