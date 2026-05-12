@@ -1,14 +1,6 @@
 # Workers
 
-**Available commands — all via the `worker-cli` wrapper (`~/.local/bin/worker-cli`):**
-
-| Command | Params | Notes |
-|---|---|---|
-| `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` | model defaults to `sonnet`. Worktree on by default. | Handles: worktree create, settings copy, venv symlink, tmux spawn, Ghostty. |
-| `worker-cli send <name> <message> [project_path]` | — | Only send when worker is idle. Check status first. |
-| `worker-cli list / status / capture / response / merge / kill` | see `Skill(skill="worker-cli")` | Worker lifecycle ops. |
-
-`response` returns clean text from the session JSONL (preferred for reading idle workers). `capture` dumps the raw tmux pane (use only when inspecting permission dialogs or the bot's current UI state).
+See `global/tool-use.md` § Worker CLI for full command reference.
 
 ## Core Rules
 
@@ -64,8 +56,7 @@ Each turn has ONE Bash slot and unlimited non-Bash slots (Read, Edit, Write, Gre
 
 **Investigation, follow-up, verification all count as chainable same-turn actions.** `worker-cli response`/`status`, `grep` on an identified pattern, `rag-cli` verify, post-merge tests, diff review, bead comment, file delete — these are NEVER next-turn material when current Bash budget is available. They chain into the current Bash.
 
-**The conversation buffer is NOT a reliable task stack.** A verbal "I'll do X next turn" gets overwritten by new user direction in the immediate next turn. Observed failure mode (this codebase, 2026-05-10 session): "delete in next turn" → 4 turns later still not deleted, user must explicitly remind. Same pattern repeated multiple times in one session even after this rule existed in a weaker form.
-
+**The conversation buffer is NOT a reliable task stack.** A verbal "I'll do X next turn" gets overwritten by new user direction in the immediate next turn.
 **The user shares responsibility for catching slips. Opus is responsible for ensuring every action is either chained NOW or anchored as a concrete next-turn first-action — never a vague promise.**
 
 **Self-test before sending every response:** Scan the composed response for any verbal-deferral phrase. For each match: could this action chain into the current Bash call? If yes → STOP, rewrite, chain. If no → state the explicit tool-constraint reason AND the exact next-turn command (example: ✗ "I'll set the timer next turn", ✓ "**Next-turn first action:** `Bash sleep 300 && echo done [run_in_background=true]`"). No exceptions.
@@ -185,12 +176,6 @@ Paths covered by `<Project>-meta` and `<Project>-features` (configured in `.rag-
 
 If the self-check fails: STOP, run the search, expand if needed, only then escalate.
 
-**Concrete violation pattern (from this session, do NOT repeat):**
-
-Opus searched `<Project>-meta` for "eval suite parameters", got hits from `dev/retrieval/DOCS.md` and `decisions/eval01_methodology.md`. Then proceeded to `cat decisions/eval01_methodology.md`, `cat decisions/retrieval03_fusion.md`, `cat decisions/retrieval04_reranking.md`, `cat decisions/OldThemes/eval_suite/*.md` — all indexed paths, all reachable via `search_hybrid` + `read_document`. Wrong query in step 1 (too narrow) is fixed by step 2 (reformulate), not by abandoning RAG and falling back to `cat`.
-
-The cost of one wrong-query → `cat` cascade in this session: roughly 5-10× the tokens of the correct RAG flow, plus pollution of context with irrelevant sections of the full file.
-
 **Present status quo to user:**
 - Which files/components are affected
 - Current state (IST) and why it matters
@@ -283,7 +268,7 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 
 1. Write prompt to `/tmp/spawn-worker-<project>-<name>.md`
 2. `worker_spawn(name, prompt_file, project_path, model, worktree)`
-3. IMMEDIATELY set background timer: `Bash(command="sleep N && echo 'check'", run_in_background=true)`. **Max N = 300 seconds (5 minutes). Never longer.** Timer exists to prompt Opus to CHECK STATUS — there is no completion hook reading the `/tmp/worker-<name>.done` files (the file is written on session exit but no PostToolUse hook is configured to detect it; active polling is required). Shorter polling = responsive orchestration. Long timers hide state transitions (stuck permission dialogs, early completion, blockers). If worker is still `working` at 5min → set another 5min timer.
+3. IMMEDIATELY set background timer: `Bash(command="sleep N && echo 'check'", run_in_background=true)`. See workers-2.md § Timer & Polling Flow for canonical timer defaults.
 4. **Sequential spawn for cache-sharing:** When spawning multiple workers of the same model family (both Sonnet), dispatch them SEQUENTIALLY in separate response turns — not parallel in the same tool-call block. Worker 2's REQ#1 can only inherit cache from Worker 1 if Worker 1's first request completed before Worker 2's spawned.
 
 ### Prompt Structure

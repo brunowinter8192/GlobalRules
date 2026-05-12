@@ -33,8 +33,7 @@ A Bead is a **lean entry-point**. It tells **what the topic is** and **which sou
 - RAG `<Project>_reference` collection — external papers / GitHub / Reddit
 - Plan-File at `.claude/plans/<topic>.md` — current iteration's working notes (transient)
 
-The Bead points; the sources hold the substance. RAG-search on `<Project>-features` (OldThemes), `<Project>-meta` (decisions/DOCS/CLAUDE/sources), `<Project>_reference` (papers) is the resume mechanism. See `~/.claude/shared-rules/global/tool-use.md` § "RAG-features: Bead Resume".
-
+The Bead points; the sources hold the substance. RAG-search on `<Project>-features` (OldThemes), `<Project>-meta` (decisions/DOCS/CLAUDE/sources), `<Project>_reference` (papers) is the resume mechanism.
 ## Bead Format
 
 ```

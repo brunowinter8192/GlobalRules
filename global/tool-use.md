@@ -377,7 +377,7 @@ All worker lifecycle operations via `~/.local/bin/worker-cli`.
 | Send message to running worker | `worker-cli send <name> <message>` |
 | Merge worker branch | `worker-cli merge <name>` |
 | Kill worker | `worker-cli kill <name>` |
-| Spawn worker in worktree | `worker-cli spawn <name> <prompt_file> <project_path> [model]` |
+| Spawn worker in worktree | `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` |
 
 `worker-cli response <name>` is the default for reading idle workers — returns clean text from session JSONL (~200-2000 chars, no UI trailers or prompt echo). `worker-cli capture <name>` + `tail` + `sed`-filter is the fallback when `response` misses context (rare — Phase-A partial-report situations). Capture dumps 2-5k chars of CC UI + prompt echo.
 

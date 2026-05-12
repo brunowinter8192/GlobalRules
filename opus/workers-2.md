@@ -77,8 +77,6 @@ Canonical flow, in this order, nothing else in between:
 
 **No manual cat on timer output files.** `/private/tmp/claude-501/.../tasks/*.output` is checked by the until-loop wait-condition. Reading it manually between polls returns zero new information and wastes a Bash call.
 
-Cross-ref: `Monitor_CC/decisions/OldThemes/background_task_abort_cascade.md` has the full forensic + billing analysis of the mechanism, with case-1 evidence from session 1776977437.
-
 **Post-Spawn-Ack — No Thinking, No Speculation:**
 
 After spawning a `Bash(run_in_background=true)` timer, the next response is an acknowledgment-only single-line ("Timer läuft, ich warte." or equivalent). No reasoning about expected worker outputs, no orchestration planning in that turn.
@@ -87,7 +85,7 @@ Positive framing: when a worker returns results, think deeply about it. When sta
 
 Broader principle: while ANY worker is `working`, no speculation about expected outputs in any context (visible response or thinking). Speculation = pre-thinking what a worker will produce, which (a) biases later evaluation of the actual report (cross-model verification requires independence), (b) consumes thinking budget that's invalidated when real output arrives, (c) extends post-spawn streams = abort-cascade risk window.
 
-**Structural enforcement on top of the disciplinary rule:** A proxy-side rule auto-overrides `thinking.type=disabled` on REQs immediately following `Bash(run_in_background=true)` with `sleep` command. Bead `Monitor_CC-xo9` tracks implementation. Once active, the prompt rule above is the default discipline; the proxy override is the deterministic backup-cap that catches lapses.
+**Structural enforcement on top of the disciplinary rule:** A proxy-side rule auto-overrides `thinking.type=disabled` on REQs immediately following `Bash(run_in_background=true)` with `sleep` command. Once active, the prompt rule above is the default discipline; the proxy override is the deterministic backup-cap that catches lapses.
 
 
 **Worker idle ≠ task complete.** `worker-cli status idle` only reflects tmux pane activity (10s window_activity threshold). When the worker spawned its OWN background sleep (e.g. `sleep 480 && echo done` to wait for an internal smoke run), tmux activity goes quiet → status reports idle → Opus thinks the user-visible task is done. Reality: worker is mid-task in its own sleep loop. Always read the LAST CONCRETE MESSAGE from `worker-cli response` before declaring a phase complete. If it references "waiting for sleep" / "on track for N min" / "background smoke running" — worker is NOT done. Either wait longer than the worker's internal timer, or `worker-cli send` with a wake message to force the next step.
@@ -203,8 +201,6 @@ When code review finds an issue: **ask the worker what they think** before presc
 **Trigger:** Opus sends `worker_send <name> "recap"` (or `"mach recap"`) after one or more task-cycles completed and reviewed clean. Worker performs the recap pass per `~/.claude/shared-rules/worker/worker-rules.md` § 6 — one additional commit on the worker's branch covering DOCS.md sync, decisions/ IST consistency, and OldThemes persistence for what THEY touched.
 
 **Why this phase exists:** Workers have intimate context about their own changes. Opus's session-end Recap operates at higher altitude and misses per-task details — LOC drift after a code edit, DOCS.md call-graph changes, decisions/ symbol citations that became stale, Phase A/B discussion trail. Per-task worker recap catches drift at the source.
-
-**Session 2026-05-11 evidence (the trigger for this rule):** `pipe-ist-cleanup` worker declared 18 remaining items as "legitimate current-IST or false-positives" — accepted at diff-review. Subsequent cross-verification showed 14 of those 18 were stale refs (deleted functions still cited as if existing). A per-task recap step with "spot-grep `src/` for each named symbol you cited" would have caught it immediately. Opus session-end Recap operates too coarsely to catch claim-level drift.
 
 **Opus discretion on timing:** Recap doesn't fire automatically after every Phase 4. After Phase 4 Review completes clean, Opus decides:
 - Worker has clean diff + no further task in mind → send `recap`, then Phase 6 Merge.

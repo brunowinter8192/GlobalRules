@@ -113,24 +113,3 @@ reconnect the thread, the text is too compressed. If they have to
 decode a table of four columns and three rows to extract a decision,
 the text is too structured. The fix in both cases is the same: rewrite
 as connected sentences.
-
-## Concrete Failure
-
-Session 2026-04-23, Monitor_CC delta-leak-sus planning. User and Opus
-were working through proxy-display fixes. During Phase 1 Step 3, Opus
-presented the ⚠T/⚠S reference-alignment design question as a
-four-column decision matrix (Option / Ref / Sidecar-Behavior /
-Trade-off), followed by a recommendation block with three nested
-bullet points, followed by an implementation-consequence paragraph.
-
-The user replied: "erkläre es in fließ bitte".
-
-Opus rewrote the same content as four paragraphs of prose, and the
-user confirmed understanding immediately and proceeded. The technical
-information was the same in both versions. The table version forced
-the user to reconstruct trade-offs from grid cells; the prose version
-stated the trade-offs directly.
-
-Right after, the user set down the rule explicitly: "mit dem worker
-kannst du technisch reden. mit mir in prosa. egal was der skill sagt."
-This file was rewritten as a result.

@@ -331,8 +331,7 @@ One run through, no stops.
 For each Bead with substantial session activity (per Step 1.4 routing), write or extend the destination prosa file:
 
 - **OldThemes** — `decisions/OldThemes/<topic>/<file>.md` — discussion trail, alternative-evaluation, why-X-over-Y. Subfolder if multiple files emerge for one topic. Single-file format works for compact themes (see existing connection_hang_cascade.md, infra03_dynamic_ports.md, null_embedding_qwen3_prefix.md as references).
-- **decisions** — `decisions/<area>.md` — IST/Evidenz/SOLL for the architecture decision that holds going forward. Edit existing or create new. See `~/.claude/shared-rules/opus/decisions.md` for format.
-- **DOCS** — `<package>/DOCS.md` — module-map updates, LOC / Called-by / Calls-out / State / Gotchas edits.
+- **decisions** — `decisions/<area>.md` — IST/Evidenz/SOLL for the architecture decision that holds going forward. Edit existing or create new.- **DOCS** — `<package>/DOCS.md` — module-map updates, LOC / Called-by / Calls-out / State / Gotchas edits.
 
 Writing happens HERE, not during 🔍 RECAP. Step 1.4 only ROUTES — the actual prose-writing is the deliverable of this step.
 
@@ -363,10 +362,6 @@ All via `bd` CLI:
 - `bd close <id> --reason="..."` — Beads completed this session
 - `bd comments add <id> "<lean state>"` — open Beads with state changes (one line)
 - `bd create ...` — new Beads (deferred items, blockers, follow-ups)
-
-EMPTY PLATE RULE: every Open Item from the original plan that was NOT executed → Bead before closing the session.
-
-NO COMMIT/PUSH BEADS: git operations are CLOSING work, not Bead content.
 
 #### 6. Cross-Session Verification
 
