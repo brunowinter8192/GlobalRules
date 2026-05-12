@@ -77,7 +77,7 @@ dev/
 ## Rules
 
 1. **Pipeline grouping** — top-level dev/ dirs correspond to pipeline stages (e.g., `indexing/`, `retrieval/`)
-2. **DOCS.md per pipeline stage** — every pipeline dir MUST have a DOCS.md describing its modules and scripts
+2. **DOCS.md per pipeline stage** — pipeline dirs with multiple scripts MUST have a DOCS.md. Single-script pipeline dirs are documented in the parent DOCS.md (per `global/documentation.md` §dev/ Suites).
 3. **`pN_` prefix for pipeline modules** — numbered by position/dependency order within the directory. Self-contained, no imports from `src/`. These ARE the dev implementations that get migrated to prod when proven.
 4. **`A_` prefix for analysis/eval scripts** — import from `pN_` modules, produce MD reports. Output to `A_<name>_reports/`.
 5. **Dev is self-contained** — dev modules do NOT import from `src/`. Dev mirrors prod interfaces but is independent. When a dev implementation is proven, it gets migrated to `src/` (lean, without report output).
