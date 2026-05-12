@@ -115,9 +115,7 @@ When a script, run, or tool produces unexpected output — empty results, parse 
 
 - Do NOT add features, refactor code, or make "improvements" beyond the prompt scope
 - Do NOT add docstrings, comments, or type annotations beyond what the reference pattern uses
-- Header comments on functions: one line describing WHAT, matching reference file style
-- NO comments inside function bodies unless the reference pattern has them
-- Match the exact section structure of reference files (e.g., INFRASTRUCTURE / ORCHESTRATOR / FUNCTIONS)
+- Follow comment rules from ~/.claude/shared-rules/worker/code-organization.md exactly.
 
 ### No Cosmetic Edits After Functional Success
 
@@ -172,7 +170,7 @@ When a worker prompt asks for an architectural alternative — library swap (htt
 2. If the prompt explicitly says "modify src/X.py" but does NOT include an empirical convergence claim ("evidence shows the new approach solves the production problem"), flag this back to Opus: "Should this be a dev/ probe instead? The current rule (documentation.md) says architectural alternatives stay in dev/ until evidence converges."
 3. Only proceed with src/ edits when Opus confirms the dispatch is intentional (existing fix, not architectural exploration) OR when the prompt explicitly cites convergence evidence.
 
-**Why the defensive layer:** Opus may dispatch a src/-modifying prompt for an architectural alternative without realizing the rule applies (happened 2026-05-08 with the searxng Scholar HTTP migration — went directly into src/, smoke showed incomplete fix, work was discarded but the empirical proof would have been preserved had it lived in dev/). The worker-side check catches the dispatch before the wasted work begins.
+**Why the defensive layer:** Opus may dispatch a src/-modifying prompt for an architectural alternative without realizing the rule applies. The worker-side check catches the dispatch before the wasted work begins.
 
 ## 6. Worker Recap (MANDATORY when triggered)
 
@@ -249,7 +247,7 @@ RECAP REPORT:
 - Bead operations (create / comment / close) — Opus's responsibility
 - RAG sync (`rag-cli update_docs`) — Opus's responsibility
 - Cross-worker changes (other workers' commits) — Opus's responsibility
-- Rule files in `~/.claude/shared-rules/` — Opus's responsibility (cache-bruch territory)
+- Rule files in `~/.claude/shared-rules/` — Opus's responsibility (cache-invalidation territory)
 - Code-issues beyond docs — beyond recap scope; flag in the report, do NOT fix
 
 Recap is doc-hygiene + decision-IST + OldThemes persistence for what YOU touched. Nothing else.

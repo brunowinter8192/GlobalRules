@@ -260,22 +260,22 @@ Setting `run_in_background=true` on a Bash tool call MUST be a conscious decisio
 - "Just to be safe" / "in case it takes long"
 
 
-### 15. zsh-Quoting bei wiederholten Pfad-Aufrufen
+### 15. zsh Quoting for Repeated Path Calls
 
-bash splittet `$VAR` mit Whitespace beim Erweitern in Argumente. zsh **nicht** — `$A` bleibt ein einzelnes Argument auch wenn der String Leerzeichen enthält. Resultat: `A="/path/python /path/cli.py"; $A search ...` versucht in zsh ein Programm namens `/path/python /path/cli.py` (mit Leerzeichen im Namen) zu starten und scheitert mit `no such file or directory`. Auf macOS ist zsh die Default-Shell.
+bash splits `$VAR` on whitespace when expanding into arguments. zsh **does not** — `$A` stays a single argument even when the string contains spaces. Result: `A="/path/python /path/cli.py"; $A search ...` tries to start a program named `/path/python /path/cli.py` (with a space in the name) and fails with `no such file or directory`. On macOS zsh is the default shell.
 
-**Rule:** wenn ein Befehl mehrfach mit denselben langen Pfaden aufgerufen wird, NIE zwei Pfade in eine einzelne Variable mit Whitespace packen. Drei robuste Patterns:
+**Rule:** when a command is called repeatedly with the same long paths, NEVER pack two paths into a single variable with whitespace. Three robust patterns:
 
-1. **Function:** `cmd() { /full/python /full/cli.py "$@"; }` — `"$@"` ist Pass-Through, splittet sicher.
-2. **Two-Variable-Split:** `PY=/full/python; CLI=/full/cli.py; $PY $CLI ...` — jede Variable enthält genau einen Pfad ohne Whitespace.
-3. **Wrapper-Script in `~/.local/bin/`:** Ein 3-Zeilen-Bash-Wrapper (`#!/usr/bin/env bash` + `exec /full/python /full/cli.py "$@"`), `chmod +x`, dann nur noch `cmd-name search ...`. Pattern bei rag-cli, gh-cli, reddit-cli, arxiv-cli.
+1. **Function:** `cmd() { /full/python /full/cli.py "$@"; }` — `"$@"` is pass-through, splits safely.
+2. **Two-Variable-Split:** `PY=/full/python; CLI=/full/cli.py; $PY $CLI ...` — each variable holds exactly one path without whitespace.
+3. **Wrapper script in `~/.local/bin/`:** A 3-line bash wrapper (`#!/usr/bin/env bash` + `exec /full/python /full/cli.py "$@"`), `chmod +x`, then just `cmd-name search ...`. Pattern used for rag-cli, gh-cli, reddit-cli, arxiv-cli.
 
 
 ### 16. cd-Drift across Bash-Tool-Calls
 
-Bash-Tool-Calls in einer Session teilen die cwd. Ein `cd /target` in Call N ändert die cwd für Call N+1, N+2 usw. Falle, wenn Diff-Reviews oder Worktree-Operationen mitten in einer ansonsten main-repo-zentrierten Session laufen.
+Bash tool calls within a session share cwd. A `cd /target` in call N changes cwd for calls N+1, N+2, etc. Common trap when diff-reviews or worktree operations run in the middle of an otherwise main-repo-centered session.
 
-**Rule:** wenn ein Bash-Call `cd "$WORKTREE"` oder ähnlichen Direktwechsel enthält, MUSS der letzte Schritt im selben Call zurück in die main cwd cd'en (`cd /full/main/repo/path` am Ende). Alternativ: durchgängig `git -C <path>` und absolute Pfade, ohne überhaupt zu cd'en.
+**Rule:** when a Bash call contains `cd "$WORKTREE"` or a similar direct directory switch, the last step in that same call MUST cd back to the main cwd (`cd /full/main/repo/path` at the end). Alternative: use `git -C <path>` and absolute paths throughout, without ever cd-ing.
 
 
 ---
@@ -512,11 +512,11 @@ Indexed-document search and lookup. All RAG operations via `rag-cli` (`~/.local/
 
 ##### Rules
 
-- NEVER start `llama-server` oder splade direkt. `rag-cli server start <preset>` oder arbitrary-start verwenden.
-- NEVER GPU-Prozesse außerhalb `rag-cli` killen. `rag-cli server stop <preset>` oder `stop --port N` verwenden.
-- Direkt search-Befehl absetzen, kein vorheriges `rag-cli server start` nötig.
-- Bei persisted-output: File komplett in EINEM Read-Call lesen, kein offset/limit Chunking.
-- Indexierte Collections in `data/documents/<collection>/` → rag-cli. Lokale Source-Files → Read-Tool, nicht rag-cli.
+- NEVER start `llama-server` or splade directly. Use `rag-cli server start <preset>` or arbitrary-start.
+- NEVER kill GPU processes outside `rag-cli`. Use `rag-cli server stop <preset>` or `stop --port N`.
+- Issue the search command directly — no prior `rag-cli server start` needed.
+- On persisted-output: read the file completely in ONE Read call, no offset/limit chunking.
+- Indexed collections in `data/documents/<collection>/` → rag-cli. Local source files → Read tool, not rag-cli.
 
 ##### RAG: Multi-Model Awareness
 

@@ -1,27 +1,25 @@
 # Verification — Test the Real Path, Not a Parallel Reimplementation
 
-Tests und Verifications sind nur etwas wert wenn sie das ECHTE Verhalten prüfen das ein User trifft. "X/X passing" sagt nichts wenn X Tests die falsche Sache prüfen oder triviale Regressions-Guards sind.
+Tests and verifications are only meaningful when they check the REAL behavior a user encounters. "X/X passing" says nothing if those X tests check the wrong thing or are trivial regression guards.
 
-## Die vier Failure-Patterns die diese Regel adressiert
+## The Four Failure Patterns This Rule Addresses
 
-### Pattern 1 — Wrong Path: Tests prüfen ein paralleles Reimplement, nicht die Production-Funktion
+### Pattern 1 — Wrong Path: Tests Check a Parallel Reimplementation, Not the Production Function
 
-Wenn der Worker eine Funktion in `src/foo.py` baut und ein dev-Skript ähnliche Logik inline duplicated für eine Probe, ist die Probe **kein Regressions-Check** für die `src/` Funktion. Sie testet den parallelen Code-Pfad.
+When a worker builds a function in `src/foo.py` and a dev script duplicates similar logic inline for a probe, the probe is **not a regression check** for the `src/` function. It tests the parallel code path.
 
-**Konkret diese Session 2026-05-07:** PDF Chain wurde nach `src/scraper/pdf_chain.py` migriert. "Regression check via probe 16" wurde als Verifikation deklariert. Probe 16 hatte aber seine **eigene inline Chain-Logik** (nicht die migrierte). Probe 16 bestand → Worker meldete "10 PDFs in Downloads, baseline OK, migration done". Live-Test 30 Min später: `searxng-cli download_pdf https://arxiv.org/abs/X` → Fehler "no PDF path found". Bug war in `download_pdf_workflow` (production path), Probe hatte ihn nicht getroffen weil Probe ihre eigene Chain hatte.
+**Rule:** when you migrate or change a function in `src/`, at least **one** verification must call the real `src/` function — import it directly, with real inputs, with an assertion on the real output. Not a function with the same name in a probe script. Not a reimplementation that "should be equivalent". The real one.
 
-**Regel:** wenn du eine Funktion in `src/` migrierst oder änderst, muss mindestens **eine** Verification die echte `src/`-Funktion aufrufen — direkt importieren, mit echten Inputs, mit assertion auf das echte Output. Nicht eine Funktion mit gleichem Namen in einem Probe-Skript. Nicht eine Reimplementierung die "äquivalent sein sollte". Die echte.
-
-### Pattern 2 — Trivial Asserts gegen pure Funktionen als "Tests" gezählt
+### Pattern 2 — Trivial Asserts Against Pure Functions Counted as "Tests"
 
 ```python
 def test_arxiv_abs(self):
     assert apply_tier1_transform("https://arxiv.org/abs/2501.12345") == "https://arxiv.org/pdf/2501.12345"
 ```
 
-Das ist kein Test im Sinne von "validiert ein Contract gegen die Realität". Das ist ein Code-Konsistenz-Check: "die Funktion gibt zurück was wir reingeschrieben haben". Hat Wert wenn jemand später die Konstante / Regex ändert ohne nachzudenken — fungiert als Refactor-Schutz. Hat **keinen** Wert als Funktional-Beweis.
+This is not a test in the sense of "validates a contract against reality". It is a code-consistency check: "the function returns what we put in." It has value if someone later changes a constant or regex without thinking — it acts as a refactor guard. It has **no value** as a functional proof.
 
-**Regel:** wenn du Tests in einer Completion-Checklist meldest, trenne **regression guards** (pure-function asserts ohne Contract-Validation) von **integration tests** (call → real I/O → assert auf Outcome). Beispiel-Format:
+**Rule:** when reporting tests in a Completion Checklist, separate **regression guards** (pure-function asserts without contract validation) from **integration tests** (call → real I/O → assert on outcome). Example format:
 
 ```
 Tests: 6 integration (passing) + 52 regression-guards (passing).
@@ -30,37 +28,33 @@ Integration: arxiv abs/html/version-suffix end-to-end download_pdf_workflow → 
 Regression-guards: pure-function asserts on transforms/blacklist/regex behavior.
 ```
 
-Niemals nur "X/X passing" ohne diese Trennung. Der User soll auf einen Blick sehen was wirklich verifiziert wurde vs was Boilerplate ist.
+Never just "X/X passing" without this separation. The user should see at a glance what was actually verified vs what is boilerplate.
 
-### Pattern 3 — PARTIAL ohne Fallback-Verification
+### Pattern 3 — PARTIAL Without Fallback Verification
 
-Wenn die geplante Verification durch eine **unrelated** Ursache scheitert (Scholar CAPTCHA hängt, Server 503, Test-Daten fehlen), ist die Antwort NICHT "ich melde PARTIAL und stoppe". Die Antwort ist: finde eine kleinere oder andere Verification die das Contract trotzdem trifft.
+When the planned verification fails due to an **unrelated** cause (CAPTCHA hang, server 503, test data missing), the answer is NOT "report PARTIAL and stop". The answer is: find a smaller or alternative verification that still hits the contract.
 
-**Konkret diese Session 2026-05-07:** jqn-Worker plante `11_pipeline_smoke.py --max-queries 5` als Verifikation. Q2+ blockierte durch pre-existing Scholar-CAPTCHA-hang. Worker meldete "PARTIAL — pre-existing issue, nicht durch jqn changes verursacht". Was er hätte machen sollen: 1-Query-Smoke, oder `01_google_smoke.py --queries 3` (umgeht Scholar), oder direkter `search_web_workflow`-Call mit `engines="google,duckduckgo"`. Die jqn-Änderungen waren in 4 verschiedenen Pfaden (selector, max_results, modifier hook) — jeder einzeln testbar ohne Scholar zu involvieren.
+**Rule:** "PARTIAL" as a verification status is acceptable only when the worker has attempted at least 2 alternative smaller verifications and lists in the report why each failed. The default is: break the verification into smaller parts that can run individually, rather than giving up because the large smoke test does not pass.
 
-**Regel:** "PARTIAL" als Verifikations-Status ist akzeptabel nur wenn der Worker mindestens 2 alternative kleinere Verifications versucht hat und im Report listet warum jede gescheitert ist. Der Default ist: zerlege die Verifikation in kleinere Teile die einzeln gehen, statt aufzugeben weil das grosse Smoke nicht durchläuft.
+### Pattern 4 — User-visible Entry Point Skipped
 
-### Pattern 4 — User-visible Entry Point überspringen
+Code that has a CLI/MCP/HTTP entry-point MUST be verified at least once via that entry-point. Direct Python import + function call is NOT enough — the CLI wrapper path often has its own routing/argument/auto-detect logic that a direct import bypasses.
 
-Code der einen CLI/MCP/HTTP-Entry-Point hat MUSS mindestens einmal über diesen Entry-Point verifiziert werden. Direkter Python-Import + Funktions-Call ist NICHT genug — der CLI-Wrapper-Pfad hat oft eigene Routing-/Argument-/Auto-Detect-Logik die ein direkter Import umgeht.
+**Rule:** the Completion Checklist must include a line that explicitly invokes the user-facing entry-point: a `<cli-tool> ...` call, an MCP tool call, a curl against the HTTP endpoint. Not just a Python import. The output of that call belongs in the checklist (truncated).
 
-**Konkret diese Session 2026-05-07:** `download_pdf_workflow` wurde via Python-Import in probe 16 getestet. Der eigentliche User-Pfad ist aber `searxng-cli download_pdf <url>` — das geht durch `cli.py` Auto-Routing inklusive `should_download_as_pdf()`-Check. Der `cli.py`-Pfad wurde nicht verifiziert. Live-Test über CLI hat den Bug zuerst gezeigt.
+## What Verification "Done Right" Looks Like
 
-**Regel:** in der Completion-Checklist muss eine Zeile stehen die explizit den User-facing Entry-Point invokiert: ein `searxng-cli ...` Aufruf, ein MCP-tool-call, ein curl gegen den HTTP-Endpoint. Nicht bloss Python-Import. Output dieses Aufrufs gehört in die Checklist (gekürzt).
+A worker's Completion Checklist should contain, in this order:
 
-## Was Verification "done right" aussieht
+1. **Pure-function regression guards** — briefly named with count, clearly labeled as such. Example: "Regression-guards: 52 pure-function asserts (transforms, blacklist, regex behavior). Passing."
+2. **Integration tests against the real src/ function** — at least one per new/changed function. With concrete input and concrete outcome assertion.
+3. **End-to-end verification via the user-facing entry-point** — CLI call, MCP tool, or HTTP request. With real output truncated.
+4. **Other verifications** (smoke runs, sample tests) when relevant.
 
-In der Completion-Checklist eines Workers gehören in dieser Reihenfolge:
+If any step from 1-3 is not possible → explicit entry in the checklist explaining why, plus an alternative that hits the contract instead.
 
-1. **Pure-function regression guards** — kurz benannt mit Anzahl, klar als solche markiert. Beispiel: "Regression-guards: 52 pure-function asserts (transforms, blacklist, regex behavior). Passing."
-2. **Integration tests gegen die echte src/-Funktion** — mindestens einer pro neuer/geänderter Funktion. Mit konkretem Input und konkretem Outcome-Assert.
-3. **End-to-end Verification über den User-facing Entry-Point** — CLI-Aufruf, MCP-tool, oder HTTP-Request. Mit echtem Output gekürzt.
-4. **Sonstige Verifications** (Smoke-Runs, Sample-Tests) wenn relevant.
+## What This Rule Does NOT Say
 
-Wenn ein Schritt aus 1-3 nicht möglich ist → expliziter Eintrag in der Checklist warum, plus Alternative die statt dessen das Contract trifft.
-
-## Was diese Regel NICHT sagt
-
-- Sie sagt nicht "schreibt keine Unit-Tests" — schreibt sie, aber meldet sie als das was sie sind (Regression-Guards), nicht als "Verification".
-- Sie sagt nicht "jeder Test muss network-I/O machen" — pure-function tests haben Wert als Refactor-Schutz, sie sind nur kein Funktional-Beweis.
-- Sie sagt nicht "End-to-end-CLI-Test kann nie skipped werden" — wenn der Worker keinen CLI/MCP-Endpoint geändert hat (z.B. nur Engine-Logik refactored), reicht Integration-Test ohne CLI-Roundtrip. Aber der Test muss die Funktion über den Pfad erreichen den ein realer Caller benutzen würde.
+- It does not say "don't write unit tests" — write them, but report them for what they are (regression guards), not as "verification".
+- It does not say "every test must make network I/O" — pure-function tests have value as refactor protection, they are just not a functional proof.
+- It does not say "end-to-end CLI test can never be skipped" — if the worker has not changed a CLI/MCP endpoint (e.g. only refactored engine logic), an integration test without a CLI roundtrip is sufficient. But the test must reach the function via the path a real caller would use.

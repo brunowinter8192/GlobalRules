@@ -9,9 +9,9 @@
 
 **Fail-Fast:** Let exceptions fly. No try-catch that silently swallows errors affecting business logic. Script must fail if it cannot fulfill its purpose.
 
-# Error Handling
+## Error Handling
 
-## When to use try-catch
+### When to use try-catch
 **ALLOWED:**
 - Retry logic with exponential backoff
 - Graceful degradation with explicit logging
@@ -23,9 +23,9 @@
 - Generic `except Exception: pass`
 - Hiding failures that affect business logic
 
-# Immutability
+## Immutability
 
-## Functions Must Not Mutate Their Arguments
+### Functions Must Not Mutate Their Arguments
 
 A function that produces a modified collection returns a NEW value. Mutating caller-passed dicts, lists, or objects is a hidden side effect — the caller has no signal at the call-site that their data was changed.
 
@@ -41,7 +41,7 @@ def _extract_fields(entry):
 
 Building local collections with `result = []; result.append(...); return result` is fine — `result` is local, not an argument. The rule fires on argument mutation, not on line-building.
 
-## Module-Level Mutable State
+### Module-Level Mutable State
 
 Permitted when ALL of these hold:
 
@@ -51,7 +51,7 @@ Permitted when ALL of these hold:
 
 A module mutating ANOTHER module's state is the same anti-pattern as mutating an argument — a hidden side effect across module boundaries.
 
-# Naming Conventions
+## Naming Conventions
 
 **Domain folders:** src/domain_name/ (snake_case, descriptive)
 **Modules:** src/domain/module_name.py (snake_case)
