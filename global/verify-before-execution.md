@@ -44,6 +44,7 @@ When in doubt: live-test with a minimal request (one curl with the user's actual
 
 **Venv Path Naming Varies by Project:** some projects use `.venv/`, others `venv/`. NEVER `source .venv/bin/activate` or invoke `.venv/bin/python` from memory across projects — verify with `ls -d <project>/{venv,.venv} 2>/dev/null` or read the project's setup notes first.
 **Tool-Name Memory After Mid-Session Migration:** when a tool is removed/renamed/migrated within an active session (MCP tool replaced with CLI wrapper, schema changed, etc.), the OLD tool name remains in Opus's already-loaded system prompt for the rest of that session. Any invocation using the old name fails with "Error: No such tool available" — tool discovery happens at session start and is frozen. Use the replacement directly for any subsequent call.
+
 ## Root Cause Before Fix
 
 NEVER implement defensive fixes (validation, silent skip, fallback) without understanding the root cause. Symptom treatment masks the real problem. If root cause is unclear after investigation: inform user explicitly, don't silently add guards.
@@ -62,8 +63,7 @@ Test before claim: "Can I produce a table with case-id / would-lever-catch: yes|
 
 When proposing a NEW universal rule (worker rule, project rule, global behavior rule), validate the rule's formulation against ≥1 actual codebase BEFORE writing it to the rule file. The reality-check is a 30-60 second AST-grep-or-find pass producing a hit count + sample of false positives. The hit count tells you whether the rule produces signal or noise.
 
-A rule formulation that sounds clean in prose can fire on hundreds of legitimate cases when applied to real code. Codifying the prose-clean version creates a rule that workers must defend against constantly, generates noise in audits, and undermines trust in all rules. Tightening from "prefer pure functions, never mutate" to "Functions must not mutate their arguments" looks subtle in prose but has a 10× false-positive ratio gap on real Python (503 idiomatic `lines.append()` line-builds vs 49 actual argument-mutations).
-
+A rule formulation that sounds clean in prose can fire on hundreds of legitimate cases when applied to real code. Codifying the prose-clean version creates a rule that workers must defend against constantly, generates noise in audits, and undermines trust in all rules.
 Process:
 1. State the rule formulation in prose.
 2. Pick the cheapest tool that approximates the rule (AST script, grep, find).

@@ -24,7 +24,7 @@ Read coarser layers FIRST. Each layer answers different questions:
 
 ## Artifact Density
 
-User-Chat is prose (see `global/chat-output.md`). Everything Claude reads or produces as ARTIFACT — code, DOCS.md, CLAUDE.md, rules/, decisions/, code-comments — is machine-readable and token-dense.
+User-Chat is prose. Everything Claude reads or produces as ARTIFACT — code, DOCS.md, CLAUDE.md, rules/, decisions/, code-comments — is machine-readable and token-dense.
 
 Concrete: tables instead of prose where multiple dimensions need comparison, keywords instead of full sentences, references to `file:line` instead of explanatory paragraphs, no rhetorical filler ("furthermore", "as we can see", "importantly", "it's worth noting"). Where a paragraph IS needed, it is dense — no repetition, no opening sentences that say nothing.
 

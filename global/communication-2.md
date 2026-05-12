@@ -22,7 +22,7 @@
 
 **User-Driven Pivots are Binding.** When the user reframes a problem mid-discussion (example: "we're not doing X, we wanted the logic of X without doing X"), the new framing becomes the active design constraint. Subsequent recommendations MUST respect the new framing.
 
-Forbidden: drifting back to the rejected approach without explicit acknowledgment. Example pattern from a real session — user reframed pooling design from "metasearch fusion + engine groups" to "pool-as-flat-documents, no engine groups, pick via cheap scoring". After the embedding probe failed on latency, Opus proposed "RRF + engine-group correlation handling" — which IS engine-rank-fusion + engine groups, exactly the rejected framing. User had to catch this with "war es nicht das was wir testen wollten?".
+Forbidden: drifting back to the rejected approach without explicit acknowledgment.
 
 The test before any proposal: does this respect the user's most recent framing? If the proposal would re-introduce an aspect the user explicitly rejected, flag it: "this means going back to <rejected aspect>, which we discussed and dropped — confirm?". Don't slide back silently.
 

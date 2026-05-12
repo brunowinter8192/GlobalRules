@@ -1,6 +1,6 @@
 # Tool-Use
 
-Goal: no large Bash-call where a small one works. Every tool_use input counts — tool_use JSON inflates with escaped newlines and quotes. Live feedback in Monitor_CC waste_pane (Window 4 right) shows current-session ratios ≥3.
+Goal: no large Bash-call where a small one works. Every tool_use input counts — tool_use JSON inflates with escaped newlines and quotes.
 
 ## Hard Rules — Token Efficiency
 
@@ -181,7 +181,7 @@ Alternatives that also work:
 - `git diff origin/dev` — remote-prefixed refs never collide with directory names
 - `git diff main` — compare against trunk instead, when that's what you actually want
 
-`workers-2` prescribes `git -C <project_root>/.claude/worktrees/<name> diff dev` for code review of worker branches. In a Monitor_CC-shaped repo (with `dev/` at root) this triggers the ambiguity error every time. Use `git -C <worktree> diff dev --` or `git -C <worktree> diff main` instead.
+`workers-2` prescribes `git -C <project_root>/.claude/worktrees/<name> diff dev` for code review of worker branches. In repos with a `dev/` directory at root this triggers the ambiguity error every time. Use `git -C <worktree> diff dev --` or `git -C <worktree> diff main` instead.
 
 
 ### 11. Diagnostic Bash chains: `;` not `&&`
@@ -203,7 +203,7 @@ Same principle: `2>/dev/null` swallows stderr but does NOT change exit codes —
 
 ### 12. `sleep` commands are forbidden — single narrow exception for Opus worker-polling (NON-NEGOTIABLE)
 
-**Hard ban: any Bash tool call containing `sleep` is FORBIDDEN, with exactly one allowed form documented below.** Observed violation pattern: workers chain-spam `sleep 180 && echo done` → `sleep 60` → `sleep 30` → `sleep 60` → `sleep 180` waiting on their own internal long-running tasks. Each iteration burns 1-2% context for zero progress, pollutes the waste-pane, and indicates the underlying task is mis-architected.
+**Hard ban: any Bash tool call containing `sleep` is FORBIDDEN, with exactly one allowed form documented below.**
 
 **Workers: zero sleep, ever.** No polling own background tasks, no "let the system settle", no "wait for output to appear", no "give the GPU service a moment". If a worker's task takes longer than the 10-minute `Bash` tool timeout ceiling, restructure:
 
@@ -284,7 +284,7 @@ Bash-Tool-Calls in einer Session teilen die cwd. Ein `cd /target` in Call N änd
 
 ### Repeated absolute paths → env var or single `cd`
 
-When a path appears in 3+ consecutive commands: use `$MONITOR_CC_ROOT` (or equivalent) or `cd` once at the start of a planned block. Do NOT drift `cd` silently across interactive steps — only within a contained sequence.
+When a path appears in 3+ consecutive commands: use `$PROJECT_ROOT` (or equivalent) or `cd` once at the start of a planned block. Do NOT drift `cd` silently across interactive steps — only within a contained sequence.
 
 ### Don't chain greps/cats over the same pattern
 
@@ -303,7 +303,7 @@ Multiple Grep/Glob calls with varied patterns that all return zero results = gue
 1. `Glob` first: find files matching a broad path pattern.
 2. `Grep` on the hit: targeted pattern on a known file.
 
-Zero-results live in the warnings_pane (Monitor Window 4 left). Two zero-results in a row on the same topic = stop, rethink.
+Two zero-results in a row on the same topic = stop, rethink.
 
 ---
 
@@ -313,15 +313,7 @@ Zero-results live in the warnings_pane (Monitor Window 4 left). Two zero-results
 
 Not every heredoc is the same problem. Three classes, three different answers.
 
-**Case 1 — Python / analysis: one-shot = heredoc. Iteration = Write + Edit. Binary.**
-
-`python3 << 'EOF' ... EOF` is the form for a one-shot probe — 1 tool call, no temp file.
-
-Switch to Write + Edit the moment you're about to run the SAME script a second time after editing it. Not third run, not fourth — from run #2. The switch pays because Edit diffs are smaller than re-transmitting the full script.
-
-Different script for a different question is NOT iteration. It is a new one-shot → new heredoc. Running five distinct probes in one session means five heredocs, not five Writes.
-
-Still: jq / awk / sed first when the question fits a one-liner. Python (via heredoc) is for shapes those don't express cleanly.
+**Case 1 — Python / analysis: one-shot = heredoc. Iteration = Write + Edit. Binary.** See Rule 1.
 
 **Case 2 — File creation heredoc (Rule 2 above): NEVER.**
 
@@ -360,23 +352,6 @@ EOF
 ```
 
 If `bd` later grows a `--description-file` flag, Write + flag is equivalent.
-
-### Git commit messages
-
-Single-line `-m` is the default for routine commits (see `Commit Message Format` below).
-
-Multi-line body only when it genuinely adds information for `git log` readers — and when it does, Case 3 applies: heredoc inline, no temp file.
-
-```bash
-git -C <repo> commit -am "$(cat <<'EOF'
-refactor: migrate X from Y to Z
-
-Breaking: consumers of Y must update to new signature (see MIGRATION.md).
-EOF
-)"
-```
-
-Multi-line body is justified when all three hold: breaking or architecturally significant change, body adds real information beyond the subject, `git log` readers benefit from the extra context. Otherwise single-line `-m` — heredoc for routine fixes is waste.
 
 ---
 
@@ -589,26 +564,20 @@ Anti-patterns:
 - **Empty file:** returns a system-reminder warning in place of content — do NOT interpret the warning as actual file content.
 
 ### Edit
-- **Read first:** MUST call Read at least once before Edit. Tool errors if not.
+- **Read first:** Required — see Rule 9.
 - **Indentation:** preserve EXACT indentation as it appears AFTER the line-number prefix. Prefix format is `line_number\t` — NEVER include it in `old_string` or `new_string`.
 - **Uniqueness:** FAIL if `old_string` is not unique in the file. Remedy: expand the match string with more surrounding context, or use `replace_all`.
 - **replace_all:** use for rename-across-file operations (variable rename, import path change, etc.).
 
 ### Write
-- **Existing file:** MUST call Read first. Tool fails without it.
+- **Existing file:** Read first required — see Rule 9.
 - **Edit over Write:** for existing files, prefer Edit (sends only the diff). Write sends the full content every time.
 - **No docs:** NEVER create `*.md` or README files unless explicitly requested by the User.
 
 ---
 
-## Monitoring Self-Audit
-
-- **waste_pane** (Monitor Window 4 right): check 1-2× per session. Expand top offenders. If the same command-prefix keeps appearing: that's a rule violation, stop and rethink.
-- **warnings_pane zero-results**: repeated zero results on the same topic = Grep/Glob gunshot violation (Rule 6).
-- **Per-session reports**: `dev/tool_use_analysis/YYYYMMDD_*.md` in Monitor_CC. Generated per session via ad-hoc scripts (one script per analysis, no shared library).
-
 ## What this rule does NOT do
 
-- Does not strip tool_result content at the proxy. That's a separate concern (result-waste, tracked under a different bead).
+- Does not strip tool_result content at the proxy. That's a separate concern.
 - Does not enforce at commit time. This is advisory behavior through rule-awareness. The monitor is the feedback loop.
 - Does not maintain a library or justfile. Every analysis script is one-off.
