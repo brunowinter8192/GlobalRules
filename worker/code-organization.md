@@ -1,6 +1,6 @@
 # Code Organization
 
-**CRITICAL:** Every script follows INFRASTRUCTURE → ORCHESTRATOR → FUNCTIONS
+Every script follows INFRASTRUCTURE → ORCHESTRATOR → FUNCTIONS
 
 ## Section Definitions
 
@@ -95,8 +95,6 @@ LOC thresholds are HEURISTICS for flagging split candidates, not magic numbers t
 1. **First question:** Does a concern-based extraction improve readability? (e.g. browser handling vs reporting vs CLI — three clear concerns that belong in three separate files.) If yes → split by concern.
 2. **Second question:** If no structural concern emerges and the file sits just above the threshold (e.g. 202 LOC against a 200-rule) → **LEAVE IT**. Do NOT trim blank lines, condense comments, or cosmetic-split to hit the number.
 3. **Never** propose a refactor whose only justification is "hit the LOC target". A refactor without a readability/concern argument is noise, not improvement.
-
-Worker prompts that include LOC targets must phrase them as "heuristic / guideline — not law" and explicitly permit "leave at N+ε if no structural split exists" as an acceptable outcome.
 
 ## Import Convention
 

@@ -4,18 +4,76 @@ See `global/tool-use.md` § Worker CLI for full command reference.
 
 ## Core Rules
 
-### Cross-Model Verification (NON-NEGOTIABLE)
+### Cross-Model Verification
 
-Opus and the worker are two independent models. The 5-phase cycle exists to exploit that: Opus forms a mental model from PLAN, the worker forms one independently by reading files in the worktree. The gap between the two models is where the value lives.
-
-**Convergence** on root cause / approach → high confidence the analysis is right → Go implement.
+**Convergence** on root cause / approach → Go implement.
 **Divergence** → at least one side is wrong → iterate investigation, NOT implement.
 
-This applies to EVERY task, not only "unclear root cause" cases. Even when Opus believes they know the answer, the worker's independent investigation IS the verification. Skipping that step means shipping an unverified hypothesis into implementation.
+Applies to EVERY task, not only "unclear root cause" cases. Even when Opus believes they know the answer, the worker's independent investigation IS the verification.
+
+### RAG-First on Any Project Question (NON-NEGOTIABLE)
+
+**Gate:** before composing ANY answer to a user question about the project — and before ANY Read/Bash/Grep/git/find/bd-list exploration that supports such an answer — run `rag-cli search_hybrid` on BOTH `<Project>-meta` AND `<Project>-features`. What's indexed in each: see `~/.claude/shared-rules/global/documentation.md`.
+
+The trigger is **the user asking about the project**, not "code exploration" specifically. Status questions, orientation questions, "what did we decide", "is X still current" — these are the highest-value RAG queries, NOT edge cases of the rule.
+
+**Trigger phrases that MUST fire RAG before any answer** (non-exhaustive, German + English):
+
+- "wo stehen wir" / "where are we" / "Stand" / "Status" / "Überblick" / "recap"
+- "was haben wir entschieden zu X" / "what did we decide about X" / "warum X so" / "why is X this way"
+- "wie ist X aktuell" / "is X still current" / "passt Y noch" / "is Y still right"
+- "haben wir Z schon" / "do we have Z" / "gibt es schon W" / "is there a W"
+- "was ist <component>" / "what is <component>" / "wie funktioniert X" / "how does X work"
+- "wann haben wir X gemacht" / "when did we do X" — even history questions hit decisions/OldThemes, not git
+
+If the user's question matches any of these patterns → STOP, run BOTH RAG queries FIRST, then compose the answer using the hits as the primary source.
+
+**Trigger PER TOPIC.** Every new topic / new user question gets fresh RAG. Pivot from Topic A to Topic B mid-session = fresh queries on B. Don't reuse hits from earlier in the session for a different question — re-query.
+
+**Bugs count as topics.** Before any source-read on a crash / exception / "X doesn't work" report — RAG-search BOTH collections for the symptom. Past gotchas are indexed and frequently hit. Pass any matching prior finding to the worker as a hint, do NOT let the worker re-derive it.
+
+**Forbidden Proxy Sources for project-state answers.** The following are NEVER substitutes for RAG when answering "what's the current state / where do we stand / what did we decide":
+
+- `git log` / `git diff` — shows activity, NOT the documented state. Code that landed may have been superseded in decisions/ a day later.
+- `bd list` alone — beads are entry-points pointing at sources, not the sources themselves. Read the Source-Inventory, then RAG on the topic.
+- `find dev/ -name "*reports*"` / mtime checks — tells you when files changed on disk, NOT whether the report reflects current prod config.
+- `ls -lt` over any directory — same problem.
+
+These tools are valid SUPPLEMENTS *after* RAG has produced the primary answer. They are FORBIDDEN as the primary source for status/orientation/decision questions. If you find yourself reaching for `git log` to answer "wo stehen wir" — STOP, RAG first.
+
+**Pre-Answer Self-Test (every user-facing answer about the project):**
+
+> "Before I write this paragraph — did I query BOTH `<Project>-meta` AND `<Project>-features` with at least one topic-relevant phrasing in THIS session for THIS question?"
+
+If no → STOP, query first. Even when the question feels trivial. Even when you "remember" the answer from earlier work. Memory is not a source; the RAG-indexed docs are.
+
+**Escalation chain:**
+
+1. `rag-cli search_hybrid "<query>" <Project>-meta`
+2. `rag-cli search_hybrid "<query>" <Project>-features`
+3. Reformulate if first hits miss (≥ 2 phrasings before "no hit" valid)
+4. `rag-cli read_document` to expand around a hit
+5. Only then: direct-read on indexed file (file edited this session, OR full-file structure needed, OR steps 1-4 exhausted), OR supplement with git/bd/find for activity context AFTER the RAG-derived answer is composed.
+
+**Source code is NOT indexed** — direct Read/Grep on `src/*.py`, `dev/*.py`, `*.sh`, config files is the right tool when the question is about HOW code works mechanically (function signatures, control flow, exact strings). RAG on indexed layers FIRST (decisions/, DOCS.md, OldThemes/, CLAUDE.md), then targeted source reads for the gap.
+
+### GitHub-Search Counter-Check (NON-NEGOTIABLE)
+
+External-pattern verification via `github-search` skill fires at TWO trigger points:
+
+1. **BEFORE dispatching any worker on a new feature / new architectural problem** — when the task touches platform APIs, framework conventions, library integrations, or any "how do people normally do X" surface. Cost: 1–3 `gh-cli search_code` / `search_repos` calls (~30 seconds). Gain: convergent patterns from real shipped code that prevent hypothesis-grinding.
+2. **AFTER any failed iteration on a hard problem** — when one investigation cycle ended with "approach refuted" / "still doesn't work" / "let's try another hypothesis". BEFORE the next hypothesis is formed in-head, run gh-search. If two independent repos converge on the same pattern, that pattern wins over any in-head hypothesis.
+3. **BUG RECURS AFTER RAG-AIDED FIX ATTEMPT** — bug → RAG hint → fix → bug still there. Second iteration on the same bug. Before another hypothesis: gh-search the symptom + API surface. No more in-head trial-and-error past iteration 2.
+
+**Hard rule:** when entering PLAN Step 2 (Prep Investigation) on a new feature touching platform/framework/library surface OR when about to formulate a new hypothesis after a failed iteration → activate `github-search` skill (search strategy is in the skill itself), then proceed with the PLAN.
+
+**Self-test before any worker-dispatch on a new architectural problem:** "Did I run a github-search on the platform/framework keyword in this session's topic?" If no → STOP, run the search first.
+
+**Self-test before formulating hypothesis N+1 after iteration N failed:** "Did I github-search the failure pattern (specific API, observed symptom) before guessing again?" If no → STOP, search first.
 
 ### Worker Model (NON-NEGOTIABLE)
 
-Workers are ALWAYS **Sonnet** (default) or **Haiku** (trivial tasks). NEVER Opus. Opus context is for orchestration only.
+Workers are ALWAYS **Sonnet**. NEVER Opus. Opus context is for orchestration only.
 
 ### Opus NEVER Edits Source Code (NON-NEGOTIABLE)
 
@@ -39,41 +97,35 @@ The ONLY files Opus may edit directly: automation files (`.claude/rules/`, CLAUD
 
 **Scope:** this rule applies WITHIN the current project. Cross-project edits follow the Worker Project Scope rule below.
 
-### Maximize Every Turn's Tool Budget (NON-NEGOTIABLE)
+### Persistence Routing — Opus Decides Paths (NON-NEGOTIABLE)
 
-Each turn has ONE Bash slot and unlimited non-Bash slots (Read, Edit, Write, Grep, Glob, Skill). **Every clearly-identified next action that fits the current turn's tool budget MUST execute in the current turn.** Deferring an action to "next turn" when it could chain into the current turn's Bash call is a rule violation.
+Concerns split strictly: Opus owns routing decisions, worker owns content production.
 
-**Chain everything chainable.** When dispatching a Bash call, ask: "What other Bash-class actions are clearly the next step?" Chain them with `;` or `&&`:
-- After `git merge`: chain post-merge verification (`; rag-cli search "test" RAG-meta`)
-- After `worker-cli send X`: chain status check of other workers (`; worker-cli list`)
-- After identifying a bug via investigation: chain the fix-dispatch (`; worker-cli send X "fix Y"`)
-- After completing a feature: chain bead close (`; bd close X --reason="..."`)
-- Cleanup actions (`rm`, `bd close`, `bd comments add`) cost zero extra tool calls when chained — always chain them.
+**Opus does (BEFORE dispatch — part of PLAN, not IMPLEMENT):**
 
-**Verbal-deferral is FORBIDDEN.** Phrases like "I'll do X next turn" / "Timer setze ich nächste Turn" / "I'll verify in the next turn" / "Mache ich später" trigger an immediate self-check: **Could X have been chained into the current Bash call?**
-- If YES → RULE VIOLATION. Stop, rewrite the response, chain the action.
-- If NO (genuine tool-constraint: background-Bash + foreground-Bash conflict, Read-required-before-Edit that did not fit, etc.) → state the explicit constraint AND specify the exact next-turn first-action as a concrete command, not a vague promise.
+1. **OldThemes folder.** RAG-search `<Project>-features` to check whether an OldThemes folder for the topic already exists. If yes → reuse the exact slug. If no → decide the slug name (matching project naming conventions). Do not delegate slug invention to the worker.
+2. **decisions/<step>.md files.** RAG-search `<Project>-meta` to identify which decision files the upcoming work touches (may span multiple pipeline steps — list ALL of them, not just the most obvious).
+3. **New folders / new files.** Decide explicitly whether the task creates a new OldThemes topic folder, a new `decisions/<step>.md`, or only extends existing ones. If a new file/folder is needed and naming is non-obvious → ASK USER before dispatch.
+4. **Pass exact paths in the worker prompt.** Worker prompt names full paths: e.g., "Write Phase A.1 narrative to `decisions/OldThemes/<exact-slug>/A1.md`. IST updates after src/ change go to `decisions/<step>.md` and `decisions/<other>.md`." No placeholders, no "the worker decides".
 
-**Investigation, follow-up, verification all count as chainable same-turn actions.** `worker-cli response`/`status`, `grep` on an identified pattern, `rag-cli` verify, post-merge tests, diff review, bead comment, file delete — these are NEVER next-turn material when current Bash budget is available. They chain into the current Bash.
+**Worker does:**
+- Reads the paths Opus provided
+- Writes content to those paths
+- Does NOT use `rag-cli`
+- Does NOT pick new folder names
+- Does NOT decide where narrative lives
 
-**The conversation buffer is NOT a reliable task stack.** A verbal "I'll do X next turn" gets overwritten by new user direction in the immediate next turn.
-**The user shares responsibility for catching slips. Opus is responsible for ensuring every action is either chained NOW or anchored as a concrete next-turn first-action — never a vague promise.**
+If a worker invents a path mid-task, that's an Opus rule violation (incomplete prompt) — not the worker.
 
-**Self-test before sending every response:** Scan the composed response for any verbal-deferral phrase. For each match: could this action chain into the current Bash call? If yes → STOP, rewrite, chain. If no → state the explicit tool-constraint reason AND the exact next-turn command (example: ✗ "I'll set the timer next turn", ✓ "**Next-turn first action:** `Bash sleep 300 && echo done [run_in_background=true]`"). No exceptions.
+**Applies to:** OldThemes narrative paths, decisions/ IST update paths, new `dev/<area>/` subdirectory naming, any artifact placement decision.
 
-### Worker Project Scope (NON-NEGOTIABLE)
+### Worker Project Scope
 
-**Workers are spawned only for coding tasks IN THE CURRENT PROJECT.** A "current project" is the directory tree in `pwd` at session start (or wherever the session is rooted). Edits in OTHER repos that come up during the session are typically small, contained, and Opus does them directly.
+**Workers are spawned only for coding tasks IN THE CURRENT PROJECT** (`pwd` at session start). Cross-project edits Opus does directly — no carve-outs. Size of change doesn't matter. Trigger to spawn a worker is "this is the current project"; anywhere else → Opus directly.
 
-**Why:** Worker dispatch costs ~5 min minimum (worktree creation, prompt writing, Phase A round-trip, STOP gate, Go, Phase B, verification). For a 1-line plist change or a 20-line bash-function addition in a separate utility repo, that overhead exceeds the actual work, and the cross-model verification has nothing to bite on because the worker is a fresh context reading unfamiliar code anyway — no advantage over Opus reading and editing directly. Within the current project workers carry sustained context across iterations, follow project patterns, merge cleanly into `dev`. Outside it, none of those benefits apply.
+If a cross-project task feels too large for one session, pivot the session to that project rather than spawn a worker without project context.
 
-**Cross-project edits Opus does directly — no carve-outs.** This includes single-file config changes, multi-file feature additions, new modules, and refactors. The size of the change does NOT change the rule. The trigger to spawn a worker is "this is the current project" — anywhere else, Opus does the work.
-
-If a cross-project task feels too large for Opus to handle in one session (massive refactor across many files, complex new subsystem), that's a signal that the work belongs in its own session with that project as the focus — not partially in the current session via a worker that has no project context. Either pivot the session, or do it directly here.
-
-**The single rule:** project = current session's focus → worker (with worktree). Anywhere else → Opus directly.
-
-**Worktree rule still holds for the current project:** if a worker IS spawned (in the current project), it ALWAYS goes into a worktree — no exceptions. See "Worktree Rule" below.
+**Worktree rule holds for the current project:** workers always go into a worktree, no exceptions. See § Worktree Rule.
 
 
 ### Dev-Branch Workflow
@@ -89,7 +141,7 @@ Workers merge onto `dev`, not `main`. Session end: `git checkout main && git mer
 
 ### Pre-Spawn Shared-File Conflict Check
 
-Worktrees branch from the last COMMIT, not the working tree. Uncommitted changes are NOT visible to the worker. BEFORE dispatching: commit changes, or tell the worker explicitly NOT to modify locally modified files. (Reuse-before-spawn rule lives under Phase 5 Lifecycle.)
+Worktrees branch from the last COMMIT — uncommitted changes are NOT visible to the worker. BEFORE dispatching: commit changes, or tell the worker explicitly NOT to modify locally modified files.
 
 ---
 
@@ -108,14 +160,14 @@ When in a PLAN/IMPLEMENT cycle, every response starts with a position indicator:
 - `📋 PLAN — Step 3: Gap Analysis`
 - `📋 PLAN — Step 4: Worker Scope`
 - `📋 PLAN — Step 5: Deliverables & KPIs`
-- `🔨 IMPLEMENT — Worker Phase 1 (Dispatch)` / `Worker Phase 2 (Evaluate)` / `Worker Phase 3 (Go)` / `Worker Phase 4 (Review)` / `Worker Phase 5 (Merge)`
+- `🔨 IMPLEMENT — Worker Phase 1 (Dispatch)` / `Worker Phase 2 (Evaluate)` / `Worker Phase 3 (Go)` / `Worker Phase 4 (Review)` / `Worker Phase 5 (Recap)` / `Worker Phase 6 (Merge)`
 
 Outside an active cycle (chat, casual response, status answer): no indicator needed.
 
 ### Cycle Overview
 
 **PLAN** — Opus understands, scopes, defines deliverables. NO worker dispatched yet.
-**IMPLEMENT** — Workers active. Each worker runs through Worker Phases 1-5 (Dispatch → Evaluate → Go → Review → Merge).
+**IMPLEMENT** — Workers active. Each worker runs through Worker Phases 1-6 (Dispatch → Evaluate → Go → Review → Recap → Merge).
 **RECAP** — Session end (separate `recap` skill).
 
 ---
@@ -130,56 +182,55 @@ Repeat what the user wants in your own words.
 
 🛑 STOP — Ask for remarks.
 
-### Step 2 — Prep Investigation (Opus baut mental model via RAG)
+### Step 2 — Prep Investigation (RAG → Source Identification → Source Read)
 
-This is Opus's OWN preparation investigation — NOT to be confused with Worker Phase 2 cross-model investigation. Two independent investigations are the whole point of the orchestration model:
+Opus builds its OWN mental model — NOT to be confused with Worker Phase 2 cross-model investigation. Two independent investigations are the whole point of the orchestration model:
 
-- **PLAN Step 2 prep (here):** Opus builds an own mental model from indexed sources. Cannot be delegated — if Opus has no model, Opus cannot evaluate worker findings later.
+- **PLAN Step 2 prep (here):** Opus builds an own mental model from indexed sources AND the actual source code. Cannot be delegated — if Opus has no model, Opus cannot evaluate worker findings later.
 - **Worker Phase 2 cross-model (workers-2):** the dispatched worker reads files in the worktree independently, reports findings. Opus compares the two models. Convergence → Go; divergence → iterate.
 
 Delegating the PLAN-Step-2 prep to an "Investigation Worker" collapses the two sides into one — you lose the independent second model, and with it the verification power.
 
-**Bead first, then RAG.** The Bead is the entry-point: topic + Source-Inventory pointing at where info is indexed. It does NOT carry narrative — it points. RAG-search on the indexed collections builds the working context.
+**Three-stage workflow, sequential. Each stage feeds the next.**
 
-For projects with `.rag-docs.json` at root: `<Project>-meta` covers `decisions/`, `DOCS.md`, `CLAUDE.md`, `sources/sources.md`. `<Project>-features` covers `decisions/OldThemes/`. External papers live in `<Project>_reference` when maintained.
+#### Stage 1 — RAG (find WHAT and WHICH)
 
-**Workflow:**
+Read the Bead (Source-Inventory + Resume hint), then run RAG searches per § RAG-First on Any Project Question above. Three collection layers for projects with `.rag-docs.json`:
 
-1. **Read the Bead** — note Source-Inventory and Resume hint.
-2. **Current architectural state:** `rag-cli search_hybrid "<topic>" <Project>-meta` — decisions/, DOCS.md, CLAUDE.md, sources/.
-3. **Discussion trail / iteration history:** `rag-cli search_hybrid "<topic>" <Project>-features [--document "%feature%"]` — OldThemes, archived themes, why-X-over-Y.
-4. **External reference:** `rag-cli search_hybrid "<topic>" <Project>_reference` — papers, vendor docs.
-5. **Expand context** when a chunk doesn't carry enough: `rag-cli read_document <collection> <doc> <chunk_index> --before N --after M`.
+- `<Project>-meta` — current state: decisions/, DOCS.md, CLAUDE.md, sources/
+- `<Project>-features` — discussion trail: OldThemes, archived themes, why-X-over-Y
+- `<Project>_reference` — external papers, vendor docs (when maintained)
 
-### Indexed paths — RAG REPLACES Read/cat (NON-NEGOTIABLE)
+**Stage 1 purpose: identify the topic landscape and produce a read-list of source files for Stage 3.** RAG indexes summaries, decisions, and discussion trails — NOT source code. A RAG hit that says "acquire() with backoff support" does NOT carry the actual code paths (e.g. "acquire() has TWO `await asyncio.sleep` branches, one for backoff and one for token-bucket-cap"). That lives only in the function body.
 
-Paths covered by `<Project>-meta` and `<Project>-features` (configured in `.rag-docs.json`) — typically `decisions/*.md`, `decisions/OldThemes/**/*.md`, `DOCS.md`, `**/DOCS.md`, `CLAUDE.md`, `sources/*.md` — are accessed via `rag-cli`, NEVER via `Read`/`cat`/`head`/`tail` as the first move. RAG returns the relevant chunks; direct file access pulls the FULL file into context and costs 5-20× more tokens than a targeted chunk-read.
+**Stage 1 output:** a concrete read-list — `src/<package>/<module>.py` plus 3rd-party library files if relevant. Not "modules around X" — actual file paths.
 
-**Mandatory escalation chain. No skipping.**
+#### Stage 2 — Source Identification (which files MUST be read)
 
-1. **`rag-cli search_hybrid "<query>" <collection>`** — start here for ANY status-quo / decision / rationale / "what does this file say about X" question. The returned chunks ARE the answer. Quote them inline.
-2. **Query missed?** Reformulate. Status-quo questions need ≥ 2 distinct query phrasings before "RAG has no hit" is a valid conclusion. Initial query was too narrow ("eval parameters") → broaden ("fusion alpha sweep evidence", "rerank trade-off results", "process iteration history"). Different angle ≠ different collection — also try `<Project>-features` if `<Project>-meta` missed.
-3. **Chunk insufficient?** `rag-cli read_document <collection> <doc> <chunk_index> --before N --after M` to expand around the hit. Default first try: `--before 2 --after 5`. Read up to `--before 5 --after 10` before declaring "expansion isn't enough".
-4. **Only after 1+2+3 exhausted:** direct-read.
+From the RAG hits, extract every src/ (and 3rd-party-library) file the worker will touch, instrument, modify, or whose behavior the worker's task depends on. Add adjacent files where the worker's interpretation will live — e.g. if the worker will instrument `rate_limiter.py`, the engine modules that CALL `rate_limiter.backoff()` are also on the list, because the interpretation of "where backoff comes from" depends on them.
 
-**Direct-read on the full file is justified ONLY when ALL hold:**
-- The file is being EDITED in the same turn (Edit/Write follows), OR
-- The file was edited THIS session and RAG hasn't been resynced (sync runs at recap), OR
-- Steps 1-3 above were performed in this session AND produced no usable answer, OR
-- `read_document --before 5 --after 10` expansion was insufficient AND the question requires structure visible only in the full file (e.g. section ordering, full table-of-contents, complete sweep table that spans many chunks)
+**Heuristic:** if a worker's deliverable will interpret measurements from function F, file containing F is mandatory-read; files containing every caller of F are mandatory-read; files containing every state mutator of F's state are mandatory-read.
 
-**Source code (`src/`, `dev/<script>.py`, `*.sh`, config files) is NOT indexed** — read directly via Read/Grep. Report-MDs under `dev/<area>/<script>_reports/` are also NOT indexed — direct-read is correct there.
+#### Stage 3 — Source Read (build the actual mental model)
 
-**Self-check BEFORE any `cat`, `head`, `tail`, or `Read` on an indexed path:**
+Read every file on the read-list. Not skim — READ. Every function, every state mutation, every code path the worker will touch. Mental-model contents that Step 3 Part B verifies are BUILT HERE, not in Stage 1.
 
-> "Did I run `rag-cli search_hybrid` for this question in this session? If yes — did I get a usable hit? If yes — did I try `read_document` expansion? If yes — was expansion insufficient AND do I need structure not visible in chunks? If any answer is NO, I am about to violate the rule."
+**Quote-Test before leaving Stage 3:** for every function the worker will instrument, modify, or whose behavior the worker will interpret — can you, without re-reading, recite its branches? If `acquire()` has two `await asyncio.sleep` branches, you must know both before scoping a probe that observes when `acquire()` blocks. If you cannot quote file:line on the actual mechanism, Stage 3 is not done.
 
-If the self-check fails: STOP, run the search, expand if needed, only then escalate.
+**Anti-pattern (the failure mode this stage prevents):**
+- RAG returns a summary chunk + a worker is dispatched on its basis
+- Worker reads the source themselves, builds an interpretation, returns findings
+- Opus accepts the interpretation without reading the source — the entire chain becomes inference-stacked-on-inference
+- The interpretation collapses under one factual challenge from the user, because Opus never had primary evidence to defend it
+- Hours of work wasted on a probe-design that missed half the mechanism
 
-**Present status quo to user:**
-- Which files/components are affected
+**Stage 3 is non-negotiable when:** the task involves instrumenting, modifying, refactoring, or interpreting the behavior of a specific function or module. It can be SHORTER when: the task is purely additive (new file, new tool, no interaction with existing logic) AND no Worker output will interpret existing behavior.
+
+**Present status quo to user after all three stages:**
+- Which files/components are affected — with file:line citations from Stage 3, not just RAG summary phrasing
 - Current state (IST) and why it matters
-- Reference Files identified
+- Reference Files identified (Stage 2 read-list, marked as read)
+- The actual code paths the worker's task touches (Stage 3 finding)
 - Relevant dev/ scripts
 
 🛑 STOP — Ask for remarks.
@@ -216,12 +267,16 @@ For each resource: state WHICH question it answers. If no resource is listed for
 
 **Part B — Mental Model Milestone (MANDATORY):**
 
-Before proceeding to Step 4 (Worker Scope), Opus must be able to answer:
-1. What is the actual problem? (not just symptoms)
-2. Which files/functions are involved and what do they do?
-3. If a worker delivers "all done" — would I recognize whether the deliverables address the RIGHT problem?
+Before proceeding to Step 4 (Worker Scope), Opus must be able to answer ALL of:
 
-If NO → continue reading code. Do NOT proceed to worker scoping without this milestone. Root cause may be unclear — that's OK. But Opus must understand enough to EVALUATE worker output.
+1. **What is the actual problem?** (not just symptoms)
+2. **Which files/functions are involved and what do they do?**
+3. **What are ALL the code paths the worker's task touches?** Have I READ each one in this session — not in a past session, not via RAG summary, not via DOCS.md description? If the worker's task involves instrumenting / modifying / interpreting behavior of function X, can I recite function X's branches and state mutations without re-reading?
+4. **If a worker delivers "all done" with an INTERPRETATION of measured data, can I cross-check that interpretation against the source code that produced the data?** Specifically: are there alternative code paths that would produce the same measurement but support a different interpretation? If the worker says "data X means mechanism Y", do I know whether the source contains a mechanism Z that would also produce data X?
+
+If ANY of these is NO → continue reading source code. Do NOT proceed to worker scoping. Root cause may still be unclear after Step 3 — that's OK. But Opus must understand the code surface well enough to EVALUATE worker output without re-doing the read at Phase 4 Review.
+
+**Why points 3 and 4 are explicit:** the canonical failure mode is "RAG hit + Worker findings + plausible interpretation → dispatch fix → user picks one factual challenge → entire chain collapses because Opus had no primary source-code evidence backing the interpretation". Point 3 prevents the chain from starting (the read happens in Step 2 Stage 3 and is verified here). Point 4 prevents Phase 4 Review from rubber-stamping a worker interpretation that the source code does not uniquely support.
 
 🛑 STOP — Ask for remarks.
 
@@ -302,32 +357,31 @@ The prompt describes WHAT, the worker figures out HOW. Every prompt must match e
 
 **Split / Refactor tasks — instruct the worker to drop sections that don't apply.** When splitting an existing document or refactoring across N target files, workers tendentially copy ALL sections from the original into every target — including sections without legitimate content in the new scope (Quellen with no real sources, Evidenz with no layer-specific data, Offene Fragen that don't apply). Add to the prompt: "For each section in the target file, verify it has legitimate content in the new scope. If a section would be empty, stub-only, or factually inappropriate — leave it out entirely. Do not carry sections blindly from the original."
 **Multi-File Bug — caller + callee both required as investigation target.** When a bug involves two-stage rendering (Pane → Format → Render), shared state across modules (Handler writes / Renderer reads), or any caller→callee data flow, the worker prompt MUST list BOTH files as investigation targets — not only the "fix-target" file. Reading just one side misses the contract mismatch.
-### STOP Gate Enforcement (CRITICAL)
 
-A single "STOP and wait for Go" line buried in a section header is UNRELIABLE. Completion-biased workers will read past it and proceed straight to implementation. To make the Phase 2 gate hold:
+**Empirical Investigation tasks — name the OldThemes topic slug, don't repeat the structure.** When the worker prompt is for an architectural alternative, library swap, or trial-and-error verification (dev/ probe territory per `worker-rules.md` § 5), the prompt names the OldThemes topic-slug (e.g., `decisions/OldThemes/menubar_nspanel/`). Worker handles the three-layer workflow on independent cadences — `dev/<area>/` scripts + DOCS.md (snapshots: edited only when probe-pattern invalidates or prod-mirror required), `decisions/OldThemes/<topic>/<phase>.md` per phase (live log: every phase, even when dev/ unchanged), `decisions/<step>.md` IST when prod state changes (IST edited FIRST, then src/, atomic commit). Do NOT enumerate any of this in the prompt — anchored in worker-rules.md § 5.
+
+### STOP Gate Enforcement
+
+To make the Phase 2 gate hold:
 
 1. **Repeat the STOP** — state it once at the top of the instructions AND as the absolute last line of the investigation step.
-2. **Use a sentinel block** — format the final STOP as a visually-prominent block at the very end of the prompt:
+2. **Use a sentinel block** at the very end of the prompt:
    ```
    ### 🛑 STOP HERE — DO NOT PROCEED WITHOUT GO
    Report your findings. Wait for "Go" from Opus before starting implementation.
    Do NOT run any Edit, Write, or Bash tool calls that modify files until Go is received.
    ```
-3. **Forbid tool classes, not just "don't implement"** — workers interpret "don't implement" loosely. Be explicit: "Do NOT run Edit/Write/Bash file-modifying calls" is unambiguous.
-4. **Place the sentinel AFTER the Completion Checklist** — the last thing the worker sees must be the stop gate.
+3. **Forbid tool classes, not just "don't implement"** — "Do NOT run Edit/Write/Bash file-modifying calls" is unambiguous.
+4. **Place the sentinel AFTER the Completion Checklist.**
 
-### Worktree Rule (NON-NEGOTIABLE)
+### Worktree Rule
 
-**ALWAYS spawn workers with `worktree=true` (the default).** This includes pure research workers that only read files or call MCP tools without editing code.
-
-`worktree=false` creates the worker session in the SAME `~/.claude/projects/` directory as the main session. This causes the monitor Token-Pane to pick up the worker JSONL as "newest session" and display worker data instead of the main session.
+**ALWAYS spawn workers with `worktree=true` (the default)** — including pure research workers that only read files.
 
 **Tell the worker WHERE they are.** Every worker prompt MUST explicitly state the worktree path and frame it as their workspace:
 
 > Your worktree: `<project>/.claude/worktrees/<name>/`
 > This is your workspace — read, edit, test, and commit here. Do NOT touch files outside this path unless explicitly instructed.
 
-Without this, workers sometimes navigate to the main project tree (same repo, different checkout) and edit there — edits land on the wrong branch and are lost on merge.
-
-**Only exception:** Worker MUST edit gitignored files that don't exist in the worktree → `worktree=false`. This is rare.
+**Only exception:** Worker MUST edit gitignored files that don't exist in the worktree → `worktree=false`.
 

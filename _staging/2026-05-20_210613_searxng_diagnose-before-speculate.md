@@ -1,0 +1,21 @@
+# 2026-05-20 — SEARXNG: diagnose-before-speculate + logging is roadmap-priority-0
+
+## ~/.claude/shared-rules/opus/verify-before-execute.md → Root Cause Before Fix (extend)
+
+**Problem:** In a session investigating zero-result queries from a 20-query probe, I spent ~8 exchanges proposing competing root-cause hypotheses ("burst pattern", "bucket sync through burst", "MAX_WAIT_CYCLES vs Selector drift") while the actual data needed to discriminate between them was one tool call away (a re-run of the probe with per-engine logging written to disk). User had to interrupt with "ich glaub du erfindest bugs wo keine sind" before the diagnostic infrastructure was prioritized.
+
+**How it should be:** When a diagnostic question has a probe-shaped answer (run a script, write per-engine logs, read the file), the probe goes FIRST. Hypotheses follow data, not vice versa. Speculation between hypothesis-runs is acceptable; speculation INSTEAD of a one-call diagnostic probe is not.
+
+**Rule:** Before proposing >2 mutually-exclusive hypotheses about the root cause of an observed failure, check: does a probe/script/log-read exist (or can be added in <30 LOC) that would discriminate between them? If yes → propose the probe, get the data, THEN propose the conclusion. Do NOT continue hypothesis-cascade ("could be A, or maybe B, or possibly C because...") when concrete data is one tool call away. The signal to stop and probe: user pushback like "du erfindest bugs", "drehen uns im kreis", or any indication that competing hypotheses are not converging on evidence.
+
+**Concrete example:** searxng session 2026-05-20. Probe run 1 produced 9/20 zero queries. Per-engine status was lost (probe bypassed query_logger, worktree got merged + removed). Instead of immediately spawning a worker to (a) move logging into `_query_engines_concurrent` so probes log automatically and (b) re-run with the new logging, I cycled through 3-4 hypotheses about bucket exhaustion, burst patterns, MAX_WAIT_CYCLES, and Google CAPTCHA propagation. After the logging fix + re-run, the actual cause (asyncio event loop starvation from Chrome CDP event flooding) was visible in a single jsonl record. The hypothesis-cascade phase was pure waste.
+
+## ~/.claude/shared-rules/opus/workers-1.md → PLAN Step 5 Deliverables & KPIs (extend with logging-priority note)
+
+**Problem:** Same session — when designing the session roadmap, I framed logging architecture as "Phase F, after all features are migrated". User had to forcefully reorder: "scheiß logging was wir wollen was du aber nach hinten geschoben hast weil du meinst layer 1 2 bla bla architektur müll. Ich will das wir loggen." Without logging in place, every subsequent probe ran blind, every diagnosis was speculation, every "fix" was unverifiable.
+
+**How it should be:** Logging/observability infrastructure is roadmap-priority-0 for any project where future iterations depend on production-data analysis. It comes BEFORE feature migration, BEFORE bug fixes, BEFORE optimization — because all three of those need data to verify, and the data either exists (logging in place) or doesn't.
+
+**Rule:** When scoping a session/roadmap for a project whose explicit goal includes "production-run + evaluate" (or equivalent — log-driven iteration, future-decision-supporting evidence), the FIRST architectural deliverable is logging completeness. Check: does every code path that will produce production-relevant signal write to a known location? If not, logging gap is the FIRST worker, not the last. Do NOT defer logging to "after features land" — features without logging are unverifiable, and the architectural reordering at session-end is more expensive than upfront placement.
+
+**Concrete example:** searxng session 2026-05-20. User's session-goal: "alle Beads abarbeiten → loggen → Production-Run → evaluieren". My initial roadmap put logging as Phase F (last). After two dev probes ran without per-engine logging, both produced inconclusive diagnostics — first one lost the per-engine state in worktree-merge, second one had to be re-run after logging was retrofitted. ~15 exchanges spent recovering from the deferred-logging decision. Correct ordering would have been: Phase A = universal logging architecture (1 worker, ~150 LOC), Phase B = first feature migration (now diagnosable on production). Reorder cost: ~5 exchanges.

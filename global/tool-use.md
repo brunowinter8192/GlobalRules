@@ -4,184 +4,123 @@ Goal: no large Bash-call where a small one works. Every tool_use input counts �
 
 ## Hard Rules — Token Efficiency
 
-### 1. Python: heredoc for one-shot, Write + Exec ONLY for iteration (binary rule)
+### 1. Python: heredoc for one-shot, Write + Edit for iteration (binary rule)
 
-**This is not a style preference. It is a measurable cost difference per probe:**
+**Decision tree:**
 
-- One-shot probe via **heredoc** = **1 tool call** (`python3 << 'EOF' ... EOF`)
-- Same one-shot via **Write + Exec** = **2 tool calls** (Write the file, then Bash to run it)
+1. **jq / grep / awk first** if the data shape fits — one-liners beat Python.
+2. **Python heredoc** when Python is needed AND the script runs once.
+3. **Write + Edit** ONLY when the SAME script will run a second time after edits.
 
-Write + Exec on a one-shot probe is pure waste — one extra tool call, one extra `tool_use` JSON payload, one extra `tool_result`, and a temp file left behind. The iteration-discount of Write + Edit **only** pays from run #2 onward, when Edit diffs replace full-heredoc re-transmission. There is no third option and no "Faulheit" / "cleaner / easier" justification — the call-count delta is the rule.
+Different script for a different question is a NEW one-shot — five probes answering five questions = five heredocs, not five Writes.
 
-**Decision is binary, by reuse:**
+**`python3 -c`:** switch to heredoc when the `-c` string exceeds ~300 chars including escaping.
 
-1. **jq / grep / awk first** — purpose-built, shortest form. `jq -c 'select(.type=="error")' file.jsonl` beats 15 lines of Python every time. Use a one-liner when the data shape fits.
-2. **Python heredoc** when Python is actually needed (multi-field comparisons, nested dict walks, shapes awk/jq struggle to express). One run, one heredoc, done.
-3. **Write + Edit** ONLY when the SAME script will run a second time after edits. Switch from run #2, not before.
-
-**Different script for a different question is a NEW one-shot.** Five probes answering five questions in one session = five heredocs, not five Writes. The signal is "will this exact script run again with changes" — not line count, not "it looks substantial", not "a file feels cleaner".
-
-**`python3 -c`:** when the `-c` string exceeds 300 chars including escaping — switch to heredoc (or Write once iteration starts). Argument-level quote escaping in `-c` is worse than heredoc quoting for medium scripts.
-
-
-### 2. No Bash for file creation → Write tool
-
-**Rule:** NEVER use `cat > file << 'EOF'` or `echo >` to create files. Always use the Write tool.
-
-**Why:** Bash heredocs can leak shell context into file content (e.g., `EOF 2>&1 | head -10` appended to a .gitignore). The Write tool is atomic and safe.
-
-**Exception:** Single-line echo append to an existing file is fine: `echo "entry" >> config.log`.
 
 ### 3. Grep scope hygiene — always restrict when searching source
 
-`grep -rn <pattern> <dir>` without type/include restriction matches inside JSONL, log files, vendored content, and node_modules. Output can explode into 10+ MB of irrelevant matches, poisoning context.
-
-**Rule:**
-- When searching for Python imports, function refs, or code-level patterns: always pass `--include='*.py'` to bash grep OR use the Grep tool with `type: "py"` / `glob: "*.py"`.
-- Prefer the Grep tool over bash `grep -rn` for code search — safer defaults, structured results.
+- When searching for Python imports, function refs, or code-level patterns: pass `--include='*.py'` to bash grep OR use the Grep tool with `type: "py"` / `glob: "*.py"`.
+- Prefer the Grep tool over bash `grep -rn` for code search.
 - For one-off bash grep: add explicit file scope (`grep -n <pattern> <specific_file>`) rather than `-r` over a whole tree.
 
+Hook `block_broad_grep.py` enforces.
 
-### 4. Context window hygiene — verbose output to file, not context (CRITICAL)
 
-Large tool outputs (build output, test runners, dev scripts, background tasks) flood the context window. One verbose dump can burn 10k+ tokens of irrelevant noise.
+### 4. Context window hygiene — verbose output to file, not context
 
-**Rule: noisy outputs go through files; signal outputs go directly into context.**
+Noisy outputs go through files; signal outputs go directly into context.
 
-The split:
-
-**File-redirect path (NOISY OUTPUT — most output is irrelevant):**
-- Build output (compiler errors mostly drowning in green-passes)
-- Test runners (mostly green dots, you grep for FAIL)
-- Dev scripts with debug logs you sample
-- Background workflows you tail-check
-- Anything where you want one specific signal out of a verbose dump
+**File-redirect path** (most output is noise, you'll grep for the signal):
+- Build output, test runners, dev scripts with debug logs, background workflows
 
 ```bash
-# RIGHT for noisy output — redirect, then extract
 ./venv/bin/python dev/crawling_suite/03_test.py > /tmp/03_test_output.md 2>&1
 tail -20 /tmp/03_test_output.md
 ```
 
-**Direct-to-context path (SIGNAL OUTPUT — the output IS the answer):**
-- Search-CLI results (searxng-cli search_web / search_batch — the URLs/snippets are the data you need to evaluate as a whole)
-- RAG retrieval / MCP tool results returning structured data
+**Direct-to-context path** (the output IS the answer):
+- Search-CLI / RAG / MCP tool results
 - Single-file reads via `cat` / `head` / `tail` of bounded size
-- Git status, log, diff (when bounded)
-- Anything where you'd just re-read the file in chunks anyway, ending up with the same content in context
+- Git status / log / diff (when bounded)
 
 ```bash
-# RIGHT for signal output — direct call, full result lands in context
 searxng-cli search_batch "query 1" "query 2" "query 3" "query 4"
-# Up to 4 queries × 20 URLs = 80 results, ~20 KB / ~5K tokens. Fits in one tool result.
 ```
 
-**The test before redirecting:** is the output mostly noise you'll grep through, or is it the data you'll evaluate as a whole? Noise → file. Data-as-whole → direct.
-
-
-- NEVER run `./venv/bin/python script.py` without `> /tmp/file.md 2>&1` (dev scripts are noisy)
+- NEVER run `./venv/bin/python script.py` without `> /tmp/file.md 2>&1`
 - NEVER run `cat` on a file that might be large — use `head`, `tail`, `grep`
-- DO run search/RAG/MCP-tool calls in the foreground — the result is what you came for
 
 ### 5. Stop after 2 failed tool calls
 
 When 2 tool calls in a row fail or don't deliver the desired result: **STOP IMMEDIATELY**.
+
 - Clearly explain the problem to the user
 - Ask: "How should I solve this?" or "Where can I find X?"
 - NO further trial and error without user input
-
-**"Quellen" = External Research, NOT More Bash:**
 - After 2 failures: the answer is RESEARCH (Web/GitHub search, read source code, read docs), not RETRY
-- Same error in a different wrapper = same bug. After 2nd failure: analyze the error pattern, ask what the common denominator is.
 
 
-### 6. Never dispatch parallel Bash calls
+### 6. Never dispatch parallel Bash tool_use blocks
 
-Multiple Bash tool_use blocks in the same turn get serialized by the runtime — one wins, the others come back as `<tool_use_error>Cancelled: parallel tool call Bash(...)</tool_use_error>`. The cancelled calls still cost input tokens, produce zero useful output, and force a retry. Pure waste.
+One Bash tool_use BLOCK per assistant response. Within that single block, chain any number of commands with `&&` or `;`. No limit on command count — only on parallel tool_use dispatch.
 
-**Rule:** one Bash call per turn. If you need multiple bash operations:
-- Chain them in a single command with `&&` or `;` (when outputs can be combined)
-- Or run sequentially across turns (when each result informs the next)
+- Independent commands → chain with `;`
+- Dependent commands (each step prerequisite for the next) → chain with `&&`
+- Diagnostic chains where step failure must NOT abort the rest → `;` (see Rule 11)
 
-Applies to ALL Bash invocations, not just `ls` — git, grep, cat, worker-cli, anything. Other tools (Read, Write, Edit, Grep, Glob) can be dispatched in parallel safely; only Bash has this cancel behavior.
+Sequential-across-turns is only required when a LATER command needs to USE the output of an EARLIER one.
+
+Applies to ALL Bash invocations. Other tools (Read, Write, Edit, Grep, Glob) can be dispatched in parallel safely; only Bash has the cancel behavior.
+
+**Chain everything chainable.** When dispatching a Bash call, identify what other Bash-class actions are the obvious next step and pack them into the same block:
+
+- After `git merge`: chain post-merge verification (`; rag-cli search "test" RAG-meta`)
+- After `worker-cli send X`: chain status check of other workers (`; worker-cli list`)
+- After identifying a bug via investigation: chain the fix-dispatch (`; worker-cli send X "fix Y"`)
+- After completing a feature: chain bead close (`; bd close X --reason="..."`)
+- Cleanup actions (`rm`, `bd close`, `bd comments add`) cost zero extra tool calls when chained — always chain them.
+
+**Exception — `sleep`.** Rule 12 forbids chaining anything before or after `sleep N && echo done`. When the obvious next step is "set a timer after spawn/send/merge", that timer goes in a SEPARATE foreground call → followed by the background timer in its OWN call. Do NOT pack `worker-cli spawn X ... && sleep 300 && echo done` — Rule 12 hook blocks it.
+
+**Verbal-deferral is forbidden.** Phrases like "I'll do X next turn" / "Timer setze ich gleich" / "ich verifiziere das anschließend" / "Mache ich später" trigger an immediate self-check: **could X have been chained into the current Bash call?**
+
+- If YES → rule violation. Rewrite the response, chain the action.
+- If NO (genuine tool-constraint: background-Bash + foreground-Bash conflict, Read-required-before-Edit that did not fit, etc.) → state the explicit constraint AND specify the exact next-turn first-action as a concrete command, not a vague promise.
+
+Investigation, follow-up, verification all count as chainable same-turn actions: `worker-cli response`/`status`, `grep` on an identified pattern, `rag-cli` verify, post-merge tests, diff review, bead comment, file delete. These are NEVER next-turn material when current Bash budget is available.
 
 
-### 7. Tool failure → immediate action (CRITICAL)
+### 7. Tool failure → immediate action
 
-Tool call fails silently → do NOT continue with workaround or fallback without reporting.
+Tool call fails → do NOT continue with workaround or fallback without reporting.
 
-**Rule:**
-- Tool fails → report to user IMMEDIATELY in the same response
-- Then: (a) fix the prerequisite yourself (start server, install dep, fix config) and retry, OR (b) stop and wait for user input if fix is outside your control
-- NEVER silently fall back to a different approach without disclosing plan A failed
-- NEVER ask "should I start X or work around it?" — if you CAN fix it, fix it
-
-**Decision tree:**
 1. Tool fails → report error to user in same message
-2. Can I fix it? (start process, install dep, create dir) → fix it NOW, retry
-3. Can't fix it? (needs user credentials, hardware, manual step) → stop, explain what's needed
-4. NEVER: silently switch to plan B without disclosing plan A failed
+2. Can fix it (start process, install dep, create dir)? → fix NOW, retry
+3. Can't fix it (needs user credentials, hardware, manual step)? → stop, explain what's needed
+4. NEVER silently switch to plan B without disclosing plan A failed
+5. NEVER ask "should I start X or work around it?" — if you CAN fix it, fix it
 
 
 ### 8. `<persisted-output>` blocks: grep the full file, never settle for the preview
 
-**Rule:** When a tool_result contains a `<persisted-output>` block (CC's truncation feature for large Bash outputs), use Grep / Read / cat on the persisted file path. NEVER stop at the `Preview (first NKB)` content.
-
-CC injects this format when a Bash output exceeds its inline limit:
-
-```
-<persisted-output>
-Output too large (NMB). Full output saved to: /Users/.../tool-results/<id>.txt
-
-Preview (first 2KB):
-... 2KB snippet ...
-...
-</persisted-output>
-```
-
-The preview is bait. It suggests "this is everything you can see" and the natural read is to draw conclusions from those 2KB alone. That is almost always wrong — the full data lives at the path and is one Grep / Read call away. Preview content is redundant the moment you grep the persisted file.
+When a tool_result contains a `<persisted-output>` block, use Grep / Read / cat on the persisted file path. NEVER stop at the `Preview (first NKB)` content — the full data lives at the path.
 
 **Workflow:**
 1. Extract the absolute path from `Full output saved to: <path>`.
-2. **Grep first** — `grep <pattern> <path>` for targeted lookups (lowest context cost).
-3. **Read with offset/limit** for ranges — `Read(file_path=<path>, offset=N, limit=M)`. CC's "too large" warning is conservative; direct Read on the persisted file works for files much larger than the inline tool-output limit.
-4. **cat / head / tail** only when the file is small and you genuinely need contiguous content.
+2. **Grep first** — targeted lookups, lowest context cost.
+3. **Read with offset/limit** for ranges. CC's "too large" warning is conservative; direct Read on the persisted file works for much larger files.
+4. **cat / head / tail** only when the file is small and you need contiguous content.
 
-**The mistake to avoid:** answering questions, drawing conclusions, or planning next steps from preview content alone. If preview content looks like it answers the question, that is coincidence — the full file may contain the actual answer or a different signal entirely.
+**>100KB persisted: don't re-grep on the persisted file.** Tighten the pattern OR narrow scope OR re-run with narrow scope. Re-grep on over-broad pattern persists again.
 
-
-**>100KB persisted: don't re-grep on the persisted file.** When an initial Bash call produces a persisted-output >100KB (typical with recursive grep over `~/.claude/` matching plugin cache + JSONL session files), a follow-up grep on the same persisted file with the same pattern produces almost the same size — persisted again, too large for Read. Don't drill down on the over-broad pattern. Instead: (a) tighten the pattern (what was too broad?), (b) narrow scope (which files explicitly?), (c) re-run with narrow scope from the start.
-
-**Don't chunk-read small persisted files.** When the persisted file is up to roughly 100 KB / ≤2000 lines, ONE Read call covers the whole content (Read's default limit is 2000 lines, raise via `limit=N` if needed). Reading in 100/200/rest chunks across three sequential Read tool_use blocks is pure overhead — three roundtrips, three tool_result payloads, for content that fits in one. Chunked reading is only justified for genuinely huge files (hundreds of MB, log archives) where a full Read would itself blow the context window. Decision rule before Read: estimate file size from the persisted-output header (`Output too large (NMB)`); if the size is under ~200 KB, read it all at once with `limit=` set generously, not in increments.
+**Don't chunk-read small persisted files.** Up to ~100 KB / ≤2000 lines, ONE Read call covers it (raise `limit=N` if needed). Chunked reading is only justified for huge files (hundreds of MB).
 
 
 ### 9. Read before Edit/Write — non-negotiable
 
-The Edit and Write tools fail on files that haven't been read in the current session with `<tool_use_error>File has not been read yet. Read it first before writing to it.` There is no workaround — the call must be re-issued after a Read.
+Before any Edit or Write call on an existing file, call Read on the same path. ONE Read per file per session is enough — subsequent Edit/Write calls reuse the read state. Read followed by Edit in the same response is fine; both fire in order.
 
-**Rule:** before any Edit or Write call on an existing file, call Read on the same path. ONE Read per file per session is enough — subsequent Edit/Write calls reuse the read state. Read followed by Edit in the same response is fine; both fire in order.
-
-**Forbidden shortcut:** "I know the content already" or "I just edited this in another session" does NOT satisfy the requirement. The Read-state is per-session, not persisted across sessions.
-
-The per-tool reference at the bottom of this file (Edit / Write sections) carries the same rule, but it gets overlooked because it lives in a reference table rather than the Hard Rules. This is a Hard Rule.
-
-
-### 10. Branch-name ambiguity in repos with same-named directories
-
-`git diff <branch>` and `git log <branch>` fail with `fatal: ambiguous argument '<branch>': both revision and filename` when a directory of the same name exists at the repo root. The classic case: a `dev/` directory (for dev-scripts, evals, etc.) plus a `dev` branch. Git cannot tell which you meant.
-
-**Rule:** when the branch name collides with a directory in the repo, disambiguate with a trailing `--` to force the branch interpretation:
-
-```bash
-git -C <repo> diff dev --
-git -C <repo> log dev --oneline --
-```
-
-Alternatives that also work:
-- `git diff origin/dev` — remote-prefixed refs never collide with directory names
-- `git diff main` — compare against trunk instead, when that's what you actually want
-
-`workers-2` prescribes `git -C <project_root>/.claude/worktrees/<name> diff dev` for code review of worker branches. In repos with a `dev/` directory at root this triggers the ambiguity error every time. Use `git -C <worktree> diff dev --` or `git -C <worktree> diff main` instead.
+**Forbidden shortcut:** "I know the content already" or "I just edited this in another session" does NOT satisfy. Read-state is per-session, not persisted across sessions.
 
 
 ### 11. Diagnostic Bash chains: `;` not `&&`
@@ -198,84 +137,73 @@ echo "=== refs ===" && grep X file && ls dir/ && echo "=== done ==="
 echo "=== refs ==="; grep X file; ls dir/; echo "=== done ==="
 ```
 
-Same principle: `2>/dev/null` swallows stderr but does NOT change exit codes — adding it does not save the chain.
+`2>/dev/null` swallows stderr but does NOT change exit codes — adding it does not save the chain.
+
+**Exit code = last command.** If the last step is a conditional-then-action (`[ ... ] && X`, `grep X && Y`), fix it:
+- `[ -f path ] && tail path || true` — force exit 0
+- `if [ -f path ]; then tail path; fi` — returns 0 when path absent
+- Append `; true` to the whole chain to guarantee exit 0
 
 
-### 12. `sleep` commands are forbidden — single narrow exception for Opus worker-polling (NON-NEGOTIABLE)
+### 12. `sleep` commands are forbidden — single narrow exception
 
-**Hard ban: any Bash tool call containing `sleep` is FORBIDDEN, with exactly one allowed form documented below.**
-
-**Workers: zero sleep, ever.** No polling own background tasks, no "let the system settle", no "wait for output to appear", no "give the GPU service a moment". If a worker's task takes longer than the 10-minute `Bash` tool timeout ceiling, restructure:
-
-- Split into shorter Bash calls (e.g. 4 queries × separate Bash call instead of one 13-min batch)
-- Use foreground Bash with explicit `timeout=600000` (10-min max, the tool's hard ceiling)
-- Write incremental progress to `/tmp/<name>.log`, finalize after natural completion
-- Background-spawn + sleep-poll is the explicit anti-pattern — do NOT use it
-
-The instinct "I just need to wait for X seconds and then check" is wrong. The right framing is: the work either completes within the foreground Bash call, or it gets restructured. There is no waiting.
-
-**Opus: one allowed form, narrow.** The single exception:
+Any Bash tool call containing `sleep` is FORBIDDEN, with exactly one allowed form:
 
 ```
 Bash(command="sleep N && echo done", run_in_background=true)
 ```
 
 - Exact form only, no variations, no additional chaining
-- Used by Opus to schedule the next status-check on a dispatched **worker** (not on Opus's own background scripts, not on Opus's own pipeline runs)
-- Single timer at a time (Background Task Discipline, Rule 6 / Rule 14)
-- The user receives "Background command completed" as a turn input, then Opus checks `worker-cli status` foreground in the next turn
+- Used by Opus to schedule the next status-check on a dispatched worker
+- Single timer at a time (Background Task Discipline)
 
-This is the canonical worker-polling flow (`opus-workers-2`). It exists because Opus needs to free the API stream while a worker runs in a separate tmux session. Workers themselves don't have this constraint — they can let foreground Bash run up to 10 min directly, no sleep needed.
+**Workers: zero sleep, ever.** No polling own background tasks. If a worker's task takes longer than the 10-min `Bash` ceiling, restructure: split into shorter calls, use foreground Bash with explicit `timeout=600000`, write incremental progress to `/tmp/<name>.log`.
 
-**Self-check before any Bash call** (mandatory): does the command contain the literal token `sleep`? If yes:
+**Self-check before any Bash call:** does the command contain the literal token `sleep`? If yes:
+- Worker context → DELETE the call, restructure
+- Opus context → confirm ALL THREE: exact form `sleep N && echo done`, `run_in_background=true`, polling a worker. Otherwise DELETE.
 
-- Worker context → DELETE the call, restructure the task per the bullet list above
-- Opus context → confirm ALL THREE: exact form `sleep N && echo done`, AND `run_in_background=true`, AND polling a worker (not Opus's own pipeline). Otherwise DELETE.
-
-**Runtime backstop:** CC's tool-use runtime already blocks `sleep N && <other_command>` (chained with anything other than `echo done`), returning `<tool_use_error>Blocked: sleep N followed by: <command>`. This is a hard backstop against the most common violation. The discipline rule above is stricter — it bans the pattern at the design level, before the runtime has to catch it.
+CC's tool-use runtime backstops by blocking `sleep N && <other_command>` patterns.
 
 
 ### 13. Worktree path is `.claude/worktrees/` — never `.claire/`
 
-The worktree directory in every project is `.claude/worktrees/<name>/`. There is no `.claire/` anywhere. But there is a recurring tokenizer-level typo where Edit, Write, Read, or Bash calls inside worker sessions land on `.claire/worktrees/...` paths and fail with `File does not exist` (or, for Bash `cd`, with a no-such-directory error).
+The worktree directory is `.claude/worktrees/<name>/`. There is no `.claire/` anywhere.
 
-**Rule:** before any file operation that names a worktree path explicitly, verify the literal substring `.claude/worktrees/` (with a `u` and `d`, not an `i` and `r`). When working from cwd inside a worktree, prefer relative paths or the `c` shortcut for `worker-cli` rather than reconstructing the absolute path — the typo only happens when the model rebuilds the path string by hand.
+**Rule:** before any file operation naming a worktree path explicitly, verify the literal substring `.claude/worktrees/` (with `u` and `d`, not `i` and `r`). When cwd is inside a worktree, prefer relative paths or the `c` shortcut for `worker-cli` rather than reconstructing absolute paths.
 
-**Detection:** if a tool call returns `<tool_use_error>File does not exist. Note: your current working directory is /Users/.../.claude/worktrees/<name>.` — the cwd is correct but the path argument has the typo. The fix is rewriting the file_path with `.claude/`.
+**Same-class typo:** `..letter` (two consecutive dots immediately followed by lowercase letter, e.g. `..claude/`, `..src/`) is virtually never a valid path component. Valid parent-traversal is `../` (two dots + slash).
 
-**Same-class typo: `..claude/...`** (two dots, no slash). Real paths have `..` only as `../` (relative parent traversal). Any path matching `\.\.[a-z]` (two consecutive dots immediately followed by a lowercase letter) is a typo with overwhelming probability — it is virtually never a valid path component.
+Hook `block_path_typo.py` enforces both patterns.
 
 
 ### 14. Background Bash is a deliberate choice, never a default
 
-Setting `run_in_background=true` on a Bash tool call MUST be a conscious decision — never typed by default for grep / cat / ls / read-only commands. Background mode triggers the persisted-output mechanism (Output too large notification + file path), spawns a `<task-notification>` injection on the next user turn, and creates orchestration complexity (the next turn's REQ may carry a TN block + a system-notification SR depending on CC version).
+`run_in_background=true` MUST be a conscious decision — never typed by default for grep / cat / ls / read-only commands.
 
 **Use background ONLY for:**
-- Long-running commands the user explicitly wants to overlap with other work (build/test runs >30s, `sleep N && echo done` as orchestration timer)
-- Worker-spawn timer patterns documented in opus-workers-2
+- Long-running commands the user explicitly wants to overlap with other work (build/test runs >30s, `sleep N && echo done` orchestration timer)
+- Worker-spawn timer patterns (opus-workers-2)
 
 **Never use background for:**
 - Quick grep / cat / ls / wc / git status / file inspection
 - Anything you'll read the output of within the same response
-- "Just to be safe" / "in case it takes long"
 
 
 ### 15. zsh Quoting for Repeated Path Calls
 
-bash splits `$VAR` on whitespace when expanding into arguments. zsh **does not** — `$A` stays a single argument even when the string contains spaces. Result: `A="/path/python /path/cli.py"; $A search ...` tries to start a program named `/path/python /path/cli.py` (with a space in the name) and fails with `no such file or directory`. On macOS zsh is the default shell.
+When a command is called repeatedly with the same long paths, NEVER pack two paths into a single variable with whitespace (zsh doesn't word-split `$VAR`, the call fails). Three robust patterns:
 
-**Rule:** when a command is called repeatedly with the same long paths, NEVER pack two paths into a single variable with whitespace. Three robust patterns:
-
-1. **Function:** `cmd() { /full/python /full/cli.py "$@"; }` — `"$@"` is pass-through, splits safely.
-2. **Two-Variable-Split:** `PY=/full/python; CLI=/full/cli.py; $PY $CLI ...` — each variable holds exactly one path without whitespace.
-3. **Wrapper script in `~/.local/bin/`:** A 3-line bash wrapper (`#!/usr/bin/env bash` + `exec /full/python /full/cli.py "$@"`), `chmod +x`, then just `cmd-name search ...`. Pattern used for rag-cli, gh-cli, reddit-cli, arxiv-cli.
+1. **Function:** `cmd() { /full/python /full/cli.py "$@"; }`
+2. **Two-Variable-Split:** `PY=/full/python; CLI=/full/cli.py; $PY $CLI ...`
+3. **Wrapper script in `~/.local/bin/`:** 3-line bash wrapper + `chmod +x`, then just `cmd-name ...` (pattern: rag-cli, gh-cli, reddit-cli, arxiv-cli)
 
 
 ### 16. cd-Drift across Bash-Tool-Calls
 
-Bash tool calls within a session share cwd. A `cd /target` in call N changes cwd for calls N+1, N+2, etc. Common trap when diff-reviews or worktree operations run in the middle of an otherwise main-repo-centered session.
+Bash tool calls within a session share cwd. A `cd /target` in call N persists to call N+1.
 
-**Rule:** when a Bash call contains `cd "$WORKTREE"` or a similar direct directory switch, the last step in that same call MUST cd back to the main cwd (`cd /full/main/repo/path` at the end). Alternative: use `git -C <path>` and absolute paths throughout, without ever cd-ing.
+**Rule:** when a Bash call contains `cd "$WORKTREE"` or similar, the last step MUST cd back to the main cwd. Alternative: use `git -C <path>` and absolute paths throughout, never cd-ing.
 
 
 ---
@@ -309,36 +237,27 @@ Two zero-results in a row on the same topic = stop, rethink.
 
 ## Large Artifacts
 
-### Heredoc — three distinct cases
+### Heredoc — three cases
 
-Not every heredoc is the same problem. Three classes, three different answers.
+**Case 1 — Python / analysis:** one-shot = heredoc, iteration (run again with changes) = Write + Edit. See Rule 1.
 
-**Case 1 — Python / analysis: one-shot = heredoc. Iteration = Write + Edit. Binary.** See Rule 1.
+**Case 2 — File creation or editing:** NEVER Bash heredoc / `cat > file <<EOF` / `tee file <<EOF`. Always Write (new file) or Edit (existing file). This includes `.py`, `.sh`, `.md`, config files, scripts — any file living in the repo. Reasons: (a) Bash heredocs bypass the Read-before-Edit safety check, (b) project-level hooks scan the full Bash command including heredoc bodies and false-positive on patterns like `sleep N`, `bd show`, etc. that legitimately occur in code, (c) no diff visibility, (d) atomic-write guarantees of Write/Edit are lost. The only files you may write via heredoc are throwaways under `/tmp/`.
 
-**Case 2 — File creation heredoc (Rule 2 above): NEVER.**
-
-`cat > file << 'EOF'` and `echo >` can leak shell context into the file content (e.g. `EOF 2>&1 | head -10` accidentally appended). Write tool is atomic and safe. Zero exceptions except the narrow single-line-append pattern noted in Rule 2.
-
-**Case 3 — Shell-argument heredoc for a one-shot command: OK.**
-
-Bead description, multi-line git commit body, one-off `curl -d`-style payload. The content is a single argument to a single command, never executed again, never edited. The alternatives (Write tool + `Bash` with `$(cat /tmp/file)`) and heredoc inline carry the **same content bytes** in tool_use JSON — the only difference is the heredoc version skips one tool-call overhead and does not leave a temp file behind.
+**Case 3 — Shell-argument heredoc for a one-shot command (bd description, git commit body, curl payload):** OK.
 
 ```bash
-# OK — one-shot shell argument
 bd --repo <path> create --title "..." --type task --description "$(cat <<'EOF'
 <full markdown description>
 EOF
 )"
 ```
 
-Case 3 applies specifically to multi-line shell-command arguments that the user will never iterate on. For anything that might be re-run, re-shaped, or debugged later, fall back to Write + `$(cat ...)` so the content is editable via the Edit tool.
-
 **Decision flow:**
 
-1. Is the content Python / analysis code? → try jq/awk/sed first. If Python is needed: one-shot (one run, throw away) → heredoc. Same script will run a second time after edits → Write + Edit from run #2.
-2. Is the goal to create a file? → never heredoc. Write tool.
-3. Is it a multi-line argument to a one-shot shell command (bd create, git commit -m body, curl -d payload)? → heredoc inline is the clean form. One tool call, no temp file.
-4. Will the same multi-line content be reused, revised, or referenced across multiple calls? → treat as iterated. Write + Edit.
+1. Python / analysis code? → jq/awk/sed first. If Python needed: one-shot → heredoc. Will rerun with changes → Write + Edit from run #2.
+2. Goal is to create a file? → Write tool.
+3. Multi-line argument to a one-shot shell command? → heredoc inline.
+4. Same multi-line content reused across multiple calls? → Write + Edit.
 
 ### Bead descriptions
 
@@ -378,6 +297,7 @@ All worker lifecycle operations via `~/.local/bin/worker-cli`.
 | Merge worker branch | `worker-cli merge <name>` |
 | Kill worker | `worker-cli kill <name>` |
 | Spawn worker in worktree | `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` |
+| Revive dead worker (resume CC session) | `worker-cli revive <name>` |
 
 `worker-cli response <name>` is the default for reading idle workers — returns clean text from session JSONL (~200-2000 chars, no UI trailers or prompt echo). `worker-cli capture <name>` + `tail` + `sed`-filter is the fallback when `response` misses context (rare — Phase-A partial-report situations). Capture dumps 2-5k chars of CC UI + prompt echo.
 
@@ -512,8 +432,6 @@ Indexed-document search and lookup. All RAG operations via `rag-cli` (`~/.local/
 
 ##### Rules
 
-- NEVER start `llama-server` or splade directly. Use `rag-cli server start <preset>` or arbitrary-start.
-- NEVER kill GPU processes outside `rag-cli`. Use `rag-cli server stop <preset>` or `stop --port N`.
 - Issue the search command directly — no prior `rag-cli server start` needed.
 - On persisted-output: read the file completely in ONE Read call, no offset/limit chunking.
 - Indexed collections in `data/documents/<collection>/` → rag-cli. Local source files → Read tool, not rag-cli.
@@ -546,6 +464,37 @@ Anti-patterns:
 - Assuming `embedding` / `reranker` / `splade` are the only valid preset names — they're prefixes. Use `rag-cli server presets` to see the full list.
 - Hardcoding preset names in downstream scripts. Always pull from `rag-cli server presets --json`.
 - Calling `start_arbitrary` to launch a known model variant — that bypasses preset config. Use `rag-cli server start <name>` instead.
+- `rag-cli server start` (no args) starts only entries with `default=true`. To run a non-default variant: `rag-cli server start <full-name>` (e.g. `start reranker-8b`). Both `embedding-8b` and `embedding-0.6b` can run in parallel if GPU memory allows; `find_server_url("embedding")` picks the first in insertion order.
+
+##### RAG: Status-Quo via RAG first
+
+Trigger: project has `.rag-docs.json` at root → `<Project>-meta` collection exists with decisions/, DOCS.md, CLAUDE.md indexed.
+
+**Status-quo questions answered by RAG, not by direct-read of decisions/:**
+- "What is the IST of X?" / "How does Y work?" / "What was decided about Z?"
+
+```bash
+rag-cli search_hybrid "<query>" <Project>-meta
+```
+
+The returned chunk IS the answer. No follow-up direct-read of the same file needed.
+
+**Direct-read on the full decision file ONLY when:**
+- The file is being EDITED (need all sections in view)
+- The file was edited THIS session and RAG hasn't been resynced
+- RAG returned no usable hit AND the path is known anyway
+- The answer needs more context → expand via `rag-cli read_document <coll> <doc> <chunk> --after N`, NOT raw direct-read
+
+**search_hybrid search commands by use case:**
+
+| Use case | Command |
+|---|---|
+| Content search (default) | `rag-cli search_hybrid <query> <coll>` |
+| Pure semantic (BM25 stems hurt) | `rag-cli search <query> <coll>` |
+| Exact terms (function names, identifiers) | `rag-cli search_keyword <query> <coll>` |
+| Expand context around a hit | `rag-cli read_document <coll> <doc> <chunk> --before N --after M` |
+
+Defaults: `--top-k 20` (10–50 valid). `--document` filter on any search command narrows to matching doc names. When a search hit's chunk doesn't contain the full answer, expand via `read_document` on the hit's `chunk_index`.
 
 ### Grep
 - **Brace escaping:** literal braces must be escaped — use `interface\{\}` to find `interface{}` in Go code. Without escaping, the pattern silently matches nothing.
@@ -556,18 +505,24 @@ Anti-patterns:
 
 ### Read
 - **Line limit:** reads up to 2000 lines by default. Use `offset` + `limit` parameters for larger files.
-- **Output format:** `cat -n` format — `line_number\tcontent`. NEVER include the `line_number\t` prefix in Edit's `old_string` or `new_string`.
+- **Output format:** `cat -n` format — `line_number\tcontent`.
 - **Images:** can read PNG, JPG, etc. — presented visually as a multimodal model.
 - **PDF:** files with >10 pages MUST include a `pages` parameter (e.g. `"1-5"`). Omitting it on large PDFs causes a tool failure. Max 20 pages per request.
 - **Jupyter:** can read `.ipynb` notebooks — returns all cells with their outputs.
 - **Directories:** Read cannot read directories. Use `ls` via Bash.
 - **Empty file:** returns a system-reminder warning in place of content — do NOT interpret the warning as actual file content.
+- **256KB limit:** files >256KB fail with `File content (Xkb) exceeds maximum allowed size (256KB)`. Pre-check with `wc -c <file>` or `ls -la` for large logs/JSONL. Fix: `grep -n <target> <file>` to find line, then `Read(file_path=..., offset=N, limit=200)`.
+- **25k-token limit:** files >25k tokens fail with `File content (X tokens) exceeds maximum allowed tokens (25000)`. Same fix: grep + targeted Read with offset/limit.
+- **Nonexistent path:** fails with `File does not exist. Note: your current working directory is …`. Verify path with `ls` before Read when path is reconstructed from memory. Common typos: `.claire/` (should be `.claude/`), `..claude/` (double-dot — never valid).
+- **Worktree paths cause CLAUDE.md re-injection.** Reading any file under `.claude/worktrees/...` via the Read tool triggers CLAUDE.md re-injection into context. Use Bash `cat` / `head` / `git show` for worktree file reads instead.
 
 ### Edit
 - **Read first:** Required — see Rule 9.
-- **Indentation:** preserve EXACT indentation as it appears AFTER the line-number prefix. Prefix format is `line_number\t` — NEVER include it in `old_string` or `new_string`.
+- **Indentation:** preserve EXACT indentation as it appears in the file content.
 - **Uniqueness:** FAIL if `old_string` is not unique in the file. Remedy: expand the match string with more surrounding context, or use `replace_all`.
 - **replace_all:** use for rename-across-file operations (variable rename, import path change, etc.).
+- **Noop edit:** FAIL with `No changes to make: old_string and new_string are exactly the same`. Re-read the file before retrying — the actual content likely differs from what was assumed (external edit, indentation mismatch).
+- **File modified since read:** FAIL with `File has been modified since read, either by the user or by a linter`. Re-Read the file explicitly before retrying. Happens when a linter, worker, or user edits between your Read and Edit calls.
 
 ### Write
 - **Existing file:** Read first required — see Rule 9.
@@ -576,8 +531,3 @@ Anti-patterns:
 
 ---
 
-## What this rule does NOT do
-
-- Does not strip tool_result content at the proxy. That's a separate concern.
-- Does not enforce at commit time. This is advisory behavior through rule-awareness. The monitor is the feedback loop.
-- Does not maintain a library or justfile. Every analysis script is one-off.

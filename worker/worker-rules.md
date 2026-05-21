@@ -52,7 +52,7 @@ Worktrees contain symlinked dependency directories (`venv`, `.venv`, `node_modul
 
 **Rule:** NEVER `git add` or commit: `venv/`, `.venv/`, `node_modules/`, or any dependency directory. Even if `git status` shows them as untracked.
 
-## 3. Completion Checklist (MANDATORY)
+## 3. Completion Checklist
 
 Your worker prompt includes a **Completion Checklist** section — task-specific verification items defined by the orchestrator.
 
@@ -60,8 +60,7 @@ Your worker prompt includes a **Completion Checklist** section — task-specific
 
 1. The orchestrator defines checklist items in your prompt (e.g., "List all MCP tools found in server.py", "Confirm no absolute paths")
 2. You complete the task
-3. **Before your final commit**, output the filled checklist to the terminal — this is your last action
-4. The orchestrator reads your output via `worker_capture(tail=N)` to verify
+3. The orchestrator reads your output via `worker-cli capture <name>` to verify
 
 ### Output Format
 
@@ -76,7 +75,7 @@ COMPLETION CHECKLIST:
 
 Be concrete: file paths, counts, specific values — not "done" or "verified".
 
-### STOP on Unexpected Problems (NON-NEGOTIABLE)
+## 3.5 STOP on Unexpected Problems
 
 When a script, run, or tool produces unexpected output — empty results, parse failure, unexpected URL, wrong status code, timeout, anything outside the expected happy path:
 
@@ -90,7 +89,7 @@ When a script, run, or tool produces unexpected output — empty results, parse 
    Hypothesis: <one hypothesis for root cause>
    Suggested next step: <debug script / config change / upstream research / abort>
    ```
-4. **Go idle and wait for Go** — parent session is automatically notified and reads via `worker_capture`.
+4. **Go idle and wait for Go** — parent session polls via `worker-cli response <name>` or `worker-cli capture <name>`.
 
 **Do NOT:**
 - Write debug scripts autonomously
@@ -98,7 +97,7 @@ When a script, run, or tool produces unexpected output — empty results, parse 
 - Restart the run after a "fix" you decided yourself
 - Iterate debug → fix → retry cycles without reporting
 
-**Why:** Opus has user-facing context (session goal, scope, time budget, prior decisions). A single autonomous fix cycle can invalidate the entire session approach. Your job is to document the problem clearly, not to fix it.
+**Scope:** Applies to task execution failures. For planned verification blocked by external causes (CAPTCHA hang, server 503, test data missing) → see `verification.md` Pattern 3 instead of STOP.
 
 **Exception:** The Completion Checklist step "spot-check one query by hand" is explicit verification, not debugging. Debug = you hit something you didn't expect. Spot-check = you validate what you built.
 
@@ -120,8 +119,6 @@ When a script, run, or tool produces unexpected output — empty results, parse 
 ### No Cosmetic Edits After Functional Success
 
 When a script you wrote runs successfully and produces correct output: **STOP**. Do NOT trim comments, shorten docstrings, restructure for line-count, or otherwise polish the file aesthetically. Self-imposed line-count or character-budget targets are not allowed unless Opus explicitly requested them.
-
-The signal "the script ran, the output is correct" → next action is COMMIT, not polish. A script that has been edited to trim 4-character comments down to 3-character comments is wasting context budget on no behavioral change. Once functional, capture-and-commit; let format-pedantry happen in a follow-up if needed.
 
 ### Verification Before Commit
 
@@ -155,7 +152,7 @@ When your task involves moving files to a new subdirectory, every move requires 
 
 ## 5. Architectural Alternatives Belong in dev/
 
-When a worker prompt asks for an architectural alternative — library swap (httpx vs pydoll, requests vs httpx), engine rewrite (browser → HTTP, sync → async), technique replacement, or alternative-implementation evaluation — the implementation MUST live in `dev/` as a probe, NOT modify `src/` directly. This mirrors `~/.claude/shared-rules/global/documentation.md` "dev/ vs src/ for Exploratory Rewrites" but acts as a defensive layer at the worker side.
+When a worker prompt asks for an architectural alternative — library swap (library-A vs library-B), engine rewrite (browser → HTTP, sync → async), technique replacement, or alternative-implementation evaluation — the implementation MUST live in `dev/` as a probe, NOT modify `src/` directly. This mirrors `~/.claude/shared-rules/global/documentation.md` "dev/ vs src/ for Exploratory Rewrites" but acts as a defensive layer at the worker side.
 
 **Trigger phrases that mean "dev/ probe, not src/ surgery":**
 - "rewrite X using Y" (where Y is a different library/technique than current)
@@ -163,6 +160,10 @@ When a worker prompt asks for an architectural alternative — library swap (htt
 - "swap library Z"
 - "implement alternative architecture"
 - "test if approach W works for X"
+- "diagnostic logging to understand why X behaves like Y" (any investigation into existing-but-unclear behavior)
+- "find out why X doesn't work" / "find out why X stopped working" (root-cause investigation requiring probes)
+- "instrument X to capture Y" (any signal / event / state-trace capture where the answer is in the observed data)
+- "try whether <approach> fixes <symptom>" (anything where the answer is unknown before the probe runs)
 
 **Required worker behavior on these prompts:**
 
@@ -170,15 +171,59 @@ When a worker prompt asks for an architectural alternative — library swap (htt
 2. If the prompt explicitly says "modify src/X.py" but does NOT include an empirical convergence claim ("evidence shows the new approach solves the production problem"), flag this back to Opus: "Should this be a dev/ probe instead? The current rule (documentation.md) says architectural alternatives stay in dev/ until evidence converges."
 3. Only proceed with src/ edits when Opus confirms the dispatch is intentional (existing fix, not architectural exploration) OR when the prompt explicitly cites convergence evidence.
 
-**Why the defensive layer:** Opus may dispatch a src/-modifying prompt for an architectural alternative without realizing the rule applies. The worker-side check catches the dispatch before the wasted work begins.
+### Exploration Workflow — dev/, OldThemes, decisions/
 
-## 6. Worker Recap (MANDATORY when triggered)
+Empirical investigation tasks (architectural alternative, library swap, trial-and-error verification) touch three artifact layers on independent cadences. Confuse them and you lose the trail.
+
+**Layer 1 — `dev/<area>/` (exploration scripts + DOCS.md)**
+
+dev/ structure and naming: `~/.claude/shared-rules/worker/dev-convention.md`. Scripts are SNAPSHOTS — only edited when:
+- (a) the probe pattern itself needs correction because new evidence invalidates the setup, OR
+- (b) production code state changed and the probe must mirror the new prod state
+
+New phases write new scripts; existing ones stay untouched.
+
+**Layer 2 — `decisions/OldThemes/<topic-slug>/<phase>.md` (progress trail, LIVE LOG)**
+
+Per feature/topic, a subfolder under `decisions/OldThemes/`. Each phase writes its own `<phase>.md` (Phase A.1 → `A1.md`, A.2 → `A2.md`, B → `B.md`, etc.). Required content:
+
+- **What we did** — concrete steps, source/OSS citations (file + line range)
+- **What we found** — insights, surprises, empirical results, contradictions to prior assumptions
+- **dev/ scripts used** — explicit references to scripts built or run in this phase (`dev/<area>/<script>.py`)
+- **Decision / next** — what we chose, what comes next, what's still open
+
+OldThemes is the LIVE log — updated EVERY phase, even when no dev/ scripts changed in that phase. Decoupled from dev/ cadence.
+
+At the end of the overall exploration, write a summary reflection in the final `<phase>.md` (or a `README.md` in the topic folder if a separate summary helps). The summary states which dev/ scripts exist, what they do collectively, and the final conclusion.
+
+**Layers MUST stay in sync — OldThemes progress REQUIRES a dev/ probe.** An OldThemes topic with ≥1 phase document but no matching `dev/<topic>/` probe is a process violation. The dev/ probe is the runnable substrate of the investigation; OldThemes is its narrative. Both layers must exist before the topic can be deferred, resumed, or considered "in progress".
+
+Enforcement: when picking up a topic mid-investigation (existing OldThemes phase docs), the FIRST step is to verify a matching `dev/<topic>/` directory exists and contains the probe(s) referenced in the latest phase. If missing or stale, the current phase MUST create / restore it BEFORE adding new findings. The probe is a Phase deliverable, not optional scaffolding.
+
+**Layer 3 — `decisions/<step>.md` (IST when prod changes)**
+
+When the worker edits production code (`src/`) AND the edit changes the Status Quo relative to the corresponding `decisions/<step>.md`:
+
+1. FIRST edit `decisions/<step>.md` IST section to reflect the new state.
+2. THEN (in the same commit or same commit cycle) the `src/` change.
+
+IST follows SOLL — the change rationale must already exist in the SOLL section (per `~/.claude/shared-rules/global/documentation.md` § decisions IST/SOLL direction). If SOLL doesn't exist for this change yet, write SOLL first citing evidence from your dev/ probes.
+
+**Commit Strategy**
+
+- dev/ script changes (incl. dev/.../DOCS.md) → standalone OR bundled with OldThemes phase update
+- OldThemes `<phase>.md` → standalone if dev/ untouched this phase, bundled with dev/ work otherwise
+- decisions/`<step>.md` IST update + src/ change → MUST commit together (atomic IST-Code consistency)
+
+No strict "everything in one commit" rule. Atomic = "what logically belongs together". `decisions/<step>.md` IST + src/ IS atomic. dev/ + OldThemes is not strictly atomic.
+
+**This applies in addition to Section 6 (Worker Recap).** Recap captures drift across the whole task; per-phase OldThemes captures the investigation as it unfolds.
+
+## 6. Worker Recap
 
 When Opus sends `recap` or `mach recap` after task completion: STOP all other work and execute the recap pass below. Recap produces ONE additional commit on your branch with all drift-correction edits.
 
 **Scope:** YOUR task. Files you touched in Phase B (and any follow-up tasks Opus dispatched), the docs that describe them, the Phase A/B discussion trail with Opus. NOT session-wide concerns (beads, RAG sync, other workers' changes, rule files in `~/.claude/shared-rules/` — those are Opus's responsibility).
-
-**Why recap exists:** you have intimate context about WHAT you changed. Opus operates at higher altitude and misses per-task details — LOC drift after a code edit, DOCS.md call-graph changes, decisions/ symbol citations that became stale, design discussion that should land in OldThemes. Per-task recap catches drift at the source.
 
 ### Step 1 — Self-Audit
 

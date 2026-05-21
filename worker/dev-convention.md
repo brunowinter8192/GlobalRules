@@ -6,7 +6,7 @@ Development scripts for testing, debugging, and experimentation.
 
 Three different activities get easily mixed in debugging — this rule separates them:
 
-1. **Live-Verification of source-code fix.** Worker builds fix in worktree, Opus or user restarts the application (Monitor, server, pipeline), triggers the scenario, observes result. Standard loop, no script.
+1. **Live-Verification of source-code fix.** Worker builds fix in worktree, Opus or user restarts the application, triggers the scenario, observes result. Standard loop, no script.
 
 2. **Forensics on existing data.** Example: "does this code line wrap after `truncate_visible` or not?" — can't be triggered live without manipulating the live environment. Load the real data source (JSONL, log), call the function with a real entry, measure properties. Without such a script you speculate in circles. Script lives in the worker worktree or `/tmp/`, throwaway — once the analysis clarifies root cause, the script is worthless.
 
@@ -24,11 +24,11 @@ Three different activities get easily mixed in debugging — this rule separates
 
 **Rule of thumb:** "is this script still useful in 3 months?" Yes → `dev/`. No → worktree or `/tmp/`.
 
-**Examples (from Monitor_CC):**
-- `dev/display/screenshot_panes.py` → permanent analysis tool ✅
-- `dev/display/test_hover_map.py` → growing assertion library, new test cases come per fix ✅
-- `dev/splade_truncation/` → investigation module for documented problem ✅
-- `verify_my_session_fix_works.py` → one-shot, does NOT belong in `dev/`. Worktree or `/tmp/` ❌
+**Examples:**
+- `dev/pipeline/run_smoke.py` → permanent analysis tool ✅
+- `dev/pipeline/test_assertions.py` → growing assertion library, new test cases come per fix ✅
+- `dev/feature_debug/` → investigation module for documented problem ✅
+- `verify_fix_works.py` → one-shot, does NOT belong in `dev/`. Worktree or `/tmp/` ❌
 
 **Worker consequence:** when forensics or one-shot assertion is needed, the worker builds the script in the worktree (not staged on merge — explicitly do not stage) or under `/tmp/`. When a one-shot assertion becomes a permanent regression guard, the test case is folded into an EXISTING `test_*.py` in `dev/` — no new file per fix.
 

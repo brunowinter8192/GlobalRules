@@ -75,8 +75,8 @@
     "enabled": true,
     "model": "claude-sonnet-4-6",
     "thinking": {"type": "adaptive", "display": "omitted"},
-    "effort": "max",
-    "max_tokens": 64000
+    "effort": "high",
+    "max_tokens": 128000
   },
   "pyright_diagnostics_strip": {
     "enabled": true

@@ -1,4 +1,4 @@
-# Chat Output (CRITICAL)
+# Chat Output
 
 ## Core Principle
 
@@ -16,7 +16,7 @@ better than ten fragmented bullets, because the user understands it on
 first read instead of having to reconstruct meaning from disconnected
 keywords. That saves time overall, even when the text looks longer.
 
-## Audience — User vs Worker (NON-NEGOTIABLE)
+## Audience — User vs Worker
 
 Two very different conversations happen in parallel. The user
 conversation is for understanding, planning, and decisions. The worker

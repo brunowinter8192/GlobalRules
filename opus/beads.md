@@ -10,13 +10,12 @@ All bead operations via the `bd` CLI. `bd` is installed with the iterative-dev p
 | List closed beads | `bd list -s closed` |
 | Show bead + comments | `bd show <id> && echo "--- COMMENTS ---" && bd comments <id>` |
 | Create bead | `bd --repo <project_path> create --title "<title>" --type task --description "<desc>"` |
-| Knowledge bead | add `--labels "knowledge"` to create |
 | Add comment | `bd comments add <id> "<text>"` |
 | Close bead | `bd close <id> --reason="<reason>"` |
 
 **Cross-project access:** All commands except `create` accept `--db <path>/.beads/dolt`.
 
-**Explicit-ID Rule (close, comment):** ALWAYS use the literal bead ID string in `bd close` and `bd comments add`. NEVER pipe-extract from `bd list` output via `head | awk | cut` — `bd list` is alphabetical by ID prefix, not chronological. If you need to find an ID, `bd list | grep <unique-substring>` and copy the ID literally.
+**Finding IDs:** `bd list | grep <unique-substring>` — `bd list` is alphabetical by ID prefix, not chronological, so passing literal IDs by hand-copy is the safe pattern.
 
 ## Task Management Hierarchy
 
@@ -25,15 +24,15 @@ All bead operations via the `bd` CLI. `bd` is installed with the iterative-dev p
 
 ## What a Bead IS
 
-A Bead is a **lean entry-point**. It tells **what the topic is** and **which sources reference it** — nothing more. The actual content (architectural decisions, discussion trail, iteration history) lives elsewhere:
+A Bead is a **lean entry-point**: topic + sources that reference it. Content lives elsewhere:
 
 - `decisions/<area>.md` — current architectural state (IST/Evidenz/SOLL)
-- `decisions/OldThemes/<topic>/` (subfolder) or `decisions/OldThemes/<topic>.md` (single file) — discussion trail, iteration history, archived themes
-- `<package>/DOCS.md` — module map (LOC, Called-by, Calls-out, State, Gotchas)
+- `decisions/OldThemes/<topic>/` or `decisions/OldThemes/<topic>.md` — discussion trail, iteration history
+- `<package>/DOCS.md` — module map
 - RAG `<Project>_reference` collection — external papers / GitHub / Reddit
-- Plan-File at `.claude/plans/<topic>.md` — current iteration's working notes (transient)
+- Plan-File at `.claude/plans/<topic>.md` — transient session notes
 
-The Bead points; the sources hold the substance. RAG-search on `<Project>-features` (OldThemes), `<Project>-meta` (decisions/DOCS/CLAUDE/sources), `<Project>_reference` (papers) is the resume mechanism.
+Resume mechanism: RAG-search on `<Project>-features` (OldThemes), `<Project>-meta` (decisions/DOCS/CLAUDE/sources), `<Project>_reference` (papers).
 ## Bead Format
 
 ```
@@ -57,9 +56,7 @@ Source paths relative to project root. The Source-Inventory is a snapshot at the
 
 ## When to Create a Bead
 
-Beads exist to keep cross-session context alive — not to log every task in a session. Mid-session beadification fires for three narrow triggers.
-
-**Mid-session bead triggers:**
+**Mid-session bead triggers** (three narrow):
 
 1. **Explicitly deferred work** — user explicitly says "later", "next session", "not now". Bead captures the deferred item before context evaporates.
 2. **Blocker for current work** — current task can't continue until X is fixed. Create a Bead for the blocker, work it, resume the original. If the original is still incomplete, it gets its own Bead too.
@@ -87,8 +84,6 @@ Beads exist to keep cross-session context alive — not to log every task in a s
 - **Recap (session end)**: writes/extends the persistent prosa files (`OldThemes/`, `decisions/`, DOCS.md) for what happened this session. Then updates the Bead's Source-Inventory if new files came into existence — via `bd comments add` (no edit-description in `bd`). See `~/.claude/shared-rules/opus/workers-3.md` § Recap.
 - **Close**: `bd close <id> --reason="<one-line reason of what was achieved>"`. NO write-prosa-on-close — Recap handles persistence. NO long close-comment.
 
-The Bead lives only as long as work is open. Once closed, the persistent prosa files stay — that is the long-term memory. Follow-up tasks pick up the thread by RAG-searching `<Project>-features` for the topic name, even years later.
-
 ## Resume Pattern
 
 When picking up an open Bead in a new session:
@@ -106,19 +101,13 @@ The Bead does not contain narrative. The sources do.
 
 Bead comments are short status changes. ONE line per comment.
 
-Allowed:
+Examples:
 - "Phase A done — sync-multi"
 - "blocked on X — needs Y"
 - "merged on dev, awaiting verification"
 - "Source-Inventory updated: + decisions/eval01_methodology.md, + OldThemes/eval/decisions.md"
 
-Forbidden:
-- STAND blocks (DONE/OPEN/NEW/DROPPED/APPROACH)
-- Long iteration narratives
-- Decision rationale ("we chose X over Y because...")
-- Multi-paragraph status reports
-
-Iteration narrative belongs in `OldThemes/<topic>/` prosa, written by Recap. Decision rationale belongs in `decisions/<area>.md`.
+Iteration narrative goes to `OldThemes/<topic>/` prosa via Recap. Decision rationale lives in `decisions/<area>.md`.
 
 ## Bead-Close
 

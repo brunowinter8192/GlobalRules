@@ -21,6 +21,14 @@ After dispatching, the worker reads files in the worktree and reports findings +
 - Skipping Phase 2 and letting the worker proceed straight to implementation
 - Merging at Phase 5 after reading only the Completion Checklist without reviewing the actual code
 
+### Follow-up dispatches use the same gate
+
+The investigate-report-STOP-Go cycle applies to EVERY `worker_send` carrying a fix/change, not just initial spawn. Ad-hoc fixes are exactly where cross-model verification has the highest value — Opus formed the hypothesis under pressure and is most likely wrong.
+
+In follow-up prompts: describe the SYMPTOM and provide diagnostic data, not the solution. Include the STOP gate (same sentinel as initial spawn). Wait for the worker's report → cross-model compare → only then Go.
+
+Forbidden phrasings: "Apply this fix: <patch>" / "The bug is in line N, change A to B" / "I traced it to <root cause>. Make this change." Anything that hands over the conclusion turns the worker into Opus's typist and defeats the verification.
+
 ### Course Correction
 
 If the worker's findings or delivered work is misaligned with the task:
@@ -54,54 +62,33 @@ Worker implements after receiving Go. During implementation:
 
 ### Timer & Polling Flow (NON-NEGOTIABLE)
 
-Canonical flow, in this order, nothing else in between:
-
 1. **Spawn worker.**
-2. **Set ONE background timer — generous, single-shot the goal.** `Bash(command="sleep N && echo done", run_in_background=true)`. The aim: ONE wait that returns a finished worker — not 5 polling rounds of "still working, set another timer". When in doubt, set longer.
+2. **Set 10min timer.** `Bash(command="sleep 600 && echo done", run_in_background=true)`.
+3. **Timer wakes → `worker-cli status <name>`.** `working` → new 10min timer. `idle` → `worker-cli response <name>` (fallback: `worker-cli capture` + tail + sed-filter).
 
-   Default values (revised generous):
-   - Phase-A-only investigation: **180–300s (3–5 min)** — workers need time to read files, plan, write a report
-   - Phase-B implement + smoke (no GPU): **360–600s (6–10 min)** — implementation + tests + commit
-   - Phase-B with GPU work or large smoke: **600–900s (10–15 min)** — embedding/inference is slow, multi-query smokes take time
-   - Default fallback (unclear scope): **300s (5 min)**
+**Background Task Discipline:** maximum ONE background task — timer OR any other `run_in_background=true` Bash — in flight at any moment.
 
-   Philosophy: setting a 600s timer and getting `idle` on first check at minute 8 is ONE tool call. Setting a 180s timer that requires 4 follow-up timers (180+180+180+180 = 720s with 4 status checks burning context each) is the anti-pattern. Estimating 30% high is the right bias. When the worker reports something concrete mid-task (Phase A done at 50% context, mid-implementation update arriving via the user, etc.) — fine to check earlier. The DEFAULT bias remains generous-and-wait.
-3. **Wait for the timer to fire.** Do independent work (rule edits, bead updates, reading unrelated code) — no tool calls related to this worker during the wait.
-4. **Timer fires** (done-file non-empty, or hook notification) → `worker-cli status <name> <project_path>`.
-5. **If `working`:** set the NEXT background timer, wait again. NO capture, NO cat on the output file, NO re-status-check with the same tool in the same response turn.
-6. **If `idle`:** `worker-cli response <name> <project_path>` — returns clean text from the session JSONL without the CC UI trailers. Only fall back to `worker-cli capture` + tail + sed-filter if `response` returns something unexpected.
+**Foreground vs Background:** `sleep` and `until [ -s <file> ]; do sleep N; done` MUST run in `run_in_background=true`. Never chain a foreground sleep/until-loop next to an already-running background timer.
 
-**Background Task Discipline (CORE INVARIANT):** maximum ONE background task — timer OR any other `run_in_background=true` Bash — in flight at any moment. The rule is not about context budget, it is about CC's event-queue: every background-task completion arriving while an API stream is open cancels that stream client-side and fires a new REQ with the updated payload. Two completions back-to-back during a stream = 2-fold abort cascade, billed for input + cache-read per aborted REQ. Idle state is safe — completions arriving when no REQ is streaming queue normally for the next turn.
+**No manual cat on timer output files.**
 
-**Foreground vs Background:** `sleep` and `until [ -s <file> ]; do sleep N; done` MUST run in `run_in_background=true`. Never chain a foreground sleep/until-loop next to an already-running background timer for the same wait — that is two "task-completions" back-to-back on the same completion-file, and it is redundant work. The blocking message "sleep X followed by: <command>" from tool-use is a signal to switch to background, not to "work around" with a shorter chain.
+**Post-Spawn-Ack — No Thinking, No Speculation.** After spawning a `Bash(run_in_background=true)` timer, the next response is acknowledgment-only single-line ("Timer läuft, ich warte." or equivalent). No reasoning about expected worker outputs, no orchestration planning in that turn. While ANY worker is `working`, no speculation about expected outputs in any context.
 
-**No manual cat on timer output files.** `/private/tmp/claude-501/.../tasks/*.output` is checked by the until-loop wait-condition. Reading it manually between polls returns zero new information and wastes a Bash call.
-
-**Post-Spawn-Ack — No Thinking, No Speculation:**
-
-After spawning a `Bash(run_in_background=true)` timer, the next response is an acknowledgment-only single-line ("Timer läuft, ich warte." or equivalent). No reasoning about expected worker outputs, no orchestration planning in that turn.
-
-Positive framing: when a worker returns results, think deeply about it. When starting a wait, do not think — task is dispatched, results require fresh thinking only when they return.
-
-Broader principle: while ANY worker is `working`, no speculation about expected outputs in any context (visible response or thinking). Speculation = pre-thinking what a worker will produce, which (a) biases later evaluation of the actual report (cross-model verification requires independence), (b) consumes thinking budget that's invalidated when real output arrives, (c) extends post-spawn streams = abort-cascade risk window.
-
-**Structural enforcement on top of the disciplinary rule:** A proxy-side rule auto-overrides `thinking.type=disabled` on REQs immediately following `Bash(run_in_background=true)` with `sleep` command. Once active, the prompt rule above is the default discipline; the proxy override is the deterministic backup-cap that catches lapses.
+A proxy-side rule auto-overrides `thinking.type=disabled` on REQs immediately following `Bash(run_in_background=true)` with `sleep` as a structural backup.
 
 
-**Worker idle ≠ task complete.** `worker-cli status idle` only reflects tmux pane activity (10s window_activity threshold). When the worker spawned its OWN background sleep (e.g. `sleep 480 && echo done` to wait for an internal smoke run), tmux activity goes quiet → status reports idle → Opus thinks the user-visible task is done. Reality: worker is mid-task in its own sleep loop. Always read the LAST CONCRETE MESSAGE from `worker-cli response` before declaring a phase complete. If it references "waiting for sleep" / "on track for N min" / "background smoke running" — worker is NOT done. Either wait longer than the worker's internal timer, or `worker-cli send` with a wake message to force the next step.
+**Worker idle ≠ task complete.** `worker-cli status idle` reflects tmux pane activity only (10s threshold). When the worker spawned its own background sleep, tmux goes quiet but worker is mid-task. Always read the LAST CONCRETE MESSAGE from `worker-cli response` before declaring a phase complete. If it references "waiting for sleep" / "background smoke running" — worker is NOT done. Wait longer or `worker-cli send` a wake message.
 
 
 ### Capture vs Status — Don't Capture While Working
 
-Worker capture is EXPENSIVE — each call dumps the last N lines including the worker prompt echo (often 2k+ chars), CC UI trailers (`✻ Baked for Xm Ys`, `Composing…`, divider, `Sonnet | XX%`, `❯`, `⏵⏵ accept edits on`), and duplicate frames Sonnet re-renders.
+Worker capture dumps prompt echo + CC UI trailers + duplicate frames (often 2k+ chars). Minimize captures:
 
-**Rule — minimize captures:**
-
-1. **Status check is cheap.** While a worker is `working`, only call `worker_status` (or `worker-cli status`). Do NOT capture. Set a timer, re-check status.
-2. **Capture only when idle.** Fresh output is relevant when the worker has finished a chunk of work. Mid-thought snapshots are noise.
-3. **Default capture size: small.** `tmux capture-pane -p -S -60 | tail -40` is the default for catching the last response. Raise only if you need more history.
-4. **Pre-filter UI trailers.** Pipe capture through `sed -E '/^[│▁─]+$/d; /Sonnet \| [0-9]+%/d; /^[[:space:]]*❯[[:space:]]*$/d; /^[[:space:]]*⏵⏵ accept edits/d; /^✻.*for [0-9]+m/d; /^✢ Composing/d; /^· Symbioting/d; /Tip: /d'` to strip the CC UI noise. Expect 6-10 lines filtered per capture.
-5. **Context-% visibility.** The only reason to capture while working is to see `Sonnet | XX%`. Prefer extracting this from `worker_status` output when available — don't scrape the whole pane just for the percentage.
+1. **Status check is cheap.** While a worker is `working`, only call `worker_status`. Do NOT capture. Set a timer, re-check status.
+2. **Capture only when idle.**
+3. **Default capture size small:** `tmux capture-pane -p -S -60 | tail -40`. Raise only if you need more history.
+4. **Pre-filter UI trailers** via `sed -E '/^[│▁─]+$/d; /Sonnet \| [0-9]+%/d; /^[[:space:]]*❯[[:space:]]*$/d; /^[[:space:]]*⏵⏵ accept edits/d; /^✻.*for [0-9]+m/d; /^✢ Composing/d; /^· Symbioting/d; /Tip: /d'`.
+5. **Context-% visibility.** Only reason to capture while working — prefer `worker_status` output if available.
 
 
 **Response Format Discriminator — intermediate vs final.** When `worker-cli response <name>` returns text that looks like a Phase-A plan or in-progress narrative ("Implementing.", "Reihenfolge:", "Files gelesen", "Now I will...", section headers without checklist), do NOT trust it as a "done" signal — even if the worker briefly went idle. Phase-A intermediate output and Completion Checklist output are syntactically distinct: the latter ends with a commit SHA, a `[x]` checklist, or a "Pre-Commit Live Checks" header; the former is open-ended prose. Test: does the response end with commit SHA / `[x]` / "Pre-Commit"? If no — re-check status with `worker-cli status` before merging.
@@ -145,6 +132,8 @@ The checklist is mirrored on the worker side in `~/.claude/shared-rules/worker/w
 
 When the user introduces a new scope during IMPLEMENT:
 
+**Before each step below: RAG query on the affected module/topic (`rag-cli search_hybrid "<topic>" <Project>-meta`). Mini-scoping waives PLAN structure, NOT RAG-First (see workers-1 § RAG-First on Any Project Question).**
+
 Mini-scoping (no full PLAN Phase needed):
 1. Summarize in chat: what is the user's task, what would a worker do
 2. Check `worker_list` — is there an alive worker with context overlap? Default to `worker_send` on that worker (AGGRESSIVE REUSE, workers-3). Only spawn fresh if no candidate fits.
@@ -169,20 +158,27 @@ After worker goes idle, review BEFORE merging.
 4. If issues found → ask worker for statement (see Worker-Statement vor Fix below)
 5. If review passes → proceed to Phase 5
 
-**Why no Read tool on worktree paths:** every worktree contains its own `CLAUDE.md` (CC treats worktrees as first-class project checkouts). When Opus invokes the Read tool on any file under `.claude/worktrees/<name>/...`, CC re-injects the worktree's CLAUDE.md as a system-reminder into the current turn — duplicating the project-CLAUDE.md that was already loaded at session start. Bash `cat` / `git show` / `git diff` return file bytes directly without triggering the CLAUDE.md injection, so they are strictly cheaper for worktree file access. The Read tool remains the default for files in the main project tree; only worktree paths (`/.claude/worktrees/...`) need the bash-only rule.
+**Non-skippable — even for ad-hoc / one-line / context-recovery merges.** Self-test before EVERY `worker-cli merge`: "Have I run `git -C <worktree> diff dev --` and READ the result in this session?" If no → STOP, run the diff first.
 
+**Sample-Test rendered output (MANDATORY for user-visible features).** When the feature affects formatted output (search results, reports, CLI display, generated text): run ONE live sample and inspect the rendered text — not the parser code that produces it, the actual string the user sees. Code-read does NOT count as sample-test.
 
-**Sample-Test rendered output (MANDATORY for user-visible features).** When the feature affects formatted output (search results, reports, CLI display, generated text): run ONE live sample (single query, single test case) and inspect the rendered text — not the JS or parser code that produces it, the actual string the user sees. Look for redundant fields, concatenation artifacts, broken truncation, inconsistent spacing, button text bleeding into content. Code-read of selector or parser logic does NOT count as sample-test — the selector might be syntactically valid yet match a wider DOM region than intended. Bug class "stale extraction" is only catchable here.
+**Interpretation Cross-Check (MANDATORY when worker output contains an interpretation of measured data).** Investigation workers often deliver findings narratives that go beyond raw measurements — they interpret the data and propose a mechanism ("data X means mechanism Y"). Before accepting the interpretation:
 
-### Worker-Statement vor Fix (Standard)
+1. Identify each interpretation claim — a sentence of the form "this measurement means/proves/shows X" or "mechanism is Y".
+2. For each claim, locate the source code that produced the data being interpreted. This must be the actual code, in the current src/ tree, read in this session (Step 2 Stage 3 should already have covered it — if not, read it now BEFORE accepting the interpretation).
+3. Ask: are there alternative code paths in the same function/module that would produce the same measurement but support a DIFFERENT interpretation? If yes, the worker's interpretation is one of several possible — not proven. Either accept it as one hypothesis among several, or send the worker back with a follow-up probe that discriminates between the candidates.
+4. **Reject the interpretation, accept the data.** If the worker's interpretation does not uniquely follow from the source code, the data they collected is still valid evidence — but the conclusion they drew is not yet supported. Phase 5/6 may still proceed (merge the probe artifacts), but the interpretation does NOT become the basis for the next worker's task.
 
-When code review finds an issue: **ask the worker what they think** before prescribing a fix. Pattern:
+The canonical failure mode this prevents: Worker collects clean data, draws Interpretation A (which fits the most salient prior hypothesis), Opus reviews diff at code-shape level only, accepts Interpretation A, scopes next worker on the basis of A — and one user challenge about the underlying code reveals that Interpretation B (also consistent with the data, also in the source) was equally possible and the entire chain was inference-stacked.
+
+### Worker-Statement vor Fix
+
+When code review finds an issue: ask the worker what they think before prescribing a fix.
+
 1. `worker_send`: "Review-Frage: [describe issue]. Was ist dein Statement dazu?"
-2. Worker analyzes and responds with their assessment
-3. Opus evaluates the worker's statement — worker may confirm, deny, or reveal deeper issues
+2. Worker analyzes and responds
+3. Opus evaluates the statement — worker may confirm, deny, or reveal deeper issues
 4. THEN send fix instructions based on the combined understanding
-
-**Why:** The worker has implementation context that Opus lacks. Asking for a statement often reveals issues Opus didn't see (e.g., wrong field names, missing edge cases). Blind fix instructions based on Opus's assumptions lead to wrong fixes.
 
 
 **What to check:**
@@ -198,27 +194,19 @@ When code review finds an issue: **ask the worker what they think** before presc
 
 ## Worker Phase 5: Recap (Drift-Defense at Source)
 
-**Trigger:** Opus sends `worker_send <name> "recap"` (or `"mach recap"`) after one or more task-cycles completed and reviewed clean. Worker performs the recap pass per `~/.claude/shared-rules/worker/worker-rules.md` § 6 — one additional commit on the worker's branch covering DOCS.md sync, decisions/ IST consistency, and OldThemes persistence for what THEY touched.
+**Trigger:** Opus sends `worker_send <name> "recap"` after one or more task-cycles completed and reviewed clean. Worker performs the recap pass per `~/.claude/shared-rules/worker/worker-rules.md` § 6 — one additional commit covering DOCS.md sync, decisions/ IST consistency, and OldThemes persistence.
 
-**Why this phase exists:** Workers have intimate context about their own changes. Opus's session-end Recap operates at higher altitude and misses per-task details — LOC drift after a code edit, DOCS.md call-graph changes, decisions/ symbol citations that became stale, Phase A/B discussion trail. Per-task worker recap catches drift at the source.
+**Opus discretion on timing:** after Phase 4 Review completes clean, Opus decides:
+- Clean diff + no further task in mind → send `recap`, then Phase 6 Merge
+- Another task fits in worker's context budget → dispatch follow-up first, recap later
+- Worker context too low → skip Phase 5, session-end Recap absorbs drift cleanup
 
-**Opus discretion on timing:** Recap doesn't fire automatically after every Phase 4. After Phase 4 Review completes clean, Opus decides:
-- Worker has clean diff + no further task in mind → send `recap`, then Phase 6 Merge.
-- Another task fits in worker's context budget → dispatch follow-up first, recap later before final merge.
-- Worker context too low for recap (see below) → skip Phase 5, let Opus session-end Recap absorb the drift cleanup.
+**Context-budget gating** (check `worker-cli status` before sending recap):
+- **≥30% remaining:** send
+- **20-30% remaining:** send with care, narrow tasks only (1-3 touched files)
+- **<20% remaining:** do NOT send, defer to session-end Recap
 
-Recap is triggered between Phase 4 and Phase 6 Merge. Opus controls invocation; the phase exists as a discrete step but its timing is decision-based, not automatic.
+**Phase 5 output:** worker commits ONE recap commit (`docs: recap for <task>`), reports drift counts pre/post + touched-file list. Folds into Phase 6 Merge.
 
-**Context-budget gating (Opus responsibility — do NOT push this onto the worker):**
-
-Before sending `recap`, check `worker-cli status <name>`:
-- **≥30% remaining:** recap fits comfortably; send.
-- **20-30% remaining:** recap is tight but feasible for narrow tasks (1-3 touched files); send with care.
-- **<20% remaining:** recap likely won't complete; do NOT send, defer drift cleanup to Opus session-end recap.
-
-Workers must not be asked to plan their own recap-headroom or estimate context costs. Opus owns the budget question; the worker just executes when asked.
-
-**Phase 5 output:** worker commits ONE recap commit (`docs: recap for <task>`), reports drift counts pre/post + touched-file list. The recap commit folds into Phase 6 Merge with the task-commits — no separate merge step needed.
-
-**Failure-handling:** if worker reports `RECAP SKIPPED — context budget insufficient` in their recap response, defer the drift cleanup to Opus's session-end Recap. Do not retry the worker on the same task.
+**Failure-handling:** if worker reports `RECAP SKIPPED — context budget insufficient`, defer to session-end Recap. Do not retry on the same task.
 

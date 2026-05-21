@@ -1,7 +1,5 @@
 # Verification — Test the Real Path, Not a Parallel Reimplementation
 
-Tests and verifications are only meaningful when they check the REAL behavior a user encounters. "X/X passing" says nothing if those X tests check the wrong thing or are trivial regression guards.
-
 ## The Four Failure Patterns This Rule Addresses
 
 ### Pattern 1 — Wrong Path: Tests Check a Parallel Reimplementation, Not the Production Function
@@ -13,8 +11,8 @@ When a worker builds a function in `src/foo.py` and a dev script duplicates simi
 ### Pattern 2 — Trivial Asserts Against Pure Functions Counted as "Tests"
 
 ```python
-def test_arxiv_abs(self):
-    assert apply_tier1_transform("https://arxiv.org/abs/2501.12345") == "https://arxiv.org/pdf/2501.12345"
+def test_url_transform(self):
+    assert apply_transform("https://example.com/abs/12345") == "https://example.com/pdf/12345"
 ```
 
 This is not a test in the sense of "validates a contract against reality". It is a code-consistency check: "the function returns what we put in." It has value if someone later changes a constant or regex without thinking — it acts as a refactor guard. It has **no value** as a functional proof.
@@ -23,9 +21,9 @@ This is not a test in the sense of "validates a contract against reality". It is
 
 ```
 Tests: 6 integration (passing) + 52 regression-guards (passing).
-Integration: arxiv abs/html/version-suffix end-to-end download_pdf_workflow → real PDF on disk;
-            blacklist + github-blob error path; openreview /forum?id= chain.
-Regression-guards: pure-function asserts on transforms/blacklist/regex behavior.
+Integration: URL-transform end-to-end workflow → real output on disk;
+            blacklist + error path; multi-step chain.
+Regression-guards: pure-function asserts on transforms/filter/regex behavior.
 ```
 
 Never just "X/X passing" without this separation. The user should see at a glance what was actually verified vs what is boilerplate.

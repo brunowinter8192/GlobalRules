@@ -1,6 +1,6 @@
 # Code Standards
 
-- NO test files in root (ONLY in debug/ folders - root or per-module)
+- NO test files in root (ONLY in dev/ folders - root or per-module)
 - NO debug/ or logs/ folders in version control (MUST be in .gitignore)
 - NO emojis in production code, READMEs, DOCS.md, logs
 - ALWAYS keep script console output concise
@@ -27,7 +27,7 @@
 
 ### Functions Must Not Mutate Their Arguments
 
-A function that produces a modified collection returns a NEW value. Mutating caller-passed dicts, lists, or objects is a hidden side effect — the caller has no signal at the call-site that their data was changed.
+A function that produces a modified collection returns a NEW value — mutating caller-passed dicts, lists, or objects is prohibited.
 
 ```python
 # WRONG — modifies caller's dict silently
@@ -39,7 +39,7 @@ def _extract_fields(entry):
     return {**entry, 'parsed': parse(entry['raw'])}
 ```
 
-Building local collections with `result = []; result.append(...); return result` is fine — `result` is local, not an argument. The rule fires on argument mutation, not on line-building.
+Building local collections with `result = []; result.append(...); return result` is fine — `result` is local, not an argument.
 
 ### Module-Level Mutable State
 
@@ -48,8 +48,6 @@ Permitted when ALL of these hold:
 1. State is owned by one module — only that module mutates it.
 2. State is documented in the module's DOCS.md State section.
 3. External readers access via accessor functions, never via direct mutation of an imported module's globals.
-
-A module mutating ANOTHER module's state is the same anti-pattern as mutating an argument — a hidden side effect across module boundaries.
 
 ## Naming Conventions
 
