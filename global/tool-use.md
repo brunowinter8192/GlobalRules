@@ -496,6 +496,22 @@ The returned chunk IS the answer. No follow-up direct-read of the same file need
 
 Defaults: `--top-k 20` (10–50 valid). `--document` filter on any search command narrows to matching doc names. When a search hit's chunk doesn't contain the full answer, expand via `read_document` on the hit's `chunk_index`.
 
+#### show — open a file for the user
+
+Open one or more files in the user's default macOS app so the **user** can see them. Use when the user asks to be shown a file: "öffne mir den Report" / "bring mir die py-Datei her und öffne sie" / "show me X" / "open the screenshot". The trigger is intent ("show ME"), not file type.
+
+| Operation | Command |
+|---|---|
+| Open one file | `show <path>` |
+| Open multiple files | `show <p1> <p2> ...` |
+| Relative path | `show ./report.md` |
+| Home path | `show ~/Desktop/foo.png` |
+
+- **Use `show` only when the user wants to LOOK at a file.** For Claude-internal inspection (analysis, code review, grep) use the Read / Bash / Grep tools. Never use `show` for content Claude itself needs to consume.
+- macOS picks the app: Preview for images/PDF, default editor for code/markdown, etc.
+- Relative paths resolve against current pwd; `~` expanded.
+- Errors with exit 1 if any path is missing — fix the path and retry; do NOT swallow the error.
+
 ### Grep
 - **Brace escaping:** literal braces must be escaped — use `interface\{\}` to find `interface{}` in Go code. Without escaping, the pattern silently matches nothing.
 - **Multiline:** by default patterns match within single lines only. For cross-line patterns (e.g. `struct \{[\s\S]*?field`), pass `multiline: true`.
