@@ -80,9 +80,9 @@ Source paths relative to project root. The Source-Inventory is a snapshot at the
 ## Bead Lifecycle
 
 - **Open**: Bead exists with current Source-Inventory at the moment of creation.
-- **Active phase**: substantial work happens — Plan-Files, Worker-Outputs, code edits, discussions. Comments stay LEAN (state changes only, not narrative).
-- **Recap (session end)**: writes/extends the persistent prosa files (`OldThemes/`, `decisions/`, DOCS.md) for what happened this session. Then updates the Bead's Source-Inventory if new files came into existence — via `bd comments add` (no edit-description in `bd`). See `~/.claude/shared-rules/opus/workers-3.md` § Recap.
-- **Close**: `bd close <id> --reason="<one-line reason of what was achieved>"`. NO write-prosa-on-close — Recap handles persistence. NO long close-comment.
+- **Active phase**: substantial work happens — Plan-Files, Worker-Outputs, code edits, discussions, investigation findings. **All narrative — including findings, status updates, blockers, progress — is written to `decisions/OldThemes/<topic>/` IMMEDIATELY when it emerges** (not deferred to Recap). Bead comments are EXCLUSIVELY Source-Inventory updates (pointers to the OldThemes/decisions/DOCS files that hold the substance).
+- **Recap (session end)**: SAFETY NET for unwritten prosa — captures anything not already in `OldThemes/`/`decisions/`/DOCS.md, fixes drift, updates Bead Source-Inventory with files created this session. Recap is NOT the default workflow for narrative capture; if findings keep landing only at Recap, it means the active-phase rule is being violated. See `~/.claude/shared-rules/opus/workers-3.md` § Recap.
+- **Close**: `bd close <id> --reason="<one-line reason of what was achieved>"`. NO write-prosa-on-close — Recap handles any persistence gap. NO long close-comment.
 
 ## Resume Pattern
 
@@ -97,17 +97,35 @@ When picking up an open Bead in a new session:
 
 The Bead does not contain narrative. The sources do.
 
-## Comments — Lean State Only
+## Comments — Source-Inventory Pointers ONLY (HARD RULE)
 
-Bead comments are short status changes. ONE line per comment.
+Bead comments serve EXACTLY ONE purpose: pointing at where the substance lives. The bead is structure; the OldThemes/decisions/DOCS files are content.
 
-Examples:
-- "Phase A done — sync-multi"
-- "blocked on X — needs Y"
-- "merged on dev, awaiting verification"
-- "Source-Inventory updated: + decisions/eval01_methodology.md, + OldThemes/eval/decisions.md"
+**ONLY ALLOWED comment shape:**
 
-Iteration narrative goes to `OldThemes/<topic>/` prosa via Recap. Decision rationale lives in `decisions/<area>.md`.
+- Source-Inventory updates: `"Source-Inventory updated: + decisions/OldThemes/<topic>/<file>.md"` / `"+ decisions/<step>.md"` / `"+ <package>/DOCS.md"`
+
+Multiple additions in one comment are fine if they land in the same write cycle: `"Source-Inventory updated: + OldThemes/<topic>/A1.md, + decisions/pipe05.md"`.
+
+**FORBIDDEN as bead comments (always belong in OldThemes prosa):**
+
+- State transitions ("Phase A done", "merged on dev", "blocked on X", "awaiting verification") — even one-liners. Status is captured by which OldThemes files have been written/extended.
+- Investigation findings, hypotheses, evidence comparisons
+- Repro notes, screenshot timestamps, test inputs/outputs
+- Anything that is not literally `Source-Inventory updated: + <path>`
+
+**Why state-transitions are forbidden too:** they're narrative in mini-form. "Phase A done" duplicates information the OldThemes file already carries (or should carry — if it doesn't, fix the OldThemes file, don't comment the bead). The bead's purpose is to be a stable cross-session entry-point with a current Source-Inventory — not a live status feed.
+
+**Workflow for any session activity touching a bead:**
+
+1. Investigation finding emerges OR status changes (phase complete, blocker found, merge done, verification pending) → write/extend the relevant `decisions/OldThemes/<topic>/<file>.md` IMMEDIATELY.
+2. If the write produces a NEW file: add ONE comment `Source-Inventory updated: + <new_path>`.
+3. If the write extends an EXISTING file already in the Source-Inventory: no comment needed (the Source-Inventory pointer is unchanged).
+4. Continue working.
+
+**Retroactive cleanup is NOT required.** Beads polluted by narrative comments from prior sessions stay as-is — comment history is append-only. The OldThemes file becomes the canonical source once it exists; legacy bead comments are noise readers should ignore in favor of the Source-Inventory link.
+
+Narrative of ANY shape → `decisions/OldThemes/<topic>/`. Decision rationale → `decisions/<area>.md`. Bead comments → Source-Inventory pointers only.
 
 ## Bead-Close
 
