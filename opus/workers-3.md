@@ -63,45 +63,49 @@ Pre-kill: `worker-cli status <name>`. `working` → do NOT kill. `idle` → safe
 
 **Cross-session workers:** Document alive workers in the Bead's Source-Inventory + a lean comment. Next session uses `worker_list` + `worker_capture` to interact.
 
-### Reusing Workers — AGGRESSIVE REUSE
+### Reusing Workers — AGGRESSIVE REUSE (Thematic Continuity)
 
-Alive workers are context assets. Prefer `worker_send` on an existing worker over spawning a new one. The threshold for spawning fresh is HIGH:
+Alive workers are context assets. Reuse the existing worker UNTIL IT DIES. The reuse-vs-fresh decision is NOT about context-budget thresholds — it is about THEMATIC CONTINUITY:
 
-- Idle worker exists that touched the same files/domain → `worker_send`. No exceptions.
-- Follow-up task builds on previous work → `worker_send`. Even if the task feels "different" (e.g., switching from pydoll to patchright testing in the same test suite).
-- New spawn is ONLY justified when: (a) no idle worker has relevant context, OR (b) the only candidate is below 30% context remaining.
+**Reuse the existing worker when:**
+- New task touches the same files, packages, or conceptual area as the worker's prior tasks
+- New task extends, refines, or builds on committed work the worker did
+- Worker has ANY context overlap with the new task — even at low remaining context
 
-**Before EVERY `worker_spawn`:** check `worker_list`. If ANY idle worker has context overlap → reuse.
+**Spawn fresh ONLY when:**
+- New task uses files / packages / concepts COMPLETELY ORTHOGONAL to the worker's accumulated context (e.g. worker was tuning the search pipeline, new task is unrelated infra setup in a different module — worker's context brings nothing for the new task)
+- Worker is dead (exited) — spawn a fresh successor to continue
 
-**Pre-followup Branch Sync (when reusing across merges).** Worker's branch tip is behind current `dev` if merges happened while it was idle. ALWAYS prefix follow-up `worker-cli send` with: "FIRST: in your worktree, run `git -C <worktree-path> fetch origin dev && git -C <worktree-path> merge dev`. Verify with relevant grep. THEN do the work: ..."
+**Worker-death handling:** if a worker dies mid-task or hits context-floor, spawn a fresh successor immediately. The successor reads from `dev` (committed state) and continues. Mandatory Phase 5 recap after every stage (workers-2.md) ensures committed state is always current — a dying worker leaves clean state for the successor. Using a worker until death is preferable to premature fresh-spawn: accumulated context has real value, and the death-event is mitigated by recap-discipline + clean-state inheritance.
 
+**No context-budget threshold for the reuse decision.** Workers below 30% can still receive follow-ups in their thematic area. Trade-off: low-context worker may die mid-task → fresh successor inherits clean committed state and finishes. This is strictly better than spawning fresh prematurely and losing accumulated context.
 
-**Context Budget Rule (task-complexity aware):**
-- **<30% remaining:** do NOT send follow-ups of any kind. Worker can die mid-task.
-- **<40% remaining:** NEVER add forensic tasks (investigation, log-scanning, multi-file reads). Only dispatch trivial follow-ups (1-2 file edits, no investigation).
-- **<50% remaining:** NEVER dispatch a multi-step task combining investigate-phase + multi-file edits + verify-run + multi-commit chain (Plan-Pflicht workflow OR major architectural change ≥3 files + smoke + multi-commit). Phase A alone burns 15-22% on reads + report; B+C need the rest. Below 50% → spawn fresh.
-- **>50% remaining:** all task classes OK. Forensic + standard follow-ups already OK at >40%.
-- For large forensic tasks at borderline context: spawn fresh instead.
+**Before EVERY `worker_spawn`:** check `worker-cli list`. If ANY idle worker has thematic-context overlap → reuse, regardless of context %.
 
-**Batch Dispatch Cost (sequential N-item tasks):** for tasks batching N items where each burns context (LLM cleanup per file, file conversion, multi-file refactor), estimate per-item cost at dispatch. If `N > 5` AND per-item ≈5%+ of fresh context → do NOT batch in one worker. Either split across workers from the start (e.g. 11 items → 5+6 across two workers), or have the worker checkpoint progress to disk so a follow-up worker can resume from the last checkpoint. Per-item math is knowable at dispatch — 11 × 7% = 77%, exceeding the budget before skill activation and initial reads.
+**Pre-followup Branch Sync (when reusing across merges):** Worker's branch tip is behind current `dev` if merges happened while it was idle. ALWAYS prefix follow-up `worker-cli send` with: "FIRST: in your worktree, run `git -C <worktree-path> fetch origin dev && git -C <worktree-path> merge dev`. Verify with relevant grep. THEN do the work: ..."
+
+**Batch Dispatch Cost (sequential N-item tasks):** for tasks batching N items where each burns context (LLM cleanup per file, file conversion, multi-file refactor), have the worker checkpoint progress to disk after each item so a fresh successor can resume from the last checkpoint when the original worker dies. Do NOT pre-split into multiple parallel workers — sequential reuse-until-death + successor-from-checkpoint is the pattern.
 
 
 ### Worker-Done File (No Hook — Active Polling Required)
 
 Worker exit creates `/tmp/worker-<name>.done` but **no PostToolUse hook is configured to detect it**. The file exists for any future hook integration but is currently unread. Active polling via `worker-cli status` is required — Opus is NOT notified automatically when a worker exits or hits the context limit.
 
-### Worker Death Recovery
+### Worker Death Recovery — Worker-to-Worker Handoff (Always)
 
-When a worker hits the context limit and dies mid-task, their worktree is still on disk with whatever uncommitted work they had. No work is lost unless Opus kills the worker before reviewing.
+When a worker dies mid-task or mid-recap: ALWAYS spawn a successor. ALWAYS handoff. The dying worker's commits + SUCCESSOR-HANDOFF note in the last commit message body contain everything the successor needs. Opus does NOT do file archaeology.
 
-1. **Check the worktree for uncommitted work:** `git -C <worktree_path> status --short`
-2. **Read and evaluate** uncommitted files — are they complete enough to be useful?
-3. **Merge first** — run `worker_merge` for whatever the worker committed on their branch.
-4. **Copy uncommitted recoverable files** from worktree into the target repo: `cp <worktree>/path/file <main>/path/file`
-5. **Commit the copied files separately** with a message noting the recovery: `chore: recover from dead worker <name>`
-6. **Drop debug artifacts** (temp scripts, debug prints, half-finished code) before committing.
+The dying worker's SUCCESSOR-HANDOFF format is defined in `~/.claude/shared-rules/worker/worker-rules.md` § 6 — Opus does not duplicate it.
 
-Only kill the worker (and remove the worktree) AFTER this review. `worker_kill` is irreversible.
+**Opus's role on detected worker death:**
+1. Verify the dying worker has at least one commit on its branch: `git -C <worktree> log --oneline -3`
+2. Spawn fresh successor: `worker-cli spawn <successor-name> /tmp/prompt.md <project_path> sonnet`
+3. Successor's prompt is short: "You are a successor worker. Read the latest commit message on branch `<dying-worker-branch>` — it contains a SUCCESSOR-HANDOFF block. Resume from the exact point described. First action: print the handoff content back as confirmation before doing any work."
+4. Phase 2 Cross-Model check on the successor's first response — does it match the dying worker's handoff intent?
+
+**Pre-spawn safety**: if the dying worker has ZERO commits (died during read-phase before any work landed), the successor's prompt becomes the ORIGINAL task prompt — not a handoff resume. Same as a normal initial spawn. This is the only edge case; everything else is handoff.
+
+Only kill the dying worker (and remove its worktree) AFTER the successor has confirmed handoff understanding and started its first commit. `worker-cli kill` is irreversible.
 
 
 ### After Deliverables Complete
@@ -147,6 +151,14 @@ WORKER PHASES (within IMPLEMENT, per worker):
 ---
 
 ## Recap — Session End
+
+**Scope (concern separation):** Opus session-end RECAP covers ONLY:
+1. **Files Opus touched directly** — rule files in `~/.claude/`, beads, RAG sync, cross-project edits (Worker Project Scope rule: workers only touch the current project, anything cross-project is Opus's)
+2. **Worker omissions Opus noticed** — drift Opus spotted during Phase 4 Review or post-merge verification that the worker missed. Document the omission as a session-end fix.
+
+That's it. Workers do worker recaps for their tasks (per `~/.claude/shared-rules/worker/worker-rules.md` § 6 — fully self-contained). Opus does Opus recap for Opus's surface. **Opus NEVER recaps a worker's task surface** — if a worker recap was incomplete, the fix is to either (a) catch it in Phase 4 Review and dispatch a follow-up worker, or (b) note the omission in Opus session-end recap WITHOUT redoing the worker's job.
+
+Opus NEVER deliberately moves drift to session-end. If a session-end RECAP finds substantial drift from a completed worker task that the worker should have covered, that's a process violation — investigate why Phase 4 Review didn't catch it and adjust next session.
 
 Two phases. ONE stop between them.
 

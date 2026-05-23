@@ -297,12 +297,27 @@ RECAP REPORT:
 
 Recap is doc-hygiene + decision-IST + OldThemes persistence for what YOU touched. Nothing else.
 
-### When the trigger arrives but recap can't fit
+### When the trigger arrives but recap can't fit — partial recap + handoff
 
-If Opus sends `recap` and you genuinely cannot complete it (context too tight, blocked on a tool issue, unclear scope), output:
+If Opus sends `recap` and you genuinely cannot complete it (context too tight, blocked on a tool issue, unclear scope): **produce a PARTIAL recap commit with a SUCCESSOR-HANDOFF note**. Do NOT skip and idle — that pushes drift to session-end which is forbidden.
+
+Commit whatever recap steps you DID complete (e.g. DOCS.md done but OldThemes pending), then in the commit message body include:
 
 ```
-RECAP SKIPPED: <reason>
+docs: recap for <task name> — PARTIAL
+
+RECAP-PARTIAL — areas not covered:
+- <area 1, e.g. decisions/<file>.md IST consistency check>
+- <area 2, e.g. OldThemes/<topic>/ extract>
+
+SUCCESSOR-HANDOFF:
+- State of work: <what's done in the recap, what's still pending>
+- Files touched in task (pre-recap): <list>
+- Files touched in recap (so far): <list>
+- Exact resume point: <where successor picks up — which step from §6, what's the next file to update>
+- Gotchas: <anything tricky successor must know>
 ```
 
-Then go idle. Opus's session-end Recap will absorb the drift cleanup. Do NOT half-commit a partial recap.
+Then output the RECAP REPORT with `Drift count: PARTIAL` and go idle. A successor worker spawned by Opus reads this handoff from `git log` and finishes the recap as their first task — Opus does NOT do file archaeology.
+
+**Same pattern when you die mid-task or mid-recap:** every commit (task commits + recap commit) carries a SUCCESSOR-HANDOFF note if work remains. The successor reads the latest commit on your branch and continues from the exact resume point.

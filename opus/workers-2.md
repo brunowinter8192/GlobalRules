@@ -192,21 +192,25 @@ When code review finds an issue: ask the worker what they think before prescribi
 
 ---
 
-## Worker Phase 5: Recap (Drift-Defense at Source)
+## Worker Phase 5: Recap (MANDATORY After Every Stage)
 
-**Trigger:** Opus sends `worker_send <name> "recap"` after one or more task-cycles completed and reviewed clean. Worker performs the recap pass per `~/.claude/shared-rules/worker/worker-rules.md` § 6 — one additional commit covering DOCS.md sync, decisions/ IST consistency, and OldThemes persistence.
+**Trigger:** ALWAYS — after Phase 4 Review completes clean for ANY task / etappe, Opus sends `worker_send <name> "recap"`. Non-discretionary. The recap consolidates DOCS.md sync, decisions/ IST consistency, and OldThemes persistence into ONE commit while the worker still has the original task context in head.
 
-**Opus discretion on timing:** after Phase 4 Review completes clean, Opus decides:
-- Clean diff + no further task in mind → send `recap`, then Phase 6 Merge
-- Another task fits in worker's context budget → dispatch follow-up first, recap later
-- Worker context too low → skip Phase 5, session-end Recap absorbs drift cleanup
+**Why mandatory:** drift accumulation across multiple stages compounds. If Opus skips recap to "save context for next task", the drift sits in the worker's worktree until session-end RECAP — where Opus-side archaeology must reconstruct what changed from git log + file state. Worker-side recap with original task context is cheaper (worker remembers exact intent) AND more accurate (no inference required). Recap-after-every-stage also makes the worker's committed state ALWAYS up-to-date, so when a worker dies mid-next-task, the successor inherits clean state.
 
-**Context-budget gating** (check `worker-cli status` before sending recap):
-- **≥30% remaining:** send
-- **20-30% remaining:** send with care, narrow tasks only (1-3 touched files)
-- **<20% remaining:** do NOT send, defer to session-end Recap
+**Sequence per task-cycle:**
+1. Worker delivers Completion Checklist (idle)
+2. Opus runs Phase 4 Review (diff inspection, sample-test, interpretation cross-check)
+3. Opus sends `worker_send <name> "recap"` — MANDATORY, no skip
+4. Worker commits ONE `docs: recap for <task>` commit
+5. Opus runs Phase 6 Merge
+6. THEN Opus decides next dispatch per workers-3.md § AGGRESSIVE REUSE (thematic continuity, NOT context-budget)
+
+**Only exception — session ending immediately:** if Opus is already in the IMPROVE+CLOSE phase and the worker just completed its final task, the session-end RECAP absorbs the cleanup. Mid-session, recap-after-every-stage is the rule.
+
+**Recap on low-context workers — always send recap, worker handles handoff.** Even at <20% remaining, send `recap`. The recap pattern itself (including partial-recap + SUCCESSOR-HANDOFF when context is too tight) is fully defined in `~/.claude/shared-rules/worker/worker-rules.md` § 6 — Opus does not duplicate the format spec, does not embed it in worker prompts. Opus just sends the trigger `recap`.
+
+If the worker dies mid-recap, the partial-recap commit on its branch carries the SUCCESSOR-HANDOFF note. Opus spawns a successor with: "Read latest commit on branch `<dying-worker-branch>` — it contains a SUCCESSOR-HANDOFF. Resume from there." Successor finishes the recap as its first task. Opus does NOT do file archaeology and NEVER defers drift to session-end RECAP.
 
 **Phase 5 output:** worker commits ONE recap commit (`docs: recap for <task>`), reports drift counts pre/post + touched-file list. Folds into Phase 6 Merge.
-
-**Failure-handling:** if worker reports `RECAP SKIPPED — context budget insufficient`, defer to session-end Recap. Do not retry on the same task.
 
