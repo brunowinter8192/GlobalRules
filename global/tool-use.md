@@ -80,8 +80,6 @@ Applies to ALL Bash invocations. Other tools (Read, Write, Edit, Grep, Glob) can
 - After completing a feature: chain bead close (`; bd close X --reason="..."`)
 - Cleanup actions (`rm`, `bd close`, `bd comments add`) cost zero extra tool calls when chained — always chain them.
 
-**Exception — `sleep`.** Rule 12 forbids chaining anything before or after `sleep N && echo done`. When the obvious next step is "set a timer after spawn/send/merge", that timer goes in a SEPARATE foreground call → followed by the background timer in its OWN call. Do NOT pack `worker-cli spawn X ... && sleep 300 && echo done` — Rule 12 hook blocks it.
-
 **Verbal-deferral is forbidden.** Phrases like "I'll do X next turn" / "Timer setze ich gleich" / "ich verifiziere das anschließend" / "Mache ich später" trigger an immediate self-check: **could X have been chained into the current Bash call?**
 
 - If YES → rule violation. Rewrite the response, chain the action.
@@ -143,27 +141,6 @@ echo "=== refs ==="; grep X file; ls dir/; echo "=== done ==="
 - `[ -f path ] && tail path || true` — force exit 0
 - `if [ -f path ]; then tail path; fi` — returns 0 when path absent
 - Append `; true` to the whole chain to guarantee exit 0
-
-
-### 12. `sleep` commands are forbidden — single narrow exception
-
-Any Bash tool call containing `sleep` is FORBIDDEN, with exactly one allowed form:
-
-```
-Bash(command="sleep N && echo done", run_in_background=true)
-```
-
-- Exact form only, no variations, no additional chaining
-- Used by Opus to schedule the next status-check on a dispatched worker
-- Single timer at a time (Background Task Discipline)
-
-**Workers: zero sleep, ever.** No polling own background tasks. If a worker's task takes longer than the 10-min `Bash` ceiling, restructure: split into shorter calls, use foreground Bash with explicit `timeout=600000`, write incremental progress to `/tmp/<name>.log`.
-
-**Self-check before any Bash call:** does the command contain the literal token `sleep`? If yes:
-- Worker context → DELETE the call, restructure
-- Opus context → confirm ALL THREE: exact form `sleep N && echo done`, `run_in_background=true`, polling a worker. Otherwise DELETE.
-
-CC's tool-use runtime backstops by blocking `sleep N && <other_command>` patterns.
 
 
 ### 13. Worktree path is `.claude/worktrees/` — never `.claire/`
