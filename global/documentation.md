@@ -52,6 +52,29 @@ Applies to every project, not only Monitor_CC.
 
 A doc currently referencing a bead → drift, fix at Recap (mechanical: grep for `Bead [A-Z][a-z_]*-[a-z0-9]{3,}` or just `Bead ` in indexed paths).
 
+## RAG Collection Layers
+
+Per project: **two** logical collections.
+
+1. **docs** — alle internen Projekt-Dokumente: `DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`, `CLAUDE.md`, `sources/sources.md`
+2. **reference** — alle externen Quellen: vendor docs (z.B. Anthropic API docs), Papers, third-party Repos
+
+**Canonical naming:**
+
+| Layer | Convention | Example |
+|---|---|---|
+| docs | `<Project>-docs` | `Monitor_CC-docs` |
+| reference | `<Project>_reference` | `Monitor_CC_reference` |
+
+**Use-case routing:**
+
+- Question about own project (code, architecture, decisions, past iterations) → **docs**
+- Question about external behavior (API features, framework conventions, library semantics, vendor docs) → **reference**
+
+Search-tool: `~/.claude/shared-rules/global/tool-use.md` § RAG CLI. Gate enforcement: `~/.claude/shared-rules/opus/workers-1.md` § RAG-First on Any Project Question.
+
+**RAG-related OldThemes live in both Monitor_CC and RAG repos.** Files in `decisions/OldThemes/` that concern the RAG system itself are physically duplicated across the two repos and indexed independently by each project's `update_docs`. On edit in either repo: run `sync-rag-oldthemes <filename>` to copy to the other side (mtime-based, picks newer).
+
 ## decisions/
 
 Pipeline decision records — FINAL STATE ONLY. Each file documents the current production choice (IST), the evidence backing it (Evidenz), and the recommendation for change if any (SOLL). The process that led to the current choice — alternatives evaluated, superseded values, iteration history — lives in `decisions/OldThemes/<topic>/`, NOT here. A decision file is the crystallized conclusion; OldThemes is the working memory that produced it.

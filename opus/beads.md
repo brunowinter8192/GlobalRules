@@ -17,10 +17,9 @@ All bead operations via the `bd` CLI. `bd` is installed with the iterative-dev p
 
 **Finding IDs:** `bd list | grep <unique-substring>` — `bd list` is alphabetical by ID prefix, not chronological, so passing literal IDs by hand-copy is the safe pattern.
 
-## Task Management Hierarchy
+## Task Management
 
-- **Beads** (`.beads/`) — Cross-session entry-points (days/weeks/months)
-- **Plan-File** (`.claude/plans/`) — Within a session (hours)
+**Beads** (`.beads/`) — the only task-management primitive. Cross-session entry-points (days/weeks/months).
 
 ## What a Bead IS
 
@@ -30,7 +29,6 @@ A Bead is a **lean entry-point**: topic + sources that reference it. Content liv
 - `decisions/OldThemes/<topic>/` or `decisions/OldThemes/<topic>.md` — discussion trail, iteration history
 - `<package>/DOCS.md` — module map
 - RAG `<Project>_reference` collection — external papers / GitHub / Reddit
-- Plan-File at `.claude/plans/<topic>.md` — transient session notes
 
 Resume mechanism: RAG-search on `<Project>-features` (OldThemes), `<Project>-meta` (decisions/DOCS/CLAUDE/sources), `<Project>_reference` (papers).
 ## Bead Format
@@ -47,7 +45,6 @@ Sources referencing this topic:
 - DOCS: <DOCS.md paths if any>
 - OldThemes: <subfolder or file paths if any>
 - <Project>_reference: <document names if any>
-- Plan-File: <path if currently active>
 
 Resume: rag-cli search_hybrid "<query>" <Project>-meta | <Project>-features [--document "%filter%"]
 ```
@@ -80,7 +77,7 @@ Source paths relative to project root. The Source-Inventory is a snapshot at the
 ## Bead Lifecycle
 
 - **Open**: Bead exists with current Source-Inventory at the moment of creation.
-- **Active phase**: substantial work happens — Plan-Files, Worker-Outputs, code edits, discussions, investigation findings. **All narrative — including findings, status updates, blockers, progress — is written to `decisions/OldThemes/<topic>/` IMMEDIATELY when it emerges** (not deferred to Recap). Bead comments are EXCLUSIVELY Source-Inventory updates (pointers to the OldThemes/decisions/DOCS files that hold the substance).
+- **Active phase**: substantial work happens — Worker-Outputs, code edits, discussions, investigation findings. **All narrative — including findings, status updates, blockers, progress — is written to `decisions/OldThemes/<topic>/` IMMEDIATELY when it emerges** (not deferred to Recap). Bead comments are EXCLUSIVELY Source-Inventory updates (pointers to the OldThemes/decisions/DOCS files that hold the substance).
 - **Recap (session end)**: SAFETY NET for unwritten prosa — captures anything not already in `OldThemes/`/`decisions/`/DOCS.md, fixes drift, updates Bead Source-Inventory with files created this session. Recap is NOT the default workflow for narrative capture; if findings keep landing only at Recap, it means the active-phase rule is being violated. See `~/.claude/shared-rules/opus/workers-3.md` § Recap.
 - **Close**: `bd close <id> --reason="<one-line reason of what was achieved>"`. NO write-prosa-on-close — Recap handles any persistence gap. NO long close-comment.
 
@@ -110,11 +107,38 @@ Multiple additions in one comment are fine if they land in the same write cycle:
 **FORBIDDEN as bead comments (always belong in OldThemes prosa):**
 
 - State transitions ("Phase A done", "merged on dev", "blocked on X", "awaiting verification") — even one-liners. Status is captured by which OldThemes files have been written/extended.
+- **Commit SHAs / merge announcements / fix-landed phrasing** ("Fix landed dev commit dcb6296", "Merged on dev", "Worker X dispatched")
+- **Live-test instructions or verification steps** ("Live-test braucht menubar restart", "Run X to verify")
+- **Related-fix mentions or sidenotes** ("Plus also Y kalibriert auf Z", "Bezug zu Bead L")
 - Investigation findings, hypotheses, evidence comparisons
 - Repro notes, screenshot timestamps, test inputs/outputs
 - Anything that is not literally `Source-Inventory updated: + <path>`
 
 **Why state-transitions are forbidden too:** they're narrative in mini-form. "Phase A done" duplicates information the OldThemes file already carries (or should carry — if it doesn't, fix the OldThemes file, don't comment the bead). The bead's purpose is to be a stable cross-session entry-point with a current Source-Inventory — not a live status feed.
+
+**Pre-Post Self-Test (every `bd comments add` call):**
+
+> "Does my comment literally start with `Source-Inventory updated: + `? If no → STOP. The substance belongs in OldThemes; the comment is the pointer."
+
+If the comment carries ANY of: a commit-SHA, a `landed/merged/dispatched/awaiting/blocked/done/pending` word, a verification instruction, a "Plus also..." sidenote — it is a rule violation. Rewrite to lean form OR delete entirely (if no new OldThemes file was created, no comment is needed at all).
+
+**Concrete negative vs positive example:**
+
+WRONG (rule-violating mixed comment, what Opus posted at 2026-05-23 before the rule sharpening):
+```
+"Fix landed dev commit dcb6296: discover.py worker-branch crash-safety override
+(stale 'working' hook + JSONL älter als 10s → demote zu 'idle'). pane_dead
+unreliable in zsh-wrapped Setup. Live-test braucht menubar restart. Plus
+worker-cli context_pct auf 170k Sonnet-Ceiling kalibriert (war 200k).
+Source-Inventory updated: + decisions/OldThemes/menubar_worker_death_detection.md"
+```
+
+RIGHT (lean — substance lives in the OldThemes file the pointer references):
+```
+"Source-Inventory updated: + decisions/OldThemes/menubar_worker_death_detection.md"
+```
+
+Every narrative element of the WRONG form (commit SHA, fix description, live-test instructions, related-calibration note) is already in the OldThemes file. The bead comment job is purely to register the new file as part of the bead's source-inventory.
 
 **Workflow for any session activity touching a bead:**
 

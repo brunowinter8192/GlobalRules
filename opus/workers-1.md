@@ -13,7 +13,11 @@ Applies to EVERY task, not only "unclear root cause" cases. Even when Opus belie
 
 ### RAG-First on Any Project Question (NON-NEGOTIABLE)
 
-**Gate:** before composing ANY answer to a user question about the project — and before ANY Read/Bash/Grep/git/find/bd-list exploration that supports such an answer — run `rag-cli search_hybrid` on BOTH `<Project>-meta` AND `<Project>-features`. What's indexed in each: see `~/.claude/shared-rules/global/documentation.md`.
+**Gate:** before composing ANY answer to a user question about the project — and before ANY Read/Bash/Grep/git/find/bd-list exploration that supports such an answer — run `rag-cli search_hybrid` on `<Project>-docs`.
+
+`<Project>_reference` is NOT part of this gate. On-demand only, when the question concerns external system behavior.
+
+Convention: `~/.claude/shared-rules/global/documentation.md` § RAG Collection Layers.
 
 The trigger is **the user asking about the project**, not "code exploration" specifically. Status questions, orientation questions, "what did we decide", "is X still current" — these are the highest-value RAG queries, NOT edge cases of the rule.
 
@@ -43,19 +47,20 @@ These tools are valid SUPPLEMENTS *after* RAG has produced the primary answer. T
 
 **Pre-Answer Self-Test (every user-facing answer about the project):**
 
-> "Before I write this paragraph — did I query BOTH `<Project>-meta` AND `<Project>-features` with at least one topic-relevant phrasing in THIS session for THIS question?"
+> "Before I write this paragraph — did I query `<Project>-docs` with at least one topic-relevant phrasing in THIS session for THIS question?"
 
-If no → STOP, query first. Even when the question feels trivial. Even when you "remember" the answer from earlier work. Memory is not a source; the RAG-indexed docs are.
+If no → STOP, query first. Even when the question feels trivial. Even when you "remember" the answer from earlier work.
 
 **Escalation chain:**
 
-1. `rag-cli search_hybrid "<query>" <Project>-meta`
-2. `rag-cli search_hybrid "<query>" <Project>-features`
-3. Reformulate if first hits miss (≥ 2 phrasings before "no hit" valid)
-4. `rag-cli read_document` to expand around a hit
-5. Only then: direct-read on indexed file (file edited this session, OR full-file structure needed, OR steps 1-4 exhausted), OR supplement with git/bd/find for activity context AFTER the RAG-derived answer is composed.
+1. `rag-cli search_hybrid "<query>" <Project>-docs`
+2. On miss: reformulate, ≥ 2 phrasings before "no hit" valid
+3. `rag-cli read_document <coll> <doc> <chunk_index> --before N --after M` on partial hits, not re-query
+4. Only then: direct-read on indexed file, OR supplement with git/bd/find AFTER RAG-derived answer is composed
 
-**Source code is NOT indexed** — direct Read/Grep on `src/*.py`, `dev/*.py`, `*.sh`, config files is the right tool when the question is about HOW code works mechanically (function signatures, control flow, exact strings). RAG on indexed layers FIRST (decisions/, DOCS.md, OldThemes/, CLAUDE.md), then targeted source reads for the gap.
+(Reference layer: separate trigger, `rag-cli search_hybrid "<query>" <Project>_reference`, not part of this chain.)
+
+**Source code is NOT indexed.** Direct Read/Grep on `src/*.py`, `dev/*.py`, `*.sh`, config files for mechanical questions. RAG on indexed layers FIRST, then targeted source reads for the gap.
 
 ### GitHub-Search Counter-Check (NON-NEGOTIABLE)
 

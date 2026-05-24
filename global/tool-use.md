@@ -421,9 +421,7 @@ Indexed-document search and lookup. All RAG operations via `rag-cli` (`~/.local/
 |---|---|
 | List collections | `rag-cli list_collections [--filter PATTERN]` |
 | List documents | `rag-cli list_documents <collection> [--document PATTERN] [--filter PATTERN]` |
-| Search dense | `rag-cli search <query> <collection> [--top-k N] [--document PATTERN]` |
-| Search hybrid | `rag-cli search_hybrid <query> <collection> [--top-k N] [--no-rerank]` |
-| Search BM25 | `rag-cli search_keyword <query> <collection> [--top-k N] [--document PATTERN]` |
+| Search hybrid | `rag-cli search_hybrid <query> <collection> [--top-k N] [--document PATTERN] [--rerank]` |
 | Read context | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
 | Delete | `rag-cli delete --collection <name> [--document <doc>]` |
 | Server preset | `rag-cli server {status\|list\|start\|stop\|restart} [name]` |
@@ -485,16 +483,18 @@ The returned chunk IS the answer. No follow-up direct-read of the same file need
 - RAG returned no usable hit AND the path is known anyway
 - The answer needs more context → expand via `rag-cli read_document <coll> <doc> <chunk> --after N`, NOT raw direct-read
 
-**search_hybrid search commands by use case:**
+**Search commands by use case:**
 
 | Use case | Command |
 |---|---|
-| Content search (default) | `rag-cli search_hybrid <query> <coll>` |
-| Pure semantic (BM25 stems hurt) | `rag-cli search <query> <coll>` |
-| Exact terms (function names, identifiers) | `rag-cli search_keyword <query> <coll>` |
+| Content search | `rag-cli search_hybrid <query> <coll>` |
 | Expand context around a hit | `rag-cli read_document <coll> <doc> <chunk> --before N --after M` |
 
-Defaults: `--top-k 20` (10–50 valid). `--document` filter on any search command narrows to matching doc names. When a search hit's chunk doesn't contain the full answer, expand via `read_document` on the hit's `chunk_index`.
+Defaults: `--top-k 12` (max 12). `--rerank` off by default; opt-in only. `--document` filter narrows to matching doc names (optional).
+
+**Two collection layers per project** — `<Project>-docs` (internal) + `<Project>_reference` (external). Full convention: `~/.claude/shared-rules/global/documentation.md` § RAG Collection Layers. Reference is on-demand only, not part of the routine docs query.
+
+**Miss handling:** on 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read/Grep. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
 
 #### show — open a file for the user
 
