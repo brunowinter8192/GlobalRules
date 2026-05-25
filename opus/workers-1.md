@@ -328,7 +328,7 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 
 1. Write prompt to `/tmp/spawn-worker-<project>-<name>.md`
 2. `worker_spawn(name, prompt_file, project_path, model, worktree)`
-3. IMMEDIATELY set background timer: `Bash(command="sleep N && echo 'check'", run_in_background=true)`. See workers-2.md § Timer & Polling Flow for canonical timer defaults.
+3. IMMEDIATELY set background timer: `Bash(command="sleep N && echo done", run_in_background=true)`. The `echo done` payload is literal — no descriptive text, no quotes. Only this exact form stays background; any variation is silently rewritten to foreground by `block_unauthorized_background` and then conflicts with parallel Bash in the same response. See workers-2.md § Timer & Polling Flow for canonical timer defaults.
 4. **Sequential spawn for cache-sharing:** When spawning multiple workers of the same model family (both Sonnet), dispatch them SEQUENTIALLY in separate response turns — not parallel in the same tool-call block. Worker 2's REQ#1 can only inherit cache from Worker 1 if Worker 1's first request completed before Worker 2's spawned.
 
 ### Prompt Structure

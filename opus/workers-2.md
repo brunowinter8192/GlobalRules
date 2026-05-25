@@ -62,9 +62,19 @@ Worker implements after receiving Go. During implementation:
 
 ### Timer & Polling Flow (NON-NEGOTIABLE)
 
+Timers exist for ONE reason: waking Opus periodically to check progress on a `working` worker. They have NO other legitimate use.
+
 1. **Spawn worker.**
-2. **Set 10min timer.** `Bash(command="sleep 600 && echo done", run_in_background=true)`.
-3. **Timer wakes → `worker-cli status <name>`.** `working` → new 10min timer. `idle` → `worker-cli response <name>` (fallback: `worker-cli capture` + tail + sed-filter).
+2. **If worker becomes `working`** (active tool calls): set 10min timer `Bash(command="sleep 600 && echo done", run_in_background=true)`.
+3. **Timer wakes → `worker-cli status <name>`.** `working` → new 10min timer. `idle` → `worker-cli response <name>` (fallback: `worker-cli capture` + tail + sed-filter), proceed to next phase.
+
+**Worker `idle` ≠ timer needed.** When the worker is `idle` and Opus has no further immediate action queued — e.g., waiting on user review of intermediate output, waiting on a long-running external process that the worker spawned and then went idle (sweep, indexing, smoke run, background compute) — Opus does NOT set a timer. Opus goes truly idle itself and waits for the user to wake it.
+
+Brief chat hint to user before going idle: "`<task>` läuft (geschätzt ~X min), Worker steht idle bei Y% Context. Weck mich wenn du denkst es ist fertig" or equivalent. The user pings manually via "background done" / "check now" / explicit re-prompt. ONLY THEN Opus checks status (filesystem for the external task's output, `worker-cli status` for the worker).
+
+Rationale: a timer that wakes Opus only to find "still waiting" is pure waste — it consumes Opus context with no progressable action, since the next legitimate step requires either the external process to finish (a filesystem signal, not timer-pollable) OR user input (also not timer-pollable). Going truly idle preserves Opus context for the actual next orchestration step.
+
+The single exception remains worker-in-`working`-state: there a periodic status check via timer is the only mechanism to detect when the worker becomes `idle`.
 
 **Background Task Discipline:** maximum ONE background task — timer OR any other `run_in_background=true` Bash — in flight at any moment.
 
