@@ -46,11 +46,11 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
   - Phase A reported but no commit above dev-tip → Phase B blocked on Go, plan lives in worker context
   - `git -C <worktree> status --short` shows uncommitted changes → implementation in flight
 - Worker hit a blocker (error/timeout/unexpected state) — `worker_send` "Stop, investigate, report" FIRST. Worker has live context (processes, tracebacks, recent reads) that's lost on kill
+- **Low context (any remaining %)** — NEVER a kill reason. Reuse until death, then successor (§ AGGRESSIVE REUSE). The last few % often go further than expected; recap-after-stage guarantees the successor inherits clean committed state. A worker dying mid-task is the designed flow, not a failure to prevent by pre-emptive killing.
 
 **When TO kill:**
 
 - After session-end RECAP with user verification passed
-- Context exhausted < 20% remaining (worker can die mid-task otherwise)
 - Worktree filesystem conflict
 - Explicit user request
 - Truly unresponsive (no output > 60s)
