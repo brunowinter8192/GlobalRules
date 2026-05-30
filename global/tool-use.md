@@ -60,17 +60,19 @@ When 2 tool calls in a row fail or don't deliver the desired result: **STOP IMME
 - After 2 failures: the answer is RESEARCH (Web/GitHub search, read source code, read docs), not RETRY
 
 
-### 6. Never dispatch parallel Bash tool_use blocks
+### 6. One Bash tool_use block per response — chain inside it
 
-One Bash tool_use BLOCK per assistant response. Within that single block, chain any number of commands with `&&` or `;`. No limit on command count — only on parallel tool_use dispatch.
+**Correct dispatch pattern:** each assistant response carries at most ONE Bash tool_use block. Put every Bash-class action for that turn INSIDE that single block, chained with `;` or `&&` — no limit on command count.
 
 - Independent commands → chain with `;`
 - Dependent commands (each step prerequisite for the next) → chain with `&&`
 - Diagnostic chains where step failure must NOT abort the rest → `;` (see Rule 11)
 
-Sequential-across-turns is only required when a LATER command needs to USE the output of an EARLIER one.
+Sequential-across-turns is the right move only when a LATER command needs the OUTPUT of an EARLIER one.
 
-Applies to ALL Bash invocations. Other tools (Read, Write, Edit, Grep, Glob) can be dispatched in parallel safely; only Bash has the cancel behavior.
+Applies to ALL Bash invocations. Read/Write/Edit/Grep/Glob may be sequenced together in one response when there is a genuine ordering need (e.g. Read→Edit per Rule 9); only Bash carries the cancel cascade, so a Bash block always travels alone.
+
+**Why:** a cancelled parallel batch (one call errors → runtime cancels the siblings) corrupts the in-flight `thinking` blocks under extended thinking → the next request returns `400 thinking blocks cannot be modified` → the broken message stays in history → the session wedges permanently. No PreToolUse hook can prevent this (each hook invocation sees only its own single tool, and the session transcript is written only after the batch has dispatched) — behavioral discipline is the only defense.
 
 **Chain everything chainable.** When dispatching a Bash call, identify what other Bash-class actions are the obvious next step and pack them into the same block:
 
