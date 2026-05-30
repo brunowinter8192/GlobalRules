@@ -400,7 +400,7 @@ Indexed-document search and lookup. All RAG operations via `rag-cli` (`~/.local/
 |---|---|
 | List collections | `rag-cli list_collections [--filter PATTERN]` |
 | List documents | `rag-cli list_documents <collection> [--document PATTERN] [--filter PATTERN]` |
-| Search hybrid | `rag-cli search_hybrid <query> <collection> [--document PATTERN] [--rerank]` |
+| Search hybrid | `rag-cli search_hybrid <query> <collection> [--document PATTERN]` |
 | Read context | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
 | Delete | `rag-cli delete --collection <name> [--document <doc>]` |
 | Server preset | `rag-cli server {status\|list\|start\|stop\|restart} [name]` |
@@ -469,7 +469,7 @@ The returned chunk IS the answer. No follow-up direct-read of the same file need
 | Content search | `rag-cli search_hybrid <query> <coll>` |
 | Expand context around a hit | `rag-cli read_document <coll> <doc> <chunk> --before N --after M` |
 
-Defaults: `top_k` is hardcoded to 12 in `search_hybrid_workflow` (not configurable, no flag exposed). `--rerank` off by default; opt-in only. `--document` filter narrows to matching doc names (optional).
+Defaults: `top_k` is hardcoded to 10 in `search_hybrid_workflow` (not configurable, no flag exposed). Reranking is always on — `search_hybrid` unconditionally cross-encoder-reranks the top-30 dense candidates; there is no `--rerank` flag to toggle. `--document` filter narrows to matching doc names (optional).
 
 **Two collection layers per project** — `<Project>-docs` (internal) + `<Project>_reference` (external). Full convention: `~/.claude/shared-rules/global/documentation.md` § RAG Collection Layers. Reference is on-demand only, not part of the routine docs query.
 
