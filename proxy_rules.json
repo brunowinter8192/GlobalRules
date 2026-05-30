@@ -63,12 +63,12 @@
   },
   "model_override": {
     "enabled": true,
-    "model": "claude-opus-4-7",
+    "model": "claude-opus-4-8",
     "thinking": {
       "type": "adaptive",
       "display": "omitted"
     },
-    "effort": "high",
+    "effort": "xhigh",
     "max_tokens": 128000
   },
   "model_override_worker": {
