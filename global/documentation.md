@@ -13,18 +13,9 @@ Documentation lives in two parallel chains.
 - source code — full detail
 - dev/*.md — investigations, probes, evals (sit beside the chain, not inside)
 
-Read coarser layers FIRST. Each layer answers different questions:
-- DOCS.md (root): "What is this project, what are the pipeline components, where do I start?"
-- decisions/: "What is the current production choice and what is it based on?"
-- decisions/OldThemes/: "How did we arrive at the current choice? What did we try, what was rejected, what's still pending?"
-- DOCS.md (subdir): "Which module does what, who calls whom?"
-- code: "How exactly is this done?"
-
-**No CLAUDE.md in the AI-internal chain.** Claude Code auto-injects CLAUDE.md at session start as a system-reminder — indexing it in RAG creates a duplicate context surface (one via system-reminder, one via RAG-search) and a manual-maintenance drift hazard (project structure trees, key-files tables, pipeline-component tables) that the rest of the chain already covers redundantly. Projects do NOT carry a CLAUDE.md. Root DOCS.md is the entry-point. README.md handles the external-facing chain. If a project genuinely needs auto-injected per-session context that DOCS.md cannot provide, route it through `~/.claude/shared-rules/proj_<name>/` instead.
-
 ## Artifact Density
 
-User-Chat is prose. Everything Claude reads or produces as ARTIFACT — code, DOCS.md, CLAUDE.md, rules/, decisions/, code-comments — is machine-readable and token-dense.
+User-Chat is prose. Everything Claude reads or produces as ARTIFACT — code, DOCS.md, rules/, decisions/, code-comments — is machine-readable and token-dense.
 
 Concrete: tables instead of prose where multiple dimensions need comparison, keywords instead of full sentences, references to `file:line` instead of explanatory paragraphs, no rhetorical filler ("furthermore", "as we can see", "importantly", "it's worth noting"). Where a paragraph IS needed, it is dense — no repetition, no opening sentences that say nothing.
 
@@ -41,22 +32,11 @@ Applies to every project, not only Monitor_CC.
 2. Beads are ephemeral work-trackers, not citations. The decision's rationale, evidence, and pending status must be self-contained in the doc.
 3. Bead IDs leak into RAG search noise: a query for "pending eval execution" should return the SOLL block, not a bead-tracker pointer.
 
-**Forms to use INSTEAD:**
-
-| Case | Use |
-|---|---|
-| Pending work | SOLL section: `Pending — needs <concrete description>.` |
-| Cross-cutting work | Prose summary inline in the relevant `decisions/<step>.md`. Bead tracks the work privately. |
-| Process / iteration history | `decisions/OldThemes/<topic>/` as canonical record. Bead is the tracker only. |
-| Cross-project reference | Cite the other project's doc path with `(<ProjectName>)` suffix, e.g., `see dev/watchdog_scope/proposal_phaseA_v2.md (Monitor_CC)`. Drift check skips paths followed by `(<Name>)`. |
-
-A doc currently referencing a bead → drift, fix at Recap (mechanical: grep for `Bead [A-Z][a-z_]*-[a-z0-9]{3,}` or just `Bead ` in indexed paths).
-
 ## RAG Collection Layers
 
 Per project: **two** logical collections.
 
-1. **docs** — alle internen Projekt-Dokumente: `DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`, `CLAUDE.md`, `sources/sources.md`
+1. **docs** — alle internen Projekt-Dokumente: `DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`, `sources/sources.md`
 2. **reference** — alle externen Quellen: vendor docs (z.B. Anthropic API docs), Papers, third-party Repos
 
 **Canonical naming:**
@@ -179,7 +159,7 @@ In these cases both the path and any cited content must resolve at Recap.
 
 **Subfolder-Trigger:** when a topic grows beyond a single file → create a subfolder, move existing file in, rename if needed.
 
-**Indexing:** OldThemes is indexed in `<Project>-features` (separate from `<Project>-meta` which covers decisions/DOCS/CLAUDE/sources). Search `<Project>-features` to find process history for a topic; search `<Project>-meta` to find current state.
+**Indexing:** OldThemes is indexed in `<Project>-features` (separate from `<Project>-meta` which covers decisions/DOCS/sources). Search `<Project>-features` to find process history for a topic; search `<Project>-meta` to find current state.
 
 ## DOCS.md
 
@@ -302,7 +282,6 @@ The format is designed so that scanning the DOCS.md surfaces problems without re
 | Directory | Reason |
 |---|---|
 | `agents/`, `commands/`, `skills/` | Plugin structure (Claude Code convention) |
-| `data/` | Data storage, purpose documented in CLAUDE.md |
 | `decisions/` | IS documentation (pipeline decision records) |
 | `.claude/`, `.claude-plugin/` | Tool configuration |
 
