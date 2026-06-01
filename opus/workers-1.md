@@ -84,7 +84,7 @@ Workers are ALWAYS **Sonnet**. NEVER Opus. Opus context is for orchestration onl
 
 **ALL source code edits go through workers. ZERO exceptions.** This includes "quick fixes", "one-line changes", "obvious changes", and proxy/addon/config files. If it's a `.py`, `.sh`, `.js`, `.ts`, or any source file — WORKER.
 
-The ONLY files Opus may edit directly: automation files (`.claude/rules/`, CLAUDE.md, DOCS.md, `.claude/commands/`).
+The ONLY files Opus may edit directly: automation files (`.claude/rules/`, DOCS.md, `.claude/commands/`).
 
 **Opus does directly:**
 - Verification (run tests, MCP calls, screenshots)
@@ -108,8 +108,8 @@ Concerns split strictly: Opus owns routing decisions, worker owns content produc
 
 **Opus does (BEFORE dispatch — part of PLAN, not IMPLEMENT):**
 
-1. **OldThemes folder.** RAG-search `<Project>-features` to check whether an OldThemes folder for the topic already exists. If yes → reuse the exact slug. If no → decide the slug name (matching project naming conventions). Do not delegate slug invention to the worker.
-2. **decisions/<step>.md files.** RAG-search `<Project>-meta` to identify which decision files the upcoming work touches (may span multiple pipeline steps — list ALL of them, not just the most obvious).
+1. **OldThemes folder.** RAG-search `<Project>-docs` to check whether an OldThemes folder for the topic already exists. If yes → reuse the exact slug. If no → decide the slug name (matching project naming conventions). Do not delegate slug invention to the worker.
+2. **decisions/<step>.md files.** RAG-search `<Project>-docs` to identify which decision files the upcoming work touches (may span multiple pipeline steps — list ALL of them, not just the most obvious).
 3. **New folders / new files.** Decide explicitly whether the task creates a new OldThemes topic folder, a new `decisions/<step>.md`, or only extends existing ones. If a new file/folder is needed and naming is non-obvious → ASK USER before dispatch.
 4. **Pass exact paths in the worker prompt.** Worker prompt names full paths: e.g., "Write Phase A.1 narrative to `decisions/OldThemes/<exact-slug>/A1.md`. IST updates after src/ change go to `decisions/<step>.md` and `decisions/<other>.md`." No placeholders, no "the worker decides".
 
@@ -200,10 +200,9 @@ Delegating the PLAN-Step-2 prep to an "Investigation Worker" collapses the two s
 
 #### Stage 1 — RAG (find WHAT and WHICH)
 
-Read the Bead (Source-Inventory + Resume hint), then run RAG searches per § RAG-First on Any Project Question above. Three collection layers for projects with `.rag-docs.json`:
+Read the Bead (Source-Inventory + Resume hint), then run RAG searches per § RAG-First on Any Project Question above. Two collection layers for projects with `.rag-docs.json`:
 
-- `<Project>-meta` — current state: decisions/, DOCS.md, CLAUDE.md, sources/
-- `<Project>-features` — discussion trail: OldThemes, archived themes, why-X-over-Y
+- `<Project>-docs` — internal docs: decisions/, DOCS.md, OldThemes (current state + discussion trail)
 - `<Project>_reference` — external papers, vendor docs (when maintained)
 
 **Stage 1 purpose: identify the topic landscape and produce a read-list of source files for Stage 3.** RAG indexes summaries, decisions, and discussion trails — NOT source code. A RAG hit that says "acquire() with backoff support" does NOT carry the actual code paths (e.g. "acquire() has TWO `await asyncio.sleep` branches, one for backoff and one for token-bucket-cap"). That lives only in the function body.
@@ -252,7 +251,7 @@ Produce a sources table: Component | Source | Coverage | Gap
 
 1. **Our own code** — `src/`, `decisions/`, `dev/`, existing logs in `src/logs/` or `data/`
 2. **3rd-party library source** — e.g. tmux (`tty-keys.c`), mitmproxy addon hooks, any dependency whose behavior you'd otherwise guess at. GitHub repos readable via the `github-search` skill.
-3. **Vendor / API docs** — Anthropic API reference, Claude Code internals, etc. Often indexed in `sources/sources.md`.
+3. **Vendor / API docs** — Anthropic API reference, Claude Code internals, etc. Often indexed in the `<Project>_reference` collection.
 4. **Live data** — greppable proxy JSONL, session JSONL, existing reports. Structural evidence beats guessing at shape.
 5. **Web / Reddit / arxiv** — last resort for behavioral questions not answered by source or docs.
 

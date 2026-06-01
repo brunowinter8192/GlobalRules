@@ -30,7 +30,7 @@ A Bead is a **lean entry-point**: topic + sources that reference it. Content liv
 - `<package>/DOCS.md` — module map
 - RAG `<Project>_reference` collection — external papers / GitHub / Reddit
 
-Resume mechanism: RAG-search on `<Project>-features` (OldThemes), `<Project>-meta` (decisions/DOCS/CLAUDE/sources), `<Project>_reference` (papers).
+Resume mechanism: RAG-search on `<Project>-docs` (decisions/DOCS/CLAUDE/OldThemes), `<Project>_reference` (papers).
 ## Bead Format
 
 ```
@@ -46,7 +46,7 @@ Sources referencing this topic:
 - OldThemes: <subfolder or file paths if any>
 - <Project>_reference: <document names if any>
 
-Resume: rag-cli search_hybrid "<query>" <Project>-meta | <Project>-features [--document "%filter%"]
+Resume: rag-cli search_hybrid "<query>" <Project>-docs [--document "%filter%"]
 ```
 
 Source paths relative to project root. The Source-Inventory is a snapshot at the moment of writing — Recap is responsible for keeping it current.
@@ -87,8 +87,7 @@ When picking up an open Bead in a new session:
 
 1. Read the Bead (title, what-it-is, source-inventory, comments)
 2. RAG-search for context:
-   - `rag-cli search_hybrid "<topic>" <Project>-features [--document "%feature%"]` — discussion trail / iteration history
-   - `rag-cli search_hybrid "<topic>" <Project>-meta` — current architectural state
+   - `rag-cli search_hybrid "<topic>" <Project>-docs [--document "%feature%"]` — current state + discussion trail / iteration history
    - `rag-cli search_hybrid "<topic>" <Project>_reference` — external papers / sources
 3. Optional: targeted `rag-cli read_document` to expand a hit when the chunk doesn't carry enough.
 

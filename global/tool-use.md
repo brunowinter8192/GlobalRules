@@ -76,7 +76,7 @@ Applies to ALL Bash invocations. Read/Write/Edit/Grep/Glob may be sequenced toge
 
 **Chain everything chainable.** When dispatching a Bash call, identify what other Bash-class actions are the obvious next step and pack them into the same block:
 
-- After `git merge`: chain post-merge verification (`; rag-cli search "test" RAG-meta`)
+- After `git merge`: chain post-merge verification (`; rag-cli search_hybrid "test" RAG-docs`)
 - After `worker-cli send X`: chain status check of other workers (`; worker-cli list`)
 - After identifying a bug via investigation: chain the fix-dispatch (`; worker-cli send X "fix Y"`)
 - After completing a feature: chain bead close (`; bd close X --reason="..."`)
@@ -445,13 +445,13 @@ Anti-patterns:
 
 ##### RAG: Status-Quo via RAG first
 
-Trigger: project has `.rag-docs.json` at root → `<Project>-meta` collection exists with decisions/, DOCS.md, CLAUDE.md indexed.
+Trigger: project has `.rag-docs.json` at root → `<Project>-docs` collection exists with decisions/, DOCS.md, OldThemes indexed.
 
 **Status-quo questions answered by RAG, not by direct-read of decisions/:**
 - "What is the IST of X?" / "How does Y work?" / "What was decided about Z?"
 
 ```bash
-rag-cli search_hybrid "<query>" <Project>-meta
+rag-cli search_hybrid "<query>" <Project>-docs
 ```
 
 The returned chunk IS the answer. No follow-up direct-read of the same file needed.
@@ -509,8 +509,6 @@ Open one or more files in the user's default macOS app so the **user** can see t
 - **256KB limit:** files >256KB fail with `File content (Xkb) exceeds maximum allowed size (256KB)`. Pre-check with `wc -c <file>` or `ls -la` for large logs/JSONL. Fix: `grep -n <target> <file>` to find line, then `Read(file_path=..., offset=N, limit=200)`.
 - **25k-token limit:** files >25k tokens fail with `File content (X tokens) exceeds maximum allowed tokens (25000)`. Same fix: grep + targeted Read with offset/limit.
 - **Nonexistent path:** fails with `File does not exist. Note: your current working directory is …`. Verify path with `ls` before Read when path is reconstructed from memory. Common typos: `.claire/` (should be `.claude/`), `..claude/` (double-dot — never valid).
-- **Worktree paths cause CLAUDE.md re-injection.** Reading any file under `.claude/worktrees/...` via the Read tool triggers CLAUDE.md re-injection into context. Use Bash `cat` / `head` / `git show` for worktree file reads instead.
-
 ### Edit
 - **Read first:** Required — see Rule 9.
 - **Indentation:** preserve EXACT indentation as it appears in the file content.

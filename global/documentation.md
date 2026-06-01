@@ -6,7 +6,7 @@ Documentation lives in two parallel chains.
 - README.md — entry-point + setup + features for someone external
 
 **AI-internal chain** (granularity gradient for AI exploration, coarse → fine):
-- DOCS.md (root) — project entry-point: pipeline components / key files / documentation tree to subdir DOCS.md. Indexed in `<Project>-meta`.
+- DOCS.md (root) — project entry-point: pipeline components / key files / documentation tree to subdir DOCS.md.
 - decisions/*.md — per-pipeline-step rationale, FINAL STATE ONLY (prose-level: IST/Evidenz/SOLL/Quellen). Format spec: see `## decisions/` below.
 - decisions/OldThemes/<topic>/ — process documentation: iterations, alternatives explored, superseded values, dead ends. Format spec: see `### OldThemes` below.
 - src/<package>/DOCS.md — per-module structured map (Role/Modules/LOC/Called-by)
@@ -25,7 +25,7 @@ Applies to every project, not only Monitor_CC.
 
 ## No Bead References in Docs
 
-`decisions/*.md`, `decisions/OldThemes/**/*.md`, `**/DOCS.md`, `sources/sources.md` NEVER reference beads. The direction is one-way: beads point to docs, docs don't point back.
+`decisions/*.md`, `decisions/OldThemes/**/*.md`, `**/DOCS.md` NEVER reference beads. The direction is one-way: beads point to docs, docs don't point back.
 
 **Why:**
 1. Beads close. A doc-reference to a closed bead becomes stale immediately (the bead ID is in the archive, the work it represented is now codified in the doc itself).
@@ -36,7 +36,7 @@ Applies to every project, not only Monitor_CC.
 
 Per project: **two** logical collections.
 
-1. **docs** — alle internen Projekt-Dokumente: `DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`, `sources/sources.md`
+1. **docs** — alle internen Projekt-Dokumente: `DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`
 2. **reference** — alle externen Quellen: vendor docs (z.B. Anthropic API docs), Papers, third-party Repos
 
 **Canonical naming:**
@@ -80,7 +80,7 @@ Measurements from dev/ scripts, external research, benchmarks. Data that informs
 - The report-MD path (e.g. `dev/retrieval/A_retrieval_eval_reports/baseline_2026-04-28.md`)
 - The dataset / collection / sample size (e.g. `test_db` on `rag_test`, 250 chunks, 17 queries)
 
-Result-MDs under `dev/<area>/<script>_reports/` are PRIMARY EVIDENCE — they MUST be lifted into the relevant `decisions/<step>.md` Evidenz in the same session as the eval run. Numbers living only in the report artifact = the canonical IST/Evidenz/SOLL record is incomplete and RAG-search on `<Project>-meta` cannot find them.
+Result-MDs under `dev/<area>/<script>_reports/` are PRIMARY EVIDENCE — they MUST be lifted into the relevant `decisions/<step>.md` Evidenz in the same session as the eval run. Numbers living only in the report artifact = the canonical IST/Evidenz/SOLL record is incomplete and RAG-search on `<Project>-docs` cannot find them.
 
 External evidence (papers, benchmarks from outside research) cites collection + document name from RAG (e.g. `RAG_reference: Fusion_Functions_Hybrid_Retrieval`).
 
@@ -123,7 +123,7 @@ Code: src/rag/retriever.py:embed_query()
 - Report-MD references in Evidenz (the path IS the citation: `dev/retrieval/A_retrieval_eval_reports/baseline_2026-04-28.md`)
 - Decision-file cross-references (`see decisions/box_architecture.md`)
 - DOCS.md module listings (the file IS the documented unit, e.g., `### server_manager.py (1061 LOC)`)
-- Data files (`sources/sources.md`, `dev/retrieval/queries_test_db.json`)
+- Data files (`dev/retrieval/queries_test_db.json`)
 
 In these cases both the path and any cited content must resolve at Recap.
 
@@ -158,9 +158,6 @@ In these cases both the path and any cited content must resolve at Recap.
 - Subfolder `decisions/OldThemes/<topic>/` — multi-file themes. Files inside have free naming (date-based, purpose-based, both OK).
 
 **Subfolder-Trigger:** when a topic grows beyond a single file → create a subfolder, move existing file in, rename if needed.
-
-**Indexing:** OldThemes is indexed in `<Project>-features` (separate from `<Project>-meta` which covers decisions/DOCS/sources). Search `<Project>-features` to find process history for a topic; search `<Project>-meta` to find current state.
-
 ## DOCS.md
 
 **Audience:** Developer (human or AI).
@@ -367,27 +364,12 @@ A `dev/` artifact survives both decisions. The exploration is preserved as refer
 - Changes the user has explicitly green-lit as production-targeted up front
 - Production-pipeline integration of an already-validated dev/ probe
 
-## sources/sources.md
+## External Source Provenance
 
-Tracks all external sources referenced or indexed during research.
+External sources (papers, vendor docs, GitHub issues/repos, forum threads, web) are cited INLINE in the document that consumes them. There is no central sources registry — provenance lives where it backs a statement, never in a separate file that must be cross-maintained.
 
-### Format
+- **`decisions/<step>.md`** — cited in the **Quellen** section (the source list) and in **Evidenz** where a source backs a specific measurement/claim. A decision whose state rests entirely on external sources names those sources in Quellen.
+- **`decisions/OldThemes/<topic>/`** — cited inline at the point of consultation ("X consulted → finding Y → decision Z"); investigation modules use the **External Research** table (Source | Result | Relevance).
+- **`<Project>_reference`** — external sources that warrant full-text RAG indexing (vendor docs, papers) are indexed into the project's reference collection and cited by collection + document name (e.g. `RAG_reference: Fusion_Functions_Hybrid_Retrieval`).
 
-```
-| Source | Domain | Type | Decision Steps | Status |
-```
-
-- **Type:** `Repo` | `Web` | `Paper` | `Thesis` | `Forum`
-- **Status:** `Referenced` | `Verified` | `Indexed (RAG: <collection>)`
-
-### Status Rules
-
-| Status | Bedeutung |
-|--------|-----------|
-| Referenced | Quelle erwähnt/genutzt, kein RAG-Index |
-| Verified | URL und Inhalt manuell bestätigt |
-| Indexed (RAG: x) | In RAG-Collection `x` indexiert |
-
-### Plugin-Suchen (Forum)
-
-Forum-Quellen aus MCP-Plugin-Suchen (reddit-search-Agent, LinkedIn-Suche) bleiben immer **Referenced** — kein Web-Crawl, kein RAG-Index. Status wird nicht auf Indexed gesetzt.
+Forum sources from MCP plugin searches (reddit-search, LinkedIn) stay inline references only — no web-crawl, no RAG index.

@@ -142,7 +142,7 @@ The checklist is mirrored on the worker side in `~/.claude/shared-rules/worker/w
 
 When the user introduces a new scope during IMPLEMENT:
 
-**Before each step below: RAG query on the affected module/topic (`rag-cli search_hybrid "<topic>" <Project>-meta`). Mini-scoping waives PLAN structure, NOT RAG-First (see workers-1 § RAG-First on Any Project Question).**
+**Before each step below: RAG query on the affected module/topic (`rag-cli search_hybrid "<topic>" <Project>-docs`). Mini-scoping waives PLAN structure, NOT RAG-First (see workers-1 § RAG-First on Any Project Question).**
 
 Mini-scoping (no full PLAN Phase needed):
 1. Summarize in chat: what is the user's task, what would a worker do

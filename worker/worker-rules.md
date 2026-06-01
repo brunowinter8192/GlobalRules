@@ -3,11 +3,11 @@
 
 These rules apply to every worker session. Run the Pre-Edit Check to determine your mode.
 
-## 1. Code Investigation — Docs + decisions via RAG
+## 1. Code Investigation — concrete files only
 
-Bei jeder Frage zur Beschaffenheit des Codes — warum ist X so, ist Y verifiziert, was war die Wahl-Begründung, wie wird Z verwendet — zuerst `rag-cli search_hybrid "<query>" <Project>-meta` absetzen. Die Meta-Collection indexiert DOCS.md (auch unter dev/), decisions/, CLAUDE.md. Wenn der Context existiert, findet RAG ihn. Code-Read kommt danach für Detail.
+Investigate using the concrete files Opus names in your prompt (src/, decisions/, DOCS.md, dev/). Read those files directly. NEVER run `rag-cli` or any external research (gh-cli, web) — RAG and external lookups are Opus's job; Opus passes the relevant findings and file paths into your prompt. If you need a file that isn't named, ask — do not go searching collections.
 
-**Commit-Logs sind keine Evidenz-Quelle und werden NICHT für Wahl-Begründungen, Verifikations-Aussagen oder historische Inferenzen herangezogen.** Sie sind absichtlich kurz gehalten — dokumentieren Was, nicht Warum. Alle Info zu Wahl + Begründung + Verifikation lebt ausschließlich in DOCS.md + decisions/. Wenn dort nichts steht: Aussage ist "nicht dokumentiert / unverifiziert", nicht "im git log nachschauen".
+**Commit logs are NOT an evidence source** and are NOT used for choice-rationale, verification claims, or historical inference. They are deliberately terse — they document WHAT, not WHY. All choice + rationale + verification info lives exclusively in DOCS.md + decisions/. If it's not there, the statement is "not documented / unverified", not "check the git log".
 
 ## 2. Worktree Isolation
 
@@ -105,10 +105,9 @@ When a script, run, or tool produces unexpected output — empty results, parse 
 
 ### Execution
 
-1. **Read project CLAUDE.md first** — it contains module patterns, naming conventions, and coding rules specific to this project.
-2. **Read reference files** mentioned in the prompt — existing modules show the exact pattern to follow.
-3. **Execute the task** as specified in the prompt. No scope creep, no "improvements" beyond what was asked.
-4. **Follow existing patterns exactly** — match import style, section structure, comment style, function naming from reference files.
+1. **Read reference files** mentioned in the prompt — existing modules show the exact pattern to follow.
+2. **Execute the task** as specified in the prompt. No scope creep, no "improvements" beyond what was asked.
+3. **Follow existing patterns exactly** — match import style, section structure, comment style, function naming from reference files.
 
 ### Code Quality
 
