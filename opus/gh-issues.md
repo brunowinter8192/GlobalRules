@@ -8,9 +8,9 @@ All issue operations via the `gh-cli` CLI (Python tool — handles auth via the 
 |---|---|
 | List open issues | `gh-cli list_issues <owner> <repo>` (state=open is the default) |
 | List closed issues | `gh-cli list_issues <owner> <repo> --state closed` |
-| Show issue + comments | `gh-cli get_issue <owner> <repo> <number> && gh-cli get_issue_comments <owner> <repo> <number>` |
+| Read issue body | `gh-cli get_issue <owner> <repo> <number>` — body = text AFTER the `---` separator in the output |
 | Create issue | `gh-cli create_issue <owner> <repo> "<title>" --body "<desc>" [--labels a,b]` |
-| Add comment | `gh-cli comment_issue <owner> <repo> <number> "<text>"` |
+| Update issue body (Source-Inventory) | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"` (full-replace) |
 | Close issue | `gh-cli update_issue <owner> <repo> <number> --state closed` |
 | Reopen issue | `gh-cli update_issue <owner> <repo> <number> --state open` |
 
@@ -70,7 +70,7 @@ Source paths relative to project root. The Source-Inventory is a snapshot at the
 
 **Workflow when an issue exists:**
 - Default priority: finish the current issue before picking up a new one.
-- Subtasks live as comments inside the issue (lean state changes only — see "Comments" below).
+- Source-Inventory updates live in the issue **body**, maintained via `update_issue --body` (read current body via `get_issue`, splice in new paths, full-replace — see "Source-Inventory — Body-Maintained" below). NO comments are used.
 - **Proactive close after live-verify.** When an issue's code is merged AND live-verify shows the new behavior is working as intended, close the issue in the same flow — do NOT wait for the user to ask.
 
 **Rule in short:** Issue = explicitly deferred OR blocker OR explicit cross-session request. Done one-shot work, in-flight workers, and same-flow tasks need no issue.
@@ -78,15 +78,15 @@ Source paths relative to project root. The Source-Inventory is a snapshot at the
 ## Issue Lifecycle
 
 - **Open**: Issue exists with current Source-Inventory at the moment of creation.
-- **Active phase**: substantial work happens — Worker-Outputs, code edits, discussions, investigation findings. **All narrative — including findings, status updates, blockers, progress — is written to `decisions/OldThemes/<topic>/` IMMEDIATELY when it emerges** (not deferred to Recap). Issue comments are EXCLUSIVELY Source-Inventory updates (pointers to the OldThemes/decisions/DOCS files that hold the substance).
+- **Active phase**: substantial work happens — Worker-Outputs, code edits, discussions, investigation findings. **All narrative — including findings, status updates, blockers, progress — is written to `decisions/OldThemes/<topic>/` IMMEDIATELY when it emerges** (not deferred to Recap). The issue **body's** Source-Inventory is updated via `update_issue` to point at the OldThemes/decisions/DOCS files that hold the substance. No comments are used.
 - **Recap (session end)**: SAFETY NET for unwritten prosa — captures anything not already in `OldThemes/`/`decisions/`/DOCS.md, fixes drift, updates the Source-Inventory with files created this session. Recap is NOT the default workflow for narrative capture; if findings keep landing only at Recap, it means the active-phase rule is being violated. See `~/.claude/shared-rules/opus/workers-3.md` § Recap.
-- **Close**: `gh-cli update_issue <owner> <repo> <number> --state closed`. NO write-prosa-on-close — Recap handles any persistence gap. NO long close-comment.
+- **Close**: `gh-cli update_issue <owner> <repo> <number> --state closed`. NO write-prosa-on-close — Recap handles any persistence gap.
 
 ## Resume Pattern
 
 When picking up an open issue in a new session:
 
-1. Read the issue: `gh-cli get_issue <owner> <repo> <number>` (+ `get_issue_comments` for the Source-Inventory pointers)
+1. Read the issue: `gh-cli get_issue <owner> <repo> <number>` — the body carries the Source-Inventory (no comments to read)
 2. RAG-search for context:
    - `rag-cli search_hybrid "<topic>" <Project>-docs [--document "%feature%"]` — current state + discussion trail / iteration history
    - `rag-cli search_hybrid "<topic>" <Project>-reference` — external papers / sources
@@ -94,51 +94,48 @@ When picking up an open issue in a new session:
 
 The issue does not contain narrative. The sources do.
 
-## Comments — Source-Inventory Pointers ONLY (HARD RULE)
+## Source-Inventory — Body-Maintained (HARD RULE)
 
-Issue comments serve EXACTLY ONE purpose: pointing at where the substance lives. The issue is structure; the OldThemes/decisions/DOCS files are content.
+There are NO issue comments. `comment_issue` does not exist. The Source-Inventory lives in the issue **body** and is the ONLY part that changes after creation. The issue body is structure (the entry-point); the OldThemes/decisions/DOCS files are the content.
 
-**ONLY ALLOWED comment shape:**
+**The body is a 3-part document** (see Issue Format): `What it is` (stable), `Sources referencing this topic` (the live part), `Resume` (stable).
 
-- Source-Inventory updates: `"Source-Inventory updated: + decisions/OldThemes/<topic>/<file>.md"` / `"+ decisions/<step>.md"` / `"+ <package>/DOCS.md"`
+**Read-modify-write workflow** — `update_issue --body` is a FULL REPLACE, so the stable parts must be preserved:
 
-Multiple additions in one comment are fine if they land in the same write cycle: `"Source-Inventory updated: + OldThemes/<topic>/A1.md, + decisions/pipe05.md"`.
+1. `gh-cli get_issue <owner> <repo> <number>` → read the current body. The editable body is the text AFTER the `---` separator (the lines before it are display metadata: title/state/author/dates/labels/URL).
+2. Keep `What it is` and `Resume` verbatim; splice the new source path(s) into the `Sources referencing this topic` list.
+3. `gh-cli update_issue <owner> <repo> <number> --body "<full reconstructed body>"`.
 
-**FORBIDDEN as issue comments (always belong in OldThemes prosa):**
+`What it is` and `Resume` are written once at create and stay put unless the topic's scope genuinely changes. Only the Source-Inventory list grows.
 
-- State transitions ("Phase A done", "merged on dev", "blocked on X", "awaiting verification") — even one-liners. Status is captured by which OldThemes files have been written/extended.
-- **Commit SHAs / merge announcements / fix-landed phrasing** ("Fix landed dev commit dcb6296", "Merged on dev", "Worker X dispatched")
-- **Live-test instructions or verification steps** ("Live-test braucht menubar restart", "Run X to verify")
-- **Related-fix mentions or sidenotes** ("Plus also Y kalibriert auf Z", "Bezug zu Issue #L")
+**FORBIDDEN in the body (always belong in OldThemes prosa):**
+
+- State transitions ("Phase A done", "merged on dev", "blocked on X", "awaiting verification")
+- Commit SHAs / merge announcements / fix-landed phrasing
+- Live-test instructions or verification steps
 - Investigation findings, hypotheses, evidence comparisons
 - Repro notes, screenshot timestamps, test inputs/outputs
-- Anything that is not literally `Source-Inventory updated: + <path>`
+- Anything that is not a source path
 
-**Why state-transitions are forbidden too:** they're narrative in mini-form. "Phase A done" duplicates information the OldThemes file already carries (or should carry — if it doesn't, fix the OldThemes file, don't comment the issue). The issue's purpose is to be a stable cross-session entry-point with a current Source-Inventory — not a live status feed.
-
-**Pre-Post Self-Test (every `comment_issue` call):**
-
-> "Does my comment literally start with `Source-Inventory updated: + `? If no → STOP. The substance belongs in OldThemes; the comment is the pointer."
-
-If the comment carries ANY of: a commit-SHA, a `landed/merged/dispatched/awaiting/blocked/done/pending` word, a verification instruction, a "Plus also..." sidenote — it is a rule violation. Rewrite to lean form OR delete entirely (if no new OldThemes file was created, no comment is needed at all).
+The `Sources referencing this topic` list is JUST paths. Anything that is not a source path does not belong in the issue at all — it goes to OldThemes.
 
 **Workflow for any session activity touching an issue:**
 
 1. Investigation finding emerges OR status changes (phase complete, blocker found, merge done, verification pending) → write/extend the relevant `decisions/OldThemes/<topic>/<file>.md` IMMEDIATELY.
-2. If the write produces a NEW file: add ONE comment `Source-Inventory updated: + <new_path>`.
-3. If the write extends an EXISTING file already in the Source-Inventory: no comment needed (the Source-Inventory pointer is unchanged).
+2. If the write produces a NEW file (OldThemes/decisions/DOCS) → read-modify-write the issue body to add the path to the Source-Inventory.
+3. If it only extends a file already listed → no body change needed.
 4. Continue working.
 
-Narrative of ANY shape → `decisions/OldThemes/<topic>/`. Decision rationale → `decisions/<area>.md`. Issue comments → Source-Inventory pointers only.
+Narrative of ANY shape → `decisions/OldThemes/<topic>/`. Decision rationale → `decisions/<area>.md`. Issue body → Source-Inventory paths only.
 
 ## Issue-Close
 
 `gh-cli update_issue <owner> <repo> <number> --state closed` — that's it.
 
-No verification of prosa-state at close (Recap is responsible for persistence). No long close-comment summarizing the journey — the OldThemes prosa is that summary.
+No verification of prosa-state at close (Recap is responsible for persistence). The OldThemes prosa is the journey summary — nothing is posted to the issue.
 
 If an issue defines a specific verification test that has not been run yet → issue stays open, run the test, then close.
 
 ## Path Rule
 
-ALL paths in issue bodies/comments relative to PROJECT ROOT. Name each repo when multiple are affected.
+ALL paths in issue bodies relative to PROJECT ROOT. Name each repo when multiple are affected.

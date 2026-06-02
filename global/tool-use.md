@@ -79,8 +79,7 @@ Applies to ALL Bash invocations. Read/Write/Edit/Grep/Glob may be sequenced toge
 - After `git merge`: chain post-merge verification (`; rag-cli search_hybrid "test" rag-cli-docs`)
 - After `worker-cli send X`: chain status check of other workers (`; worker-cli list`)
 - After identifying a bug via investigation: chain the fix-dispatch (`; worker-cli send X "fix Y"`)
-- After completing a feature: chain issue close (`; gh-cli update_issue brunowinter8192 <repo> N --state closed`)
-- Cleanup actions (`rm`, `gh-cli update_issue --state closed`, `gh-cli comment_issue`) cost zero extra tool calls when chained — always chain them.
+- Cleanup actions (`rm /tmp/scratch.*`, `git stash drop`) cost zero extra tool calls when chained — always chain them.
 
 **Verbal-deferral is forbidden.** Phrases like "I'll do X next turn" / "Timer setze ich gleich" / "ich verifiziere das anschließend" / "Mache ich später" trigger an immediate self-check: **could X have been chained into the current Bash call?**
 
@@ -175,7 +174,7 @@ When a command is called repeatedly with the same long paths, NEVER pack two pat
 
 1. **Function:** `cmd() { /full/python /full/cli.py "$@"; }`
 2. **Two-Variable-Split:** `PY=/full/python; CLI=/full/cli.py; $PY $CLI ...`
-3. **Wrapper script in `~/.local/bin/`:** 3-line bash wrapper + `chmod +x`, then just `cmd-name ...` (pattern: rag-cli, gh-cli, reddit-cli, arxiv-cli)
+3. **Wrapper script in `~/.local/bin/`:** 3-line bash wrapper + `chmod +x`, then just `cmd-name ...` (pattern: rag-cli, reddit-cli, arxiv-cli)
 
 
 ### 16. cd-Drift across Bash-Tool-Calls
@@ -222,11 +221,11 @@ Two zero-results in a row on the same topic = stop, rethink.
 
 **Case 2 — File creation or editing:** NEVER Bash heredoc / `cat > file <<EOF` / `tee file <<EOF`. Always Write (new file) or Edit (existing file). This includes `.py`, `.sh`, `.md`, config files, scripts — any file living in the repo. Reasons: (a) Bash heredocs bypass the Read-before-Edit safety check, (b) project-level hooks scan the full Bash command including heredoc bodies and false-positive on patterns like `sleep N`, etc. that legitimately occur in code, (c) no diff visibility, (d) atomic-write guarantees of Write/Edit are lost. The only files you may write via heredoc are throwaways under `/tmp/`.
 
-**Case 3 — Shell-argument heredoc for a one-shot command (issue body, git commit body, curl payload):** OK.
+**Case 3 — Shell-argument heredoc for a one-shot command (git commit body, curl payload):** OK.
 
 ```bash
-gh-cli create_issue brunowinter8192 <repo> "<title>" --body "$(cat <<'EOF'
-<full markdown body>
+curl -X POST https://api.example.com/resource -d "$(cat <<'EOF'
+{"field": "multi-line\nvalue"}
 EOF
 )"
 ```
@@ -237,17 +236,6 @@ EOF
 2. Goal is to create a file? → Write tool.
 3. Multi-line argument to a one-shot shell command? → heredoc inline.
 4. Same multi-line content reused across multiple calls? → Write + Edit.
-
-### Issue descriptions
-
-Case 3. Issue bodies are written once and not iterated.
-
-```bash
-gh-cli create_issue brunowinter8192 <repo> "<title>" --body "$(cat <<'EOF'
-<full markdown body>
-EOF
-)"
-```
 
 ---
 
