@@ -15,7 +15,7 @@ Applies to EVERY task, not only "unclear root cause" cases. Even when Opus belie
 
 **Gate:** before composing ANY answer to a user question about the project — and before ANY Read/Bash/Grep/git/find/bd-list exploration that supports such an answer — run `rag-cli search_hybrid` on `<Project>-docs`.
 
-`<Project>_reference` is NOT part of this gate. On-demand only, when the question concerns external system behavior.
+`<Project>-reference` is NOT part of this gate. On-demand only, when the question concerns external system behavior.
 
 Convention: `~/.claude/shared-rules/global/documentation.md` § RAG Collection Layers.
 
@@ -58,23 +58,23 @@ If no → STOP, query first. Even when the question feels trivial. Even when you
 3. `rag-cli read_document <coll> <doc> <chunk_index> --before N --after M` on partial hits, not re-query
 4. Only then: direct-read on indexed file, OR supplement with git/bd/find AFTER RAG-derived answer is composed
 
-(Reference layer: separate trigger, `rag-cli search_hybrid "<query>" <Project>_reference`, not part of this chain.)
+(Reference layer: separate trigger, `rag-cli search_hybrid "<query>" <Project>-reference`, not part of this chain.)
 
 **Source code is NOT indexed.** Direct Read/Grep on `src/*.py`, `dev/*.py`, `*.sh`, config files for mechanical questions. RAG on indexed layers FIRST, then targeted source reads for the gap.
 
 ### GitHub-Search Counter-Check (NON-NEGOTIABLE)
 
-External-pattern verification via `github-search` skill fires at TWO trigger points:
+External-pattern verification via `gh-cli-search` skill fires at TWO trigger points:
 
 1. **BEFORE dispatching any worker on a new feature / new architectural problem** — when the task touches platform APIs, framework conventions, library integrations, or any "how do people normally do X" surface. Cost: 1–3 `gh-cli search_code` / `search_repos` calls (~30 seconds). Gain: convergent patterns from real shipped code that prevent hypothesis-grinding.
 2. **AFTER any failed iteration on a hard problem** — when one investigation cycle ended with "approach refuted" / "still doesn't work" / "let's try another hypothesis". BEFORE the next hypothesis is formed in-head, run gh-search. If two independent repos converge on the same pattern, that pattern wins over any in-head hypothesis.
 3. **BUG RECURS AFTER RAG-AIDED FIX ATTEMPT** — bug → RAG hint → fix → bug still there. Second iteration on the same bug. Before another hypothesis: gh-search the symptom + API surface. No more in-head trial-and-error past iteration 2.
 
-**Hard rule:** when entering PLAN Step 2 (Prep Investigation) on a new feature touching platform/framework/library surface OR when about to formulate a new hypothesis after a failed iteration → activate `github-search` skill (search strategy is in the skill itself), then proceed with the PLAN.
+**Hard rule:** when entering PLAN Step 2 (Prep Investigation) on a new feature touching platform/framework/library surface OR when about to formulate a new hypothesis after a failed iteration → activate `gh-cli-search` skill (search strategy is in the skill itself), then proceed with the PLAN.
 
-**Self-test before any worker-dispatch on a new architectural problem:** "Did I run a github-search on the platform/framework keyword in this session's topic?" If no → STOP, run the search first.
+**Self-test before any worker-dispatch on a new architectural problem:** "Did I run a gh-cli-search on the platform/framework keyword in this session's topic?" If no → STOP, run the search first.
 
-**Self-test before formulating hypothesis N+1 after iteration N failed:** "Did I github-search the failure pattern (specific API, observed symptom) before guessing again?" If no → STOP, search first.
+**Self-test before formulating hypothesis N+1 after iteration N failed:** "Did I gh-cli-search the failure pattern (specific API, observed symptom) before guessing again?" If no → STOP, search first.
 
 ### Worker Model (NON-NEGOTIABLE)
 
@@ -203,7 +203,7 @@ Delegating the PLAN-Step-2 prep to an "Investigation Worker" collapses the two s
 Read the Bead (Source-Inventory + Resume hint), then run RAG searches per § RAG-First on Any Project Question above. Two collection layers for projects with `.rag-docs.json`:
 
 - `<Project>-docs` — internal docs: decisions/, DOCS.md, OldThemes (current state + discussion trail)
-- `<Project>_reference` — external papers, vendor docs (when maintained)
+- `<Project>-reference` — external papers, vendor docs (when maintained)
 
 **Stage 1 purpose: identify the topic landscape and produce a read-list of source files for Stage 3.** RAG indexes summaries, decisions, and discussion trails — NOT source code. A RAG hit that says "acquire() with backoff support" does NOT carry the actual code paths (e.g. "acquire() has TWO `await asyncio.sleep` branches, one for backoff and one for token-bucket-cap"). That lives only in the function body.
 
@@ -250,8 +250,8 @@ Produce a sources table: Component | Source | Coverage | Gap
 **Explicitly enumerate ALL resource categories** — not only our own code:
 
 1. **Our own code** — `src/`, `decisions/`, `dev/`, existing logs in `src/logs/` or `data/`
-2. **3rd-party library source** — e.g. tmux (`tty-keys.c`), mitmproxy addon hooks, any dependency whose behavior you'd otherwise guess at. GitHub repos readable via the `github-search` skill.
-3. **Vendor / API docs** — Anthropic API reference, Claude Code internals, etc. Often indexed in the `<Project>_reference` collection.
+2. **3rd-party library source** — e.g. tmux (`tty-keys.c`), mitmproxy addon hooks, any dependency whose behavior you'd otherwise guess at. GitHub repos readable via the `gh-cli-search` skill.
+3. **Vendor / API docs** — Anthropic API reference, Claude Code internals, etc. Often indexed in the `<Project>-reference` collection.
 4. **Live data** — greppable proxy JSONL, session JSONL, existing reports. Structural evidence beats guessing at shape.
 5. **Web / Reddit / arxiv** — last resort for behavioral questions not answered by source or docs.
 
@@ -265,7 +265,7 @@ For each resource: state WHICH question it answers. If no resource is listed for
 - **"indexed" ≠ "answered":** Query the source, extract the answer, cite file:line or doc quote.
 
 **Worker can close gaps during Worker Phase 2 (investigation):**
-- Worker has github-search skill, web search, file reading in the worktree
+- Worker has gh-cli-search skill, web search, file reading in the worktree
 - If a gap needs 3rd-party source reading, include it in the worker prompt's investigation step with a specific citation request ("cite tmux source file:line for button 64/65 semantics")
 - Do NOT hand off a gap as "figure it out" — specify WHICH resource the worker should consult and WHAT answer to return
 

@@ -76,7 +76,7 @@ Applies to ALL Bash invocations. Read/Write/Edit/Grep/Glob may be sequenced toge
 
 **Chain everything chainable.** When dispatching a Bash call, identify what other Bash-class actions are the obvious next step and pack them into the same block:
 
-- After `git merge`: chain post-merge verification (`; rag-cli search_hybrid "test" RAG-docs`)
+- After `git merge`: chain post-merge verification (`; rag-cli search_hybrid "test" rag-cli-docs`)
 - After `worker-cli send X`: chain status check of other workers (`; worker-cli list`)
 - After identifying a bug via investigation: chain the fix-dispatch (`; worker-cli send X "fix Y"`)
 - After completing a feature: chain bead close (`; bd close X --reason="..."`)
@@ -471,7 +471,7 @@ The returned chunk IS the answer. No follow-up direct-read of the same file need
 
 Defaults: `top_k` is hardcoded to 10 in `search_hybrid_workflow` (not configurable, no flag exposed). Reranking is always on — `search_hybrid` unconditionally cross-encoder-reranks the top-30 dense candidates; there is no `--rerank` flag to toggle. `--document` filter narrows to matching doc names (optional).
 
-**Two collection layers per project** — `<Project>-docs` (internal) + `<Project>_reference` (external). Full convention: `~/.claude/shared-rules/global/documentation.md` § RAG Collection Layers. Reference is on-demand only, not part of the routine docs query.
+**Two collection layers per project** — `<Project>-docs` (internal) + `<Project>-reference` (external). Full convention: `~/.claude/shared-rules/global/documentation.md` § RAG Collection Layers. Reference is on-demand only, not part of the routine docs query.
 
 **Miss handling:** on 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read/Grep. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
 

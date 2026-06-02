@@ -43,8 +43,8 @@ Per project: **two** logical collections.
 
 | Layer | Convention | Example |
 |---|---|---|
-| docs | `<Project>-docs` | `Monitor_CC-docs` |
-| reference | `<Project>_reference` | `Monitor_CC_reference` |
+| docs | `<Project>-docs` | `monitor-cc-docs` |
+| reference | `<Project>-reference` | `monitor-cc-reference` |
 
 **Use-case routing:**
 
@@ -82,7 +82,7 @@ Measurements from dev/ scripts, external research, benchmarks. Data that informs
 
 Result-MDs under `dev/<area>/<script>_reports/` are PRIMARY EVIDENCE — they MUST be lifted into the relevant `decisions/<step>.md` Evidenz in the same session as the eval run. Numbers living only in the report artifact = the canonical IST/Evidenz/SOLL record is incomplete and RAG-search on `<Project>-docs` cannot find them.
 
-External evidence (papers, benchmarks from outside research) cites collection + document name from RAG (e.g. `RAG_reference: Fusion_Functions_Hybrid_Retrieval`).
+External evidence (papers, benchmarks from outside research) cites collection + document name from RAG (e.g. `rag-cli-reference: Fusion_Functions_Hybrid_Retrieval`).
 
 #### Recommendation (SOLL)
 What the config SHOULD be based on evidence. Three formats:
@@ -370,6 +370,6 @@ External sources (papers, vendor docs, GitHub issues/repos, forum threads, web) 
 
 - **`decisions/<step>.md`** — cited in the **Quellen** section (the source list) and in **Evidenz** where a source backs a specific measurement/claim. A decision whose state rests entirely on external sources names those sources in Quellen.
 - **`decisions/OldThemes/<topic>/`** — cited inline at the point of consultation ("X consulted → finding Y → decision Z"); investigation modules use the **External Research** table (Source | Result | Relevance).
-- **`<Project>_reference`** — external sources that warrant full-text RAG indexing (vendor docs, papers) are indexed into the project's reference collection and cited by collection + document name (e.g. `RAG_reference: Fusion_Functions_Hybrid_Retrieval`).
+- **`<Project>-reference`** — external sources that warrant full-text RAG indexing (vendor docs, papers) are indexed into the project's reference collection and cited by collection + document name (e.g. `rag-cli-reference: Fusion_Functions_Hybrid_Retrieval`).
 
-Forum sources from MCP plugin searches (reddit-search, LinkedIn) stay inline references only — no web-crawl, no RAG index.
+Forum sources from MCP plugin searches (reddit-cli-search, LinkedIn) stay inline references only — no web-crawl, no RAG index.
