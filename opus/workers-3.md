@@ -41,7 +41,7 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 **When NOT to kill (even if you think it's "done"):**
 
 - After task completion / Phase 6 merge — worker stays idle until RECAP
-- After `bd close` — bead-close ≠ worker-kill. Bash chains like `bd close X && worker-cli kill Y` are rule violations
+- After closing an issue — issue-close ≠ worker-kill. Bash chains like `gh-cli update_issue ... --state closed && worker-cli kill Y` are rule violations
 - Worker is mid-work (EITHER indicator triggers):
   - Phase A reported but no commit above dev-tip → Phase B blocked on Go, plan lives in worker context
   - `git -C <worktree> status --short` shows uncommitted changes → implementation in flight
@@ -61,7 +61,7 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 
 Pre-kill: `worker-cli status <name>`. `working` → do NOT kill. `idle` → safe. `exited` → cleanup only.
 
-**Cross-session workers:** Document alive workers in the Bead's Source-Inventory + a lean comment. Next session uses `worker_list` + `worker_capture` to interact.
+**Cross-session workers:** Document alive workers in the Issue's Source-Inventory + a lean comment. Next session uses `worker_list` + `worker_capture` to interact.
 
 ### Reusing Workers — AGGRESSIVE REUSE (Thematic Continuity)
 
@@ -153,7 +153,7 @@ WORKER PHASES (within IMPLEMENT, per worker):
 ## Recap — Session End
 
 **Scope (concern separation):** Opus session-end RECAP covers ONLY:
-1. **Files Opus touched directly** — rule files in `~/.claude/`, beads, RAG sync, cross-project edits (Worker Project Scope rule: workers only touch the current project, anything cross-project is Opus's)
+1. **Files Opus touched directly** — rule files in `~/.claude/`, issues, RAG sync, cross-project edits (Worker Project Scope rule: workers only touch the current project, anything cross-project is Opus's)
 2. **Worker omissions Opus noticed** — drift Opus spotted during Phase 4 Review or post-merge verification that the worker missed. Document the omission as a session-end fix.
 
 That's it. Workers do worker recaps for their tasks (per `~/.claude/shared-rules/worker/worker-rules.md` § 6 — fully self-contained). Opus does Opus recap for Opus's surface. **Opus NEVER recaps a worker's task surface** — if a worker recap was incomplete, the fix is to either (a) catch it in Phase 4 Review and dispatch a follow-up worker, or (b) note the omission in Opus session-end recap WITHOUT redoing the worker's job.
@@ -162,22 +162,22 @@ Opus NEVER deliberately moves drift to session-end. If a session-end RECAP finds
 
 Two phases. ONE stop between them.
 
-- `🔍 RECAP` — beads + persistence routing → short chat output → STOP for remarks
+- `🔍 RECAP` — issues + persistence routing → short chat output → STOP for remarks
 - `🛠️ IMPROVE+CLOSE` — execute, no further stops
 
 ### 🔍 RECAP
 
-#### Beads Evaluation
+#### Issues Evaluation
 
-`bd list -s open`. For each open bead decide: CLOSE / COMMENT / CREATE.
+`gh-cli list_issues brunowinter8192 <repo>`. For each open issue decide: CLOSE / COMMENT / CREATE.
 
 Comments stay LEAN — single-line state change. Narrative goes to OldThemes/decisions/DOCS via Persistence Routing.
 
-**EMPTY PLATE:** every Open Item from the original plan not executed → Bead before closing.
+**EMPTY PLATE:** every Open Item from the original plan not executed → Issue before closing.
 
 #### Persistence Routing
 
-For each Bead with substantial session activity (back-and-forth, alternative-evaluation, trade-off discussion), route session prose:
+For each Issue with substantial session activity (back-and-forth, alternative-evaluation, trade-off discussion), route session prose:
 
 | Content type | Destination |
 |---|---|
@@ -186,14 +186,14 @@ For each Bead with substantial session activity (back-and-forth, alternative-eva
 | IST functional change | `decisions/<step>.md` § Status Quo (after SOLL → IST migration) |
 | Pure refactor / module-shape change | `<package>/DOCS.md` |
 
-Empty Beads get nothing. Single-shot fixes need no routing.
+Empty issues get nothing. Single-shot fixes need no routing.
 
 #### Chat Output
 
 ```
-BEADS:
-- CLOSE <id>: <reason>
-- COMMENT <id>: <one-line state>
+ISSUES:
+- CLOSE #<n>: <reason>
+- COMMENT #<n>: <one-line state>
 - CREATE: "<title>" — <scope>
 
 PERSISTENCE:
@@ -209,10 +209,10 @@ PERSISTENCE:
 One run through, no stops.
 
 1. **Persist session substance** — write OldThemes / decisions / DOCS files per Persistence Routing.
-2. **Update Bead Source-Inventory** — `bd comments add <id> "Source-Inventory updated: + <paths>"` when new files came into existence in Step 1.
+2. **Update Issue Source-Inventory** — `gh-cli comment_issue brunowinter8192 <repo> <number> "Source-Inventory updated: + <paths>"` when new files came into existence in Step 1.
 3. **Sync docs to RAG** — `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest).
-4. **Beads hygiene** — `bd close` / `bd comments add` / `bd create` per chat output.
-5. **Cross-session verification** — when verification needs next session (plugin needing CC restart, infra change requiring reboot), worker stays alive + bead comment documents what to verify next session.
+4. **Issues hygiene** — `gh-cli update_issue --state closed` / `comment_issue` / `create_issue` per chat output.
+5. **Cross-session verification** — when verification needs next session (plugin needing CC restart, infra change requiring reboot), worker stays alive + issue comment documents what to verify next session.
 6. **Git closing** — `dev_sync` MCP → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
 
 Done when commits are pushed.

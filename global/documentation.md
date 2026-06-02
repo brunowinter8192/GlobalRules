@@ -23,14 +23,14 @@ The user reads code and docs through Claude. Token-dense input leaves more conte
 
 Applies to every project, not only Monitor_CC.
 
-## No Bead References in Docs
+## No Issue References in Docs
 
-`decisions/*.md`, `decisions/OldThemes/**/*.md`, `**/DOCS.md` NEVER reference beads. The direction is one-way: beads point to docs, docs don't point back.
+`decisions/*.md`, `decisions/OldThemes/**/*.md`, `**/DOCS.md` NEVER reference issues. The direction is one-way: issues point to docs, docs don't point back.
 
 **Why:**
-1. Beads close. A doc-reference to a closed bead becomes stale immediately (the bead ID is in the archive, the work it represented is now codified in the doc itself).
-2. Beads are ephemeral work-trackers, not citations. The decision's rationale, evidence, and pending status must be self-contained in the doc.
-3. Bead IDs leak into RAG search noise: a query for "pending eval execution" should return the SOLL block, not a bead-tracker pointer.
+1. Issues close. A doc-reference to a closed issue becomes stale immediately (the issue number is in the archive, the work it represented is now codified in the doc itself).
+2. Issues are ephemeral work-trackers, not citations. The decision's rationale, evidence, and pending status must be self-contained in the doc.
+3. Issue numbers leak into RAG search noise: a query for "pending eval execution" should return the SOLL block, not an issue-tracker pointer.
 
 ## RAG Collection Layers
 

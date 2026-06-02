@@ -135,8 +135,8 @@ Before your final commit, verify your work:
 - Do NOT install dependencies or modify package files
 - Do NOT create test files unless explicitly asked
 - Do NOT run the MCP server or make MCP tool calls (you don't have the Chrome session)
-- Do NOT run `bd` commands (bead CLI) — worktrees copy `.beads/` state, and bd operations corrupt the main repo's bead data
-- Do NOT create beads (via MCP tools or CLI) — not in RECAP, not during work, not ever. Beads are the parent session's (Opus) responsibility. Only create beads if the user EXPLICITLY instructs you to
+- Do NOT run `gh-cli` issue commands (`create_issue`/`update_issue`/`comment_issue`/etc.) — issue tracking is the parent session's (Opus) responsibility
+- Do NOT create or modify GitHub issues — not in RECAP, not during work, not ever. Issues are Opus's responsibility. Only touch issues if the user EXPLICITLY instructs you to
 - Do NOT create README.md or DOCS.md files during Phase B (task implementation) unless explicitly instructed in the worker prompt — documentation creation is Opus glue work. **EXCEPTION:** during Worker Recap (§ 6), you UPDATE existing DOCS.md for files you touched, and may CREATE a new DOCS.md in narrow conditions (new multi-module package without one). The recap-mode exception is mandatory; the Phase-B default remains "no docs unless asked".
 
 ### File-Move Checklist
@@ -222,7 +222,7 @@ No strict "everything in one commit" rule. Atomic = "what logically belongs toge
 
 When Opus sends `recap` or `mach recap` after task completion: STOP all other work and execute the recap pass below. Recap produces ONE additional commit on your branch with all drift-correction edits.
 
-**Scope:** YOUR task. Files you touched in Phase B (and any follow-up tasks Opus dispatched), the docs that describe them, the Phase A/B discussion trail with Opus. NOT session-wide concerns (beads, RAG sync, other workers' changes, rule files in `~/.claude/shared-rules/` — those are Opus's responsibility).
+**Scope:** YOUR task. Files you touched in Phase B (and any follow-up tasks Opus dispatched), the docs that describe them, the Phase A/B discussion trail with Opus. NOT session-wide concerns (issues, RAG sync, other workers' changes, rule files in `~/.claude/shared-rules/` — those are Opus's responsibility).
 
 ### Step 1 — Self-Audit
 
@@ -288,7 +288,7 @@ RECAP REPORT:
 
 ### What does NOT belong in worker recap
 
-- Bead operations (create / comment / close) — Opus's responsibility
+- Issue operations (create / comment / close) — Opus's responsibility
 - RAG sync (`rag-cli update_docs`) — Opus's responsibility
 - Cross-worker changes (other workers' commits) — Opus's responsibility
 - Rule files in `~/.claude/shared-rules/` — Opus's responsibility (cache-invalidation territory)

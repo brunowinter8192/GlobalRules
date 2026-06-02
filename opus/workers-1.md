@@ -13,7 +13,7 @@ Applies to EVERY task, not only "unclear root cause" cases. Even when Opus belie
 
 ### RAG-First on Any Project Question (NON-NEGOTIABLE)
 
-**Gate:** before composing ANY answer to a user question about the project — and before ANY Read/Bash/Grep/git/find/bd-list exploration that supports such an answer — run `rag-cli search_hybrid` on `<Project>-docs`.
+**Gate:** before composing ANY answer to a user question about the project — and before ANY Read/Bash/Grep/git/find exploration that supports such an answer — run `rag-cli search_hybrid` on `<Project>-docs`.
 
 `<Project>-reference` is NOT part of this gate. On-demand only, when the question concerns external system behavior.
 
@@ -39,7 +39,7 @@ If the user's question matches any of these patterns → STOP, run BOTH RAG quer
 **Forbidden Proxy Sources for project-state answers.** The following are NEVER substitutes for RAG when answering "what's the current state / where do we stand / what did we decide":
 
 - `git log` / `git diff` — shows activity, NOT the documented state. Code that landed may have been superseded in decisions/ a day later.
-- `bd list` alone — beads are entry-points pointing at sources, not the sources themselves. Read the Source-Inventory, then RAG on the topic.
+- `gh-cli list_issues` alone — issues are entry-points pointing at sources, not the sources themselves. Read the Source-Inventory, then RAG on the topic.
 - `find dev/ -name "*reports*"` / mtime checks — tells you when files changed on disk, NOT whether the report reflects current prod config.
 - `ls -lt` over any directory — same problem.
 
@@ -56,7 +56,7 @@ If no → STOP, query first. Even when the question feels trivial. Even when you
 1. `rag-cli search_hybrid "<query>" <Project>-docs`
 2. On miss: reformulate, ≥ 2 phrasings before "no hit" valid
 3. `rag-cli read_document <coll> <doc> <chunk_index> --before N --after M` on partial hits, not re-query
-4. Only then: direct-read on indexed file, OR supplement with git/bd/find AFTER RAG-derived answer is composed
+4. Only then: direct-read on indexed file, OR supplement with git/find AFTER RAG-derived answer is composed
 
 (Reference layer: separate trigger, `rag-cli search_hybrid "<query>" <Project>-reference`, not part of this chain.)
 
@@ -154,7 +154,7 @@ Worktrees branch from the last COMMIT — uncommitted changes are NOT visible to
 
 ### Session Start (MANDATORY)
 
-→ read open beads (`bd list -s open`).
+→ read open issues for the current project's repo (`gh-cli list_issues brunowinter8192 <repo>`).
 
 ### Position Indicator
 
@@ -200,7 +200,7 @@ Delegating the PLAN-Step-2 prep to an "Investigation Worker" collapses the two s
 
 #### Stage 1 — RAG (find WHAT and WHICH)
 
-Read the Bead (Source-Inventory + Resume hint), then run RAG searches per § RAG-First on Any Project Question above. Two collection layers for projects with `.rag-docs.json`:
+Read the Issue (Source-Inventory + Resume hint), then run RAG searches per § RAG-First on Any Project Question above. Two collection layers for projects with `.rag-docs.json`:
 
 - `<Project>-docs` — internal docs: decisions/, DOCS.md, OldThemes (current state + discussion trail)
 - `<Project>-reference` — external papers, vendor docs (when maintained)

@@ -2,19 +2,15 @@
   "system2_rules": {
     "global": {
       "files": [
-        "global/communication-1.md",
-        "global/communication-2.md",
+        "global/communication.md",
         "global/documentation.md",
-        "global/tool-use.md",
-        "global/verify-before-execution.md"
+        "global/tool-use.md"
       ]
     },
     "opus": {
       "files": [
-        "opus/beads.md",
         "opus/chat-output.md",
-        "opus/decisions.md",
-        "opus/environment.md",
+        "opus/gh-issues.md",
         "opus/workers-1.md",
         "opus/workers-2.md",
         "opus/workers-3.md"
@@ -22,37 +18,12 @@
     },
     "worker": {
       "files": [
-        "worker/worker-rules.md",
         "worker/code-organization.md",
         "worker/code-standards.md",
-        "worker/dev-convention.md"
+        "worker/dev-convention.md",
+        "worker/verification.md",
+        "worker/worker-rules.md"
       ]
-    },
-    "projects": {
-      "RAG": {
-        "path_contains": "MCP/RAG",
-        "files": [
-          "proj_rag/project-rules.md",
-          "proj_rag/rag-standards.md",
-          "proj_rag/server-ops.md",
-          "proj_rag/workers.md"
-        ]
-      },
-      "searxng": {
-        "path_contains": "MCP/searxng",
-        "files": [
-          "proj_searxng/engines.md",
-          "proj_searxng/stealth-testing.md"
-        ]
-      },
-      "wise2627": {
-        "path_contains": "wise2627",
-        "files": [
-          "opus/chat-output.md"
-        ],
-        "exclusive": true,
-        "exclusive_model_families": ["opus"]
-      }
     },
     "exclude_projects": []
   },

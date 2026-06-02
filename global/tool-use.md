@@ -79,15 +79,15 @@ Applies to ALL Bash invocations. Read/Write/Edit/Grep/Glob may be sequenced toge
 - After `git merge`: chain post-merge verification (`; rag-cli search_hybrid "test" rag-cli-docs`)
 - After `worker-cli send X`: chain status check of other workers (`; worker-cli list`)
 - After identifying a bug via investigation: chain the fix-dispatch (`; worker-cli send X "fix Y"`)
-- After completing a feature: chain bead close (`; bd close X --reason="..."`)
-- Cleanup actions (`rm`, `bd close`, `bd comments add`) cost zero extra tool calls when chained — always chain them.
+- After completing a feature: chain issue close (`; gh-cli update_issue brunowinter8192 <repo> N --state closed`)
+- Cleanup actions (`rm`, `gh-cli update_issue --state closed`, `gh-cli comment_issue`) cost zero extra tool calls when chained — always chain them.
 
 **Verbal-deferral is forbidden.** Phrases like "I'll do X next turn" / "Timer setze ich gleich" / "ich verifiziere das anschließend" / "Mache ich später" trigger an immediate self-check: **could X have been chained into the current Bash call?**
 
 - If YES → rule violation. Rewrite the response, chain the action.
 - If NO (genuine tool-constraint: background-Bash + foreground-Bash conflict, Read-required-before-Edit that did not fit, etc.) → state the explicit constraint AND specify the exact next-turn first-action as a concrete command, not a vague promise.
 
-Investigation, follow-up, verification all count as chainable same-turn actions: `worker-cli response`/`status`, `grep` on an identified pattern, `rag-cli` verify, post-merge tests, diff review, bead comment, file delete. These are NEVER next-turn material when current Bash budget is available.
+Investigation, follow-up, verification all count as chainable same-turn actions: `worker-cli response`/`status`, `grep` on an identified pattern, `rag-cli` verify, post-merge tests, diff review, issue comment, file delete. These are NEVER next-turn material when current Bash budget is available.
 
 
 ### 7. Tool failure → immediate action
@@ -220,13 +220,13 @@ Two zero-results in a row on the same topic = stop, rethink.
 
 **Case 1 — Python / analysis:** one-shot = heredoc, iteration (run again with changes) = Write + Edit. See Rule 1.
 
-**Case 2 — File creation or editing:** NEVER Bash heredoc / `cat > file <<EOF` / `tee file <<EOF`. Always Write (new file) or Edit (existing file). This includes `.py`, `.sh`, `.md`, config files, scripts — any file living in the repo. Reasons: (a) Bash heredocs bypass the Read-before-Edit safety check, (b) project-level hooks scan the full Bash command including heredoc bodies and false-positive on patterns like `sleep N`, `bd show`, etc. that legitimately occur in code, (c) no diff visibility, (d) atomic-write guarantees of Write/Edit are lost. The only files you may write via heredoc are throwaways under `/tmp/`.
+**Case 2 — File creation or editing:** NEVER Bash heredoc / `cat > file <<EOF` / `tee file <<EOF`. Always Write (new file) or Edit (existing file). This includes `.py`, `.sh`, `.md`, config files, scripts — any file living in the repo. Reasons: (a) Bash heredocs bypass the Read-before-Edit safety check, (b) project-level hooks scan the full Bash command including heredoc bodies and false-positive on patterns like `sleep N`, etc. that legitimately occur in code, (c) no diff visibility, (d) atomic-write guarantees of Write/Edit are lost. The only files you may write via heredoc are throwaways under `/tmp/`.
 
-**Case 3 — Shell-argument heredoc for a one-shot command (bd description, git commit body, curl payload):** OK.
+**Case 3 — Shell-argument heredoc for a one-shot command (issue body, git commit body, curl payload):** OK.
 
 ```bash
-bd --repo <path> create --title "..." --type task --description "$(cat <<'EOF'
-<full markdown description>
+gh-cli create_issue brunowinter8192 <repo> "<title>" --body "$(cat <<'EOF'
+<full markdown body>
 EOF
 )"
 ```
@@ -238,18 +238,16 @@ EOF
 3. Multi-line argument to a one-shot shell command? → heredoc inline.
 4. Same multi-line content reused across multiple calls? → Write + Edit.
 
-### Bead descriptions
+### Issue descriptions
 
-Case 3. Bead descriptions are written once and not iterated.
+Case 3. Issue bodies are written once and not iterated.
 
 ```bash
-bd --repo <path> create --title "..." --type task --description "$(cat <<'EOF'
-<full markdown description>
+gh-cli create_issue brunowinter8192 <repo> "<title>" --body "$(cat <<'EOF'
+<full markdown body>
 EOF
 )"
 ```
-
-If `bd` later grows a `--description-file` flag, Write + flag is equivalent.
 
 ---
 
@@ -318,7 +316,7 @@ Pre-commit check via `git-check` CLI, everything else via CLI.
 
 `git-check [repo_path]` — `repo_path` accepts `c` (same resolver logic as worker-cli). Auto-stages files (with skip patterns: venv/, node_modules/) and returns a status report:
 - `STAGED` / `UNSTAGED` / `UNTRACKED` sections
-- `HOOK STATUS` (WARNING → run `bd export` via Bash before committing)
+- `HOOK STATUS`
 - `DIFF SUMMARY` → use for commit message
 
 If all sections are `(none)` → nothing to commit, skip.
@@ -331,7 +329,7 @@ If all sections are `(none)` → nothing to commit, skip.
 | Commit (explicit path) | `git -C <repo_path> commit -am "<message>"` | Use when cwd is outside target repo. `-am` stages tracked mods. For untracked: `git -C <path> add <files> && git -C <path> commit -m "<msg>"`. |
 | Push (NON-plugin repo) | `git -C <repo_path> push` | Falls back to `-u origin <branch>` if no upstream. **Use `plugin-publish` if `.claude-plugin/plugin.json` exists.** |
 | Push with upstream (NON-plugin repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For first push on new branch. |
-| Post-commit check | `git -C <repo_path> status --short` | Empty output = clean working tree. `.beads/` entries can be treated as clean. |
+| Post-commit check | `git -C <repo_path> status --short` | Empty output = clean working tree. |
 | Push (PLUGIN repo) — replaces `git push` | `cd <plugin-source-repo> && plugin-publish` | One-step: git push + cache-sync + version-bump + MCP-server-restart. **Always use this for any repo with `.claude-plugin/plugin.json`.** Never plain `git push` on a plugin repo — cache stays stale. See `situational/plugins.md`. |
 
 ##### Commit Flow
@@ -340,7 +338,7 @@ When user asks to commit:
 
 1. **Check + Stage** — `git-check [repo_path]`
 2. **Commit** — `gc "<message>"` (if cwd inside repo) OR `git -C <repo> commit -am "<message>"` (explicit path)
-3. **Post-check** — `git -C <repo> status --short` → empty = proceed; non-empty with non-`.beads/` paths → stage + commit again
+3. **Post-check** — `git -C <repo> status --short` → empty = proceed; non-empty → stage + commit again
 4. **Push** — first check: does `<repo>/.claude-plugin/plugin.json` exist?
    - **YES (plugin repo):** `cd <repo> && plugin-publish` — does git push + cache-sync + version-bump + MCP-restart. NEVER `git push` here, the cache would stay stale.
    - **NO (regular repo):** `git -C <repo> push` (retry with `-u origin <branch>` on first push).
