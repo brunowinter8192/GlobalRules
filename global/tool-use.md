@@ -100,19 +100,15 @@ Tool call fails → do NOT continue with workaround or fallback without reportin
 5. NEVER ask "should I start X or work around it?" — if you CAN fix it, fix it
 
 
-### 8. `<persisted-output>` blocks: grep the full file, never settle for the preview
+### 8. `<persisted-output>` blocks: ALWAYS Read the full file — never grep, never preview
 
-When a tool_result contains a `<persisted-output>` block, use Grep / Read / cat on the persisted file path. NEVER stop at the `Preview (first NKB)` content — the full data lives at the path.
+When a tool_result contains a `<persisted-output>` block (`Full output saved to: <path>`), ALWAYS Read the full file via the Read tool — one Read call on the path. NEVER grep it, NEVER head/tail/cat-filter it, NEVER offset/limit-chunk it, NEVER settle for the `Preview (first NKB)` content. The full data lives at the path; read all of it. Fragmented greps on persisted output miss context and produce wrong conclusions — read the whole thing.
 
 **Workflow:**
 1. Extract the absolute path from `Full output saved to: <path>`.
-2. **Grep first** — targeted lookups, lowest context cost.
-3. **Read with offset/limit** for ranges. CC's "too large" warning is conservative; direct Read on the persisted file works for much larger files.
-4. **cat / head / tail** only when the file is small and you need contiguous content.
+2. Read the ENTIRE file in ONE Read call. If it exceeds 2000 lines, raise `limit=N` to cover it.
 
-**>100KB persisted: don't re-grep on the persisted file.** Tighten the pattern OR narrow scope OR re-run with narrow scope. Re-grep on over-broad pattern persists again.
-
-**Don't chunk-read small persisted files.** Up to ~100 KB / ≤2000 lines, ONE Read call covers it (raise `limit=N` if needed). Chunked reading is only justified for huge files (hundreds of MB).
+**Only exception — physical Read-tool limits:** the Read tool hard-fails on files >256KB or >25k tokens. ONLY in that case fall back to a targeted `grep -n <target> <path>` to find the line, then a bounded Read with `offset`/`limit` around it. Typical persisted tool/RAG outputs are tens of KB — this exception almost never fires. When in doubt, Read the whole file.
 
 
 ### 9. Read before Edit/Write — non-negotiable
@@ -389,45 +385,15 @@ Indexed-document search and lookup. All RAG operations via `rag-cli` (`~/.local/
 | Search hybrid | `rag-cli search_hybrid <query> <collection> [--document PATTERN]` |
 | Read context | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
 | Delete | `rag-cli delete --collection <name> [--document <doc>]` |
-| Server preset | `rag-cli server {status\|list\|start\|stop\|restart} [name]` |
-| Server arbitrary | `rag-cli server start --model PATH --port N --mode {embedding\|rerank} [--name LABEL]` |
-| Server by port | `rag-cli server {stop\|restart} --port N` |
+| Index | `rag-cli index --collection <name> [--document <doc>]` |
 
 ##### Rules
 
 - Issue the search command directly — no prior `rag-cli server start` needed.
 - On persisted-output: read the file completely in ONE Read call, no offset/limit chunking.
 - Indexed collections in `data/documents/<collection>/` → rag-cli. Local source files → Read tool, not rag-cli.
-
-##### RAG: Multi-Model Awareness
-
-The RAG box exposes multiple model variants per class (embedding, reranker) plus splade. The full preset list is dynamic — never assume the legacy names (`embedding`, `reranker`, `splade`) cover everything; they are prefixes.
-
-Discovery:
-
-```bash
-rag-cli server presets         # human-readable list of all configured presets
-rag-cli server presets --json  # JSON for scripts
-rag-cli server status          # which preset(s) running + health
-rag-cli server list            # all running servers + idle countdown
-```
-
-`rag-cli server presets` shows: name, mode (embedding/rerank/splade), model_path, default_port, and a `default` flag (true = used by `rag-cli server start` without a name + by `ensure_ready` for search/index workflows).
-
-Switching a variant:
-
-```bash
-rag-cli server stop embedding-8b
-rag-cli server start embedding-0.6b
-```
-
-Client-side `find_server_url("embedding")` does a prefix-match across all running servers — `embedding-0.6b` will then serve search requests until you switch back. Same for `reranker`. Splade has only one variant.
-
-Anti-patterns:
-- Assuming `embedding` / `reranker` / `splade` are the only valid preset names — they're prefixes. Use `rag-cli server presets` to see the full list.
-- Hardcoding preset names in downstream scripts. Always pull from `rag-cli server presets --json`.
-- Calling `start_arbitrary` to launch a known model variant — that bypasses preset config. Use `rag-cli server start <name>` instead.
-- `rag-cli server start` (no args) starts only entries with `default=true`. To run a non-default variant: `rag-cli server start <full-name>` (e.g. `start reranker-8b`). Both `embedding-8b` and `embedding-0.6b` can run in parallel if GPU memory allows; `find_server_url("embedding")` picks the first in insertion order.
+- `delete` removes three surfaces for the given scope: the matched chunks, their `indexed_files` manifest rows, and the on-disk source files under `data/documents/<collection>/`. `--collection` is required → deletes the whole collection (dir + all chunks + all manifest rows). `--document` (optional) narrows to one document → removes that doc's chunks + manifest row + its `.md` and `.json` sidecar. `--document` without `--collection` errors.
+- `index` is the inverse of `delete` over the same scope: it chunks + embeds + stores `.md` files from `data/documents/<collection>/`. `--collection` is required → indexes every `.md` in the collection dir; `--document` (optional) → just that one file. Skip-by-default via content hash (unchanged files are skipped); `--force` re-embeds everything. `--document` without `--collection` errors.
 
 ##### RAG: Status-Quo via RAG first
 
