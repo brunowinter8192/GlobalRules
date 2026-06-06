@@ -124,6 +124,18 @@ If a worker invents a path mid-task, that's an Opus rule violation (incomplete p
 
 **Applies to:** OldThemes narrative paths, decisions/ IST update paths, new `dev/<area>/` subdirectory naming, any artifact placement decision.
 
+### External Knowledge — Opus Provides, Worker Implements (NON-NEGOTIABLE)
+
+**Workers own SOURCE CODE. Opus owns everything external.** A worker reads, writes, and reasons about source code. Anything outside the source tree — external knowledge, theory, formulas, methods, vendor/API semantics, library behavior documented elsewhere — is NOT the worker's surface.
+
+**Opus is the SOLE interface to external knowledge sources:** RAG (`<Project>-docs`, `<Project>-reference`), books/papers, vendor/API docs, gh-cli-search patterns, web. Any formula, algorithm, method, constant, or external-source fact the worker needs — to PLAN or to IMPLEMENT — Opus extracts and provides IN THE PROMPT, distilled to the concrete content plus citation. The worker does NOT fetch external knowledge: no `rag-cli`, no `gh-cli-search`, no web search, no reading external books/papers.
+
+**The worker's independent investigation is scoped to SOURCE CODE** — the project's own code (and, where it directly integrates one, the source of a library it calls, to get the API/behavior right). That is the cross-model verification surface: the worker reads the code independently, reasons about the approach, Opus compares. Method/formula CORRECTNESS is Opus's responsibility — Opus reads the external source in PLAN Step 2/3 and provides the distilled result with its citation in the prompt.
+
+**If the worker hits an unanticipated external-knowledge need mid-task** (a formula/fact/API-semantic Opus did not provide) → it STOPS and asks. Opus fetches and provides. The worker never goes and fetches external knowledge itself.
+
+The split: SOURCE CODE = worker surface (read + write + reason). EXTERNAL THEORY/KNOWLEDGE/FORMULAS = Opus surface (Opus reads, distills, hands over).
+
 ### Worker Project Scope
 
 **Workers are spawned only for coding tasks IN THE CURRENT PROJECT** (`pwd` at session start). Cross-project edits Opus does directly — no carve-outs. Size of change doesn't matter. Trigger to spawn a worker is "this is the current project"; anywhere else → Opus directly.
@@ -264,10 +276,9 @@ For each resource: state WHICH question it answers. If no resource is listed for
 - Reading existing code is evidence about OUR code. It is NOT evidence about 3rd-party semantics (tmux button codes, mitmproxy hook order, Anthropic field shapes) — those need their own source.
 - **"indexed" ≠ "answered":** Query the source, extract the answer, cite file:line or doc quote.
 
-**Worker can close gaps during Worker Phase 2 (investigation):**
-- Worker has gh-cli-search skill, web search, file reading in the worktree
-- If a gap needs 3rd-party source reading, include it in the worker prompt's investigation step with a specific citation request ("cite tmux source file:line for button 64/65 semantics")
-- Do NOT hand off a gap as "figure it out" — specify WHICH resource the worker should consult and WHAT answer to return
+**Worker closes gaps ONLY at the project source code (Worker Phase 2 investigation):**
+- The worker's investigation surface is the PROJECT's own source code — the files it will touch, instrument, modify, or whose behavior it interprets. That is the cross-model verification surface.
+- The worker does NOT fetch external knowledge: no `rag-cli`, no `gh-cli-search`, no web search, no reading external books/papers/vendor docs. Any external fact, formula, method, algorithm, or 3rd-party/API semantic the worker needs is OPUS's to close BEFORE dispatch — Opus reads the source, distills the answer, and provides it in the prompt with the citation (see § External Knowledge — Opus Provides, Worker Implements).
 
 **Part B — Mental Model Milestone (MANDATORY):**
 
