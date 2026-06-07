@@ -25,7 +25,9 @@
         "worker/worker-rules.md"
       ]
     },
-    "exclude_projects": []
+    "exclude_projects": [
+      "wise2627"
+    ]
   },
   "tool_injection": {
     "exclude_projects": [
@@ -47,7 +49,7 @@
     "model": "claude-sonnet-4-6",
     "thinking": {"type": "adaptive", "display": "omitted"},
     "effort": "high",
-    "max_tokens": 128000
+    "max_tokens": 64000
   },
   "pyright_diagnostics_strip": {
     "enabled": true
