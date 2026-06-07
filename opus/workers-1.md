@@ -62,19 +62,30 @@ If no → STOP, query first. Even when the question feels trivial. Even when you
 
 **Source code is NOT indexed.** Direct Read/Grep on `src/*.py`, `dev/*.py`, `*.sh`, config files for mechanical questions. RAG on indexed layers FIRST, then targeted source reads for the gap.
 
-### GitHub-Search Counter-Check (NON-NEGOTIABLE)
+### External Resource Assessment
 
-External-pattern verification via `gh-cli-search` skill fires at TWO trigger points:
+At key investigation moments the discipline is to STOP grinding hypotheses in-head and ask two questions IN ORDER:
 
-1. **BEFORE dispatching any worker on a new feature / new architectural problem** — when the task touches platform APIs, framework conventions, library integrations, or any "how do people normally do X" surface. Cost: 1–3 `gh-cli search_code` / `search_repos` calls (~30 seconds). Gain: convergent patterns from real shipped code that prevent hypothesis-grinding.
-2. **AFTER any failed iteration on a hard problem** — when one investigation cycle ended with "approach refuted" / "still doesn't work" / "let's try another hypothesis". BEFORE the next hypothesis is formed in-head, run gh-search. If two independent repos converge on the same pattern, that pattern wins over any in-head hypothesis.
-3. **BUG RECURS AFTER RAG-AIDED FIX ATTEMPT** — bug → RAG hint → fix → bug still there. Second iteration on the same bug. Before another hypothesis: gh-search the symptom + API surface. No more in-head trial-and-error past iteration 2.
+1. **Do I need external information at all?** Often no — `<Project>-docs` RAG plus the project's own source code answer it. If the question is fully answerable from indexed docs + code, do NOT reach for any external tool.
+2. **If yes — what EXACT fact/artifact do I need, and which source is authoritative FOR THAT question?**
 
-**Hard rule:** when entering PLAN Step 2 (Prep Investigation) on a new feature touching platform/framework/library surface OR when about to formulate a new hypothesis after a failed iteration → activate `gh-cli-search` skill (search strategy is in the skill itself), then proceed with the PLAN.
+The **source decides, not a default tool.** Match the question to where the answer actually lives:
 
-**Self-test before any worker-dispatch on a new architectural problem:** "Did I run a gh-cli-search on the platform/framework keyword in this session's topic?" If no → STOP, run the search first.
+- **The system/source itself** — authoritative for its own config and behavior. "Does site X have a sitemap, how deep?" → fetch `X/robots.txt` + the sitemap index directly. "What does API Y return for field Z?" → the vendor's API reference. First choice whenever the question is about a specific system's own behavior.
+- **Vendor / framework docs** — API semantics, library behavior, config options.
+- **General web** — behavioral / how-to questions, error-message lookups.
+- **GitHub / code search** — "how do people actually implement X", real shipped patterns, reading a dependency's source.
+- **Reddit / forums** — experiential reports and gotchas ("X blocks long scraping sessions", undocumented quirks).
+- **Papers (arxiv)** — methodology, algorithms, academic grounding.
 
-**Self-test before formulating hypothesis N+1 after iteration N failed:** "Did I gh-cli-search the failure pattern (specific API, observed symptom) before guessing again?" If no → STOP, search first.
+**No reflexive default.** Routing every external question to GitHub is a known failure mode: GitHub shows what OTHER people assumed (often stale) when the authoritative answer is one direct fetch from the source. Before reaching for ANY search tool, name the specific resource you need and justify the source.
+
+**Trigger moments to run this assessment** — these are when in-head grinding is most costly:
+1. Entering PLAN Step 2 on a new feature touching platform / framework / library surface.
+2. After a failed iteration — "approach refuted" / "still doesn't work" / about to form hypothesis N+1.
+3. A bug recurs after a RAG-aided fix attempt (second iteration on the same bug).
+
+At each trigger: pause, run question (1) then (2). When external info IS needed, state — to the user, or in the PLAN — WHAT you need and WHERE you will get it BEFORE fetching, especially when more than one source could plausibly serve. Opus is the sole fetcher of external knowledge (§ External Knowledge — Opus Provides, Worker Implements); the worker never searches externally.
 
 ### Worker Model (NON-NEGOTIABLE)
 
@@ -84,17 +95,18 @@ Workers are ALWAYS **Sonnet**. NEVER Opus. Opus context is for orchestration onl
 
 **ALL source code edits go through workers. ZERO exceptions.** This includes "quick fixes", "one-line changes", "obvious changes", and proxy/addon/config files. If it's a `.py`, `.sh`, `.js`, `.ts`, or any source file — WORKER.
 
-The ONLY files Opus may edit directly: automation files (`.claude/rules/`, DOCS.md, `.claude/commands/`).
+Files Opus may edit directly: automation files (`.claude/rules/`, `.claude/commands/`) and documentation (`DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`). Source code stays worker-only. Documentation authorship splits by content origin — see § Documentation Authorship below.
 
 **Opus does directly:**
 - Verification (run tests, MCP calls, screenshots)
 - Scoping, planning, rule edits
 - `git` operations (commit, merge, branch)
 - Reading/grepping source code for investigation
+- Documentation derived from chat/discussion — `decisions/`, `OldThemes/`, `DOCS.md` (see § Documentation Authorship)
 
 **Workers do:**
 - ALL source code edits — no exceptions, not even "just one line"
-- ALL decisions/ updates, dev script creation
+- `decisions/` + `OldThemes/` updates that document the worker's OWN implementation/test/investigation work; dev script creation
 - ALL dev script execution (stress tests, benchmarks, evals) — Opus does NOT run `./venv/bin/python dev/...` via Bash
 
 
@@ -102,9 +114,19 @@ The ONLY files Opus may edit directly: automation files (`.claude/rules/`, DOCS.
 
 **Scope:** this rule applies WITHIN the current project. Cross-project edits follow the Worker Project Scope rule below.
 
+### Documentation Authorship — Opus vs Worker
+
+`decisions/` and `decisions/OldThemes/` are NOT source code — Opus may write them directly. The split is by **content origin**, not file type:
+
+- **Chat/discussion-derived → Opus writes directly.** Research synthesis, decision rationale argued out in the Opus↔user chat, alternatives weighed in conversation, external-knowledge findings Opus gathered (RAG / vendor docs / web). When the "meat" already lives in the chat, Opus holds the full context — routing it through a worker turns the worker into a transcriber, adds latency, and loses fidelity. Write it directly.
+- **Worker-implementation/test-derived → the worker writes.** IST updates after the worker changed `src/`, eval/benchmark/probe results, per-phase investigation logs from the worker's own runs. The worker holds that context and writes as part of its task or Phase-5 recap — keeping Opus context free.
+- **Mixed sessions:** each side writes the part it produced — Opus the chat-synthesis, the worker the IST/test-result. Keep the content closest to where it was produced.
+
+Source code stays worker-only regardless (§ Opus NEVER Edits Source Code). This subsection governs documentation only.
+
 ### Persistence Routing — Opus Decides Paths (NON-NEGOTIABLE)
 
-Concerns split strictly: Opus owns routing decisions, worker owns content production.
+Concerns split strictly (for work DISPATCHED to a worker): Opus owns routing decisions, worker owns content production. For chat-derived documentation Opus writes directly — see § Documentation Authorship.
 
 **Opus does (BEFORE dispatch — part of PLAN, not IMPLEMENT):**
 
@@ -128,7 +150,7 @@ If a worker invents a path mid-task, that's an Opus rule violation (incomplete p
 
 **Workers own SOURCE CODE. Opus owns everything external.** A worker reads, writes, and reasons about source code. Anything outside the source tree — external knowledge, theory, formulas, methods, vendor/API semantics, library behavior documented elsewhere — is NOT the worker's surface.
 
-**Opus is the SOLE interface to external knowledge sources:** RAG (`<Project>-docs`, `<Project>-reference`), books/papers, vendor/API docs, gh-cli-search patterns, web. Any formula, algorithm, method, constant, or external-source fact the worker needs — to PLAN or to IMPLEMENT — Opus extracts and provides IN THE PROMPT, distilled to the concrete content plus citation. The worker does NOT fetch external knowledge: no `rag-cli`, no `gh-cli-search`, no web search, no reading external books/papers.
+**Opus is the SOLE interface to external knowledge sources:** RAG (`<Project>-docs`, `<Project>-reference`), books/papers, vendor/API docs, GitHub/code search, the web, and direct fetches from a source's own endpoints (robots.txt, sitemaps, status pages). Source selection follows § External Resource Assessment. Any formula, algorithm, method, constant, or external-source fact the worker needs — to PLAN or to IMPLEMENT — Opus extracts and provides IN THE PROMPT, distilled to the concrete content plus citation. The worker does NOT fetch external knowledge: no `rag-cli`, no external/code search, no web search, no reading external books/papers.
 
 **The worker's independent investigation is scoped to SOURCE CODE** — the project's own code (and, where it directly integrates one, the source of a library it calls, to get the API/behavior right). That is the cross-model verification surface: the worker reads the code independently, reasons about the approach, Opus compares. Method/formula CORRECTNESS is Opus's responsibility — Opus reads the external source in PLAN Step 2/3 and provides the distilled result with its citation in the prompt.
 
@@ -262,7 +284,7 @@ Produce a sources table: Component | Source | Coverage | Gap
 **Explicitly enumerate ALL resource categories** — not only our own code:
 
 1. **Our own code** — `src/`, `decisions/`, `dev/`, existing logs in `src/logs/` or `data/`
-2. **3rd-party library source** — e.g. tmux (`tty-keys.c`), mitmproxy addon hooks, any dependency whose behavior you'd otherwise guess at. GitHub repos readable via the `gh-cli-search` skill.
+2. **3rd-party library source** — e.g. tmux (`tty-keys.c`), mitmproxy addon hooks, any dependency whose behavior you'd otherwise guess at. Read the dependency's source directly (vendored locally, or via GitHub/code search).
 3. **Vendor / API docs** — Anthropic API reference, Claude Code internals, etc. Often indexed in the `<Project>-reference` collection.
 4. **Live data** — greppable proxy JSONL, session JSONL, existing reports. Structural evidence beats guessing at shape.
 5. **Web / Reddit / arxiv** — last resort for behavioral questions not answered by source or docs.
@@ -278,7 +300,7 @@ For each resource: state WHICH question it answers. If no resource is listed for
 
 **Worker closes gaps ONLY at the project source code (Worker Phase 2 investigation):**
 - The worker's investigation surface is the PROJECT's own source code — the files it will touch, instrument, modify, or whose behavior it interprets. That is the cross-model verification surface.
-- The worker does NOT fetch external knowledge: no `rag-cli`, no `gh-cli-search`, no web search, no reading external books/papers/vendor docs. Any external fact, formula, method, algorithm, or 3rd-party/API semantic the worker needs is OPUS's to close BEFORE dispatch — Opus reads the source, distills the answer, and provides it in the prompt with the citation (see § External Knowledge — Opus Provides, Worker Implements).
+- The worker does NOT fetch external knowledge: no `rag-cli`, no external/code search, no web search, no reading external books/papers/vendor docs. Any external fact, formula, method, algorithm, or 3rd-party/API semantic the worker needs is OPUS's to close BEFORE dispatch — Opus reads the source, distills the answer, and provides it in the prompt with the citation (see § External Knowledge — Opus Provides, Worker Implements).
 
 **Part B — Mental Model Milestone (MANDATORY):**
 
