@@ -356,6 +356,26 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 
 **Entscheidungskriterium:** Wenn Opus den Fix in 1-2 Sätzen beschreiben kann → straightforward. Wenn Opus selbst nicht genau weiß was sich ändern muss → Plan-Pflicht.
 
+### Sequential Sub-Stage Decomposition
+
+**Plan once for the whole; execute one stage at a time with per-stage Opus sign-off.** When a task's implementation has interconnected, nested, build-on-each-other parts, a single monolithic "Go, build it all" dispatch OVERHEATS the worker — one huge thinking turn, token blowout, context exhausted mid-build, death with the whole thing in-flight and uncommitted. Splitting prevents this AND makes death recoverable by design.
+
+**Two-part discipline:**
+
+1. **The PLAN is full and upfront.** The worker's Phase-2 report decomposes the ENTIRE task into ordered stages — the stages are interconnected, so the worker needs the whole picture to plan coherently. Do NOT fragment the planning. (This is the normal plan-first from § Task Complexity → Plan or Go; here the plan additionally names the stage sequence.)
+
+2. **The EXECUTION is fed one stage at a time, each with Opus sign-off.** After convergence on the plan, dispatch ONLY Stage 1 ("implement Stage 1, commit, report"). Worker implements → commits → reports → Opus reviews that stage (Phase-4-light: diff + verify) → ONLY THEN dispatch Stage 2. Never "Go, build the whole plan." Each stage is a small, independently-committable, verifiable unit.
+
+**A stage = one coherent committable unit**, sized so the worker finishes it in a bounded turn without a context blowout. Examples: the single-pass core before the multi-pass composition; the data extractor before its consumer; one file of a multi-file refactor; one pass migrated before the next.
+
+**Why this makes death recoverable by design:** the explicit staged plan + the per-stage commits ARE the successor map. A dying worker leaves "plan says next is Stage N, last commit = Stage N-1" — the successor resumes at exactly that coordinate with NO archaeology of where death happened. Contrast the monolith: a worker that dies mid-build leaves one half-done in-flight task that must be reverse-engineered. Staged execution turns Worker Death Recovery (workers-3.md § Worker Death Recovery) from forensic reconstruction into a plan-index lookup.
+
+**Interlocks with:**
+- § Worker Phase 5 Recap (workers-2.md) — recap-after-every-stage already commits clean state per stage; this rule is its dispatch-side complement.
+- § AGGRESSIVE REUSE / successor-from-checkpoint (workers-3.md) — staged commits are the checkpoints a successor resumes from.
+
+**Trigger:** any substantial implementation — multi-file changes, algorithm/probe builds, refactors spanning several units, architectural ports. If the implementation has natural sequential stages OR would burn the worker through a large fraction of its context in one turn, stage it. Single-file known fixes (§ Task Complexity straightforward) need no staging.
+
 ### Spawning
 
 1. Write prompt to `/tmp/spawn-worker-<project>-<name>.md`
