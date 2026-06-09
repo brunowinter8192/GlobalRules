@@ -19,8 +19,8 @@ Different script for a different question is a NEW one-shot — five probes answ
 
 ### 3. Grep scope hygiene — always restrict when searching source
 
-- When searching for Python imports, function refs, or code-level patterns: pass `--include='*.py'` to bash grep OR use the Grep tool with `type: "py"` / `glob: "*.py"`.
-- Prefer the Grep tool over bash `grep -rn` for code search.
+- When searching for Python imports, function refs, or code-level patterns: pass `--include='*.py'` to bash `grep` to scope to source files.
+- For a recursive search across a tree, always pass an explicit file glob: `grep -rn --include='<glob>' <pattern> <dir>` — never a bare `-r` over the whole tree.
 - For one-off bash grep: add explicit file scope (`grep -n <pattern> <specific_file>`) rather than `-r` over a whole tree.
 
 Hook `block_broad_grep.py` enforces.
@@ -44,7 +44,7 @@ tail -20 /tmp/03_test_output.md
 - Git status / log / diff (when bounded)
 
 ```bash
-searxng-cli search_batch "query 1" "query 2" "query 3" "query 4"
+rag-cli search_hybrid "query" <Project>-docs
 ```
 
 - NEVER run `./venv/bin/python script.py` without `> /tmp/file.md 2>&1`
@@ -70,7 +70,7 @@ When 2 tool calls in a row fail or don't deliver the desired result: **STOP IMME
 
 Sequential-across-turns is the right move only when a LATER command needs the OUTPUT of an EARLIER one.
 
-Applies to ALL Bash invocations. Read/Write/Edit/Grep/Glob may be sequenced together in one response when there is a genuine ordering need (e.g. Read→Edit per Rule 9); only Bash carries the cancel cascade, so a Bash block always travels alone.
+Applies to ALL Bash invocations. Read/Write/Edit may be sequenced together in one response when there is a genuine ordering need (e.g. Read→Edit per Rule 9); only Bash carries the cancel cascade, so a Bash block always travels alone.
 
 **Why:** a cancelled parallel batch (one call errors → runtime cancels the siblings) corrupts the in-flight `thinking` blocks under extended thinking → the next request returns `400 thinking blocks cannot be modified` → the broken message stays in history → the session wedges permanently. No PreToolUse hook can prevent this (each hook invocation sees only its own single tool, and the session transcript is written only after the batch has dispatched) — behavioral discipline is the only defense.
 
@@ -197,13 +197,13 @@ RIGHT: grep X a.log b.log c.log
 
 ### Don't re-issue near-identical commands
 
-If you've run a command in this session and the output wasn't what you needed, do NOT retry with a minor variation. Change approach: different tool (Grep/Glob), different scope, or read source.
+If you've run a command in this session and the output wasn't what you needed, do NOT retry with a minor variation. Change approach: a different scope, locate files first with `find`/`ls`, or read source directly.
 
-### Grep/Glob gunshot
+### grep gunshot
 
-Multiple Grep/Glob calls with varied patterns that all return zero results = guessing. Pattern:
-1. `Glob` first: find files matching a broad path pattern.
-2. `Grep` on the hit: targeted pattern on a known file.
+Multiple bash `grep` calls with varied patterns that all return zero results = guessing. Pattern:
+1. Locate candidate files first with `find`/`ls` (broad path pattern).
+2. Targeted `grep -n <pattern>` on the located file.
 
 Two zero-results in a row on the same topic = stop, rethink.
 
@@ -425,7 +425,7 @@ Defaults: `top_k` is hardcoded to 10 in `search_hybrid_workflow` (not configurab
 
 **Two collection layers per project** — `<Project>-docs` (internal) + `<Project>-reference` (external). Full convention: `~/.claude/shared-rules/global/documentation.md` § RAG Collection Layers. Reference is on-demand only, not part of the routine docs query.
 
-**Miss handling:** on 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read/Grep. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
+**Miss handling:** on 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / bash `grep`. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
 
 #### show — open a file for the user
 
@@ -438,17 +438,10 @@ Open one or more files in the user's default macOS app so the **user** can see t
 | Relative path | `show ./report.md` |
 | Home path | `show ~/Desktop/foo.png` |
 
-- **Use `show` only when the user wants to LOOK at a file.** For Claude-internal inspection (analysis, code review, grep) use the Read / Bash / Grep tools. Never use `show` for content Claude itself needs to consume.
+- **Use `show` only when the user wants to LOOK at a file.** For Claude-internal inspection (analysis, code review, grep) use the Read / Bash tools. Never use `show` for content Claude itself needs to consume.
 - macOS picks the app: Preview for images/PDF, default editor for code/markdown, etc.
 - Relative paths resolve against current pwd; `~` expanded.
 - Errors with exit 1 if any path is missing — fix the path and retry; do NOT swallow the error.
-
-### Grep
-- **Brace escaping:** literal braces must be escaped — use `interface\{\}` to find `interface{}` in Go code. Without escaping, the pattern silently matches nothing.
-- **Multiline:** by default patterns match within single lines only. For cross-line patterns (e.g. `struct \{[\s\S]*?field`), pass `multiline: true`.
-
-### Glob
-- **Sort order:** returns paths sorted by **modification time** (newest first), NOT alphabetical. First result = most recently modified file.
 
 ### Read
 - **Line limit:** reads up to 2000 lines by default. Use `offset` + `limit` parameters for larger files.
