@@ -78,7 +78,7 @@ The **source decides, not a default tool.** Match the question to where the answ
 - **Reddit / forums** — experiential reports and gotchas ("X blocks long scraping sessions", undocumented quirks).
 - **Papers (arxiv)** — methodology, algorithms, academic grounding.
 
-**No reflexive default.** Routing every external question to GitHub is a known failure mode: GitHub shows what OTHER people assumed (often stale) when the authoritative answer is one direct fetch from the source. Before reaching for ANY search tool, name the specific resource you need and justify the source.
+**No reflexive default.** Before reaching for ANY search tool, name the specific resource you need and justify the source.
 
 **Trigger moments to run this assessment** — these are when in-head grinding is most costly:
 1. Entering PLAN Step 2 on a new feature touching platform / framework / library surface.
@@ -228,8 +228,6 @@ Opus builds its OWN mental model — NOT to be confused with Worker Phase 2 cros
 - **PLAN Step 2 prep (here):** Opus builds an own mental model from indexed sources AND the actual source code. Cannot be delegated — if Opus has no model, Opus cannot evaluate worker findings later.
 - **Worker Phase 2 cross-model (workers-2):** the dispatched worker reads files in the worktree independently, reports findings. Opus compares the two models. Convergence → Go; divergence → iterate.
 
-Delegating the PLAN-Step-2 prep to an "Investigation Worker" collapses the two sides into one — you lose the independent second model, and with it the verification power.
-
 **Three-stage workflow, sequential. Each stage feeds the next.**
 
 #### Stage 1 — RAG (find WHAT and WHICH)
@@ -313,8 +311,6 @@ Before proceeding to Step 4 (Worker Scope), Opus must be able to answer ALL of:
 
 If ANY of these is NO → continue reading source code. Do NOT proceed to worker scoping. Root cause may still be unclear after Step 3 — that's OK. But Opus must understand the code surface well enough to EVALUATE worker output without re-doing the read at Phase 4 Review.
 
-**Why points 3 and 4 are explicit:** the canonical failure mode is "RAG hit + Worker findings + plausible interpretation → dispatch fix → user picks one factual challenge → entire chain collapses because Opus had no primary source-code evidence backing the interpretation". Point 3 prevents the chain from starting (the read happens in Step 2 Stage 3 and is verified here). Point 4 prevents Phase 4 Review from rubber-stamping a worker interpretation that the source code does not uniquely support.
-
 🛑 STOP — Ask for remarks.
 
 ### Step 4 — Worker Scope
@@ -358,7 +354,7 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 
 ### Sequential Sub-Stage Decomposition
 
-**Plan once for the whole; execute one stage at a time with per-stage Opus sign-off.** When a task's implementation has interconnected, nested, build-on-each-other parts, a single monolithic "Go, build it all" dispatch OVERHEATS the worker — one huge thinking turn, token blowout, context exhausted mid-build, death with the whole thing in-flight and uncommitted. Splitting prevents this AND makes death recoverable by design.
+**Plan once for the whole; execute one stage at a time with per-stage Opus sign-off.** Applies when a task's implementation has interconnected, nested, build-on-each-other parts.
 
 **Two-part discipline:**
 
@@ -367,8 +363,6 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 2. **The EXECUTION is fed one stage at a time, each with Opus sign-off.** After convergence on the plan, dispatch ONLY Stage 1 ("implement Stage 1, commit, report"). Worker implements → commits → reports → Opus reviews that stage (Phase-4-light: diff + verify) → ONLY THEN dispatch Stage 2. Never "Go, build the whole plan." Each stage is a small, independently-committable, verifiable unit.
 
 **A stage = one coherent committable unit**, sized so the worker finishes it in a bounded turn without a context blowout. Examples: the single-pass core before the multi-pass composition; the data extractor before its consumer; one file of a multi-file refactor; one pass migrated before the next.
-
-**Why this makes death recoverable by design:** the explicit staged plan + the per-stage commits ARE the successor map. A dying worker leaves "plan says next is Stage N, last commit = Stage N-1" — the successor resumes at exactly that coordinate with NO archaeology of where death happened. Contrast the monolith: a worker that dies mid-build leaves one half-done in-flight task that must be reverse-engineered. Staged execution turns Worker Death Recovery (workers-3.md § Worker Death Recovery) from forensic reconstruction into a plan-index lookup.
 
 **Interlocks with:**
 - § Worker Phase 5 Recap (workers-2.md) — recap-after-every-stage already commits clean state per stage; this rule is its dispatch-side complement.

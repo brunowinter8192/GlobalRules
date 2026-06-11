@@ -7,7 +7,7 @@ These rules apply to every worker session. Run the Pre-Edit Check to determine y
 
 Investigate using the concrete files Opus names in your prompt (src/, decisions/, DOCS.md, dev/). Read those files directly. NEVER run `rag-cli` or any external research (gh-cli, web) — RAG and external lookups are Opus's job; Opus passes the relevant findings and file paths into your prompt. If you need a file that isn't named, ask — do not go searching collections.
 
-**Commit logs are NOT an evidence source** and are NOT used for choice-rationale, verification claims, or historical inference. They are deliberately terse — they document WHAT, not WHY. All choice + rationale + verification info lives exclusively in DOCS.md + decisions/. If it's not there, the statement is "not documented / unverified", not "check the git log".
+**Commit logs are NOT an evidence source** and are NOT used for choice-rationale, verification claims, or historical inference. All choice + rationale + verification info lives exclusively in DOCS.md + decisions/. If it's not there, the statement is "not documented / unverified", not "check the git log".
 
 ## 2. Worktree Isolation
 
@@ -48,7 +48,7 @@ git branch --show-current
 
 ### Never Commit Dependency Directories
 
-Worktrees contain symlinked dependency directories (`venv`, `.venv`, `node_modules`) that point to the main repo's real directories. These symlinks MUST NOT be committed — they become circular self-references when merged back.
+Worktrees contain symlinked dependency directories (`venv`, `.venv`, `node_modules`) that point to the main repo's real directories. These symlinks MUST NOT be committed.
 
 **Rule:** NEVER `git add` or commit: `venv/`, `.venv/`, `node_modules/`, or any dependency directory. Even if `git status` shows them as untracked.
 
@@ -125,7 +125,7 @@ Before your final commit, verify your work:
 
 1. **File exists and is syntactically valid:** `python -c "import ast; ast.parse(open('path').read())"`
 2. **Imports resolve:** check that all imported modules/functions exist in the codebase
-3. **Library method calls exist:** For external library classes, verify methods you call actually exist: `python -c "from lib import Class; print([m for m in dir(Class()) if not m.startswith('_')])"`. Do NOT trust training data for method names — libraries change APIs between versions.
+3. **Library method calls exist:** For external library classes, verify methods you call actually exist: `python -c "from lib import Class; print([m for m in dir(Class()) if not m.startswith('_')])"`. Do NOT trust training data for method names.
 4. **Pattern compliance:** compare your file structure against the reference file — same sections, same style
 5. **Edge cases:** if the prompt mentions specific data formats (URNs, URLs, timestamps), verify your parsing handles them
 
@@ -251,7 +251,7 @@ Prefer "symbol primary, path in parens" form per `~/.claude/shared-rules/global/
 
 ### Step 4 — Discussion-Trail Persistence
 
-If your Phase A/B had substantial back-and-forth with Opus — alternatives evaluated, edge-cases triaged, design decisions discussed, multiple Q&A rounds on the same topic — extract that discussion to `decisions/OldThemes/<topic>/<task_or_date>.md`. The conversation history is otherwise lost on session end.
+If your Phase A/B had substantial back-and-forth with Opus — alternatives evaluated, edge-cases triaged, design decisions discussed, multiple Q&A rounds on the same topic — extract that discussion to `decisions/OldThemes/<topic>/<task_or_date>.md`.
 
 "Substantial" = more than one round of Q&A on the same topic. Single edge-case clarifications don't need persistence.
 

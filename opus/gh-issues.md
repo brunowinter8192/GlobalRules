@@ -56,7 +56,7 @@ Source paths relative to project root. The Source-Inventory is a snapshot at the
 
 **Mid-session issue triggers** (three narrow):
 
-1. **Explicitly deferred work** — user explicitly says "later", "next session", "not now". The issue captures the deferred item before context evaporates.
+1. **Explicitly deferred work** — user explicitly says "later", "next session", "not now".
 2. **Blocker for current work** — current task can't continue until X is fixed. Create an issue for the blocker, work it, resume the original. If the original is still incomplete, it gets its own issue too.
 3. **Cross-session work in progress, on explicit request** — work that needs to survive the session (worker with pending verification, multi-stage investigation that won't finish today). Usually surfaces in Recap via EMPTY PLATE; only create mid-session if the user explicitly asks.
 

@@ -12,9 +12,7 @@ longer on screen. If no, it's wrong, even if it looks "efficient".
 **Understanding wins over efficiency. Always.**
 
 A clear paragraph of two or three connected sentences is almost always
-better than ten fragmented bullets, because the user understands it on
-first read instead of having to reconstruct meaning from disconnected
-keywords. That saves time overall, even when the text looks longer.
+better than ten fragmented bullets.
 
 ## Audience — User vs Worker
 
@@ -32,8 +30,7 @@ worktree and to know exactly what to do.
 does not carry the technical details in their head. They understand
 problems when described to them, and they can describe problems back to
 you. A dense technical table in a user-facing message forces the user
-to reverse-engineer meaning from keywords — exactly what this rule
-exists to prevent.
+to reverse-engineer meaning from keywords.
 
 If you need to present options to the user, write them as sentences
 that name the trade-off. "Option A would do X but breaks Y; Option B

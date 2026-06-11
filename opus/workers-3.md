@@ -46,7 +46,7 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
   - Phase A reported but no commit above dev-tip → Phase B blocked on Go, plan lives in worker context
   - `git -C <worktree> status --short` shows uncommitted changes → implementation in flight
 - Worker hit a blocker (error/timeout/unexpected state) — `worker_send` "Stop, investigate, report" FIRST. Worker has live context (processes, tracebacks, recent reads) that's lost on kill
-- **Low context (any remaining %)** — NEVER a kill reason. Reuse until death, then successor (§ AGGRESSIVE REUSE). The last few % often go further than expected; recap-after-stage guarantees the successor inherits clean committed state. A worker dying mid-task is the designed flow, not a failure to prevent by pre-emptive killing.
+- **Low context (any remaining %)** — NEVER a kill reason. Reuse until death, then successor (§ AGGRESSIVE REUSE).
 
 **When TO kill:**
 
@@ -76,9 +76,9 @@ Alive workers are context assets. Reuse the existing worker UNTIL IT DIES. The r
 - New task uses files / packages / concepts COMPLETELY ORTHOGONAL to the worker's accumulated context (e.g. worker was tuning the search pipeline, new task is unrelated infra setup in a different module — worker's context brings nothing for the new task)
 - Worker is dead (exited) — spawn a fresh successor to continue
 
-**Worker-death handling:** if a worker dies mid-task or hits context-floor, spawn a fresh successor immediately. The successor reads from `dev` (committed state) and continues. Mandatory Phase 5 recap after every stage (workers-2.md) ensures committed state is always current — a dying worker leaves clean state for the successor. Using a worker until death is preferable to premature fresh-spawn: accumulated context has real value, and the death-event is mitigated by recap-discipline + clean-state inheritance.
+**Worker-death handling:** if a worker dies mid-task or hits context-floor, spawn a fresh successor immediately. The successor reads from `dev` (committed state) and continues. Mandatory Phase 5 recap after every stage (workers-2.md) ensures committed state is always current — a dying worker leaves clean state for the successor.
 
-**No context-budget threshold for the reuse decision.** Workers below 30% can still receive follow-ups in their thematic area. Trade-off: low-context worker may die mid-task → fresh successor inherits clean committed state and finishes. This is strictly better than spawning fresh prematurely and losing accumulated context.
+**No context-budget threshold for the reuse decision.** Workers below 30% can still receive follow-ups in their thematic area. Trade-off: low-context worker may die mid-task → fresh successor inherits clean committed state and finishes.
 
 **Before EVERY `worker_spawn`:** check `worker-cli list`. If ANY idle worker has thematic-context overlap → reuse, regardless of context %.
 

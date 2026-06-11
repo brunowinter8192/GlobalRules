@@ -1,6 +1,6 @@
 # Tool-Use
 
-Goal: no large Bash-call where a small one works. Every tool_use input counts — tool_use JSON inflates with escaped newlines and quotes.
+Goal: no large Bash-call where a small one works.
 
 ## Hard Rules — Token Efficiency
 
@@ -70,9 +70,7 @@ When 2 tool calls in a row fail or don't deliver the desired result: **STOP IMME
 
 Sequential-across-turns is the right move only when a LATER command needs the OUTPUT of an EARLIER one.
 
-Applies to ALL Bash invocations. Read/Write/Edit may be sequenced together in one response when there is a genuine ordering need (e.g. Read→Edit per Rule 9); only Bash carries the cancel cascade, so a Bash block always travels alone.
-
-**Why:** a cancelled parallel batch (one call errors → runtime cancels the siblings) corrupts the in-flight `thinking` blocks under extended thinking → the next request returns `400 thinking blocks cannot be modified` → the broken message stays in history → the session wedges permanently. No PreToolUse hook can prevent this (each hook invocation sees only its own single tool, and the session transcript is written only after the batch has dispatched) — behavioral discipline is the only defense.
+Applies to ALL Bash invocations. Read/Write/Edit may be sequenced together in one response when there is a genuine ordering need (e.g. Read→Edit per Rule 9); a Bash block always travels alone.
 
 **Chain everything chainable.** When dispatching a Bash call, identify what other Bash-class actions are the obvious next step and pack them into the same block:
 
@@ -102,7 +100,7 @@ Tool call fails → do NOT continue with workaround or fallback without reportin
 
 ### 8. `<persisted-output>` blocks: ALWAYS Read the full file — never grep, never preview
 
-When a tool_result contains a `<persisted-output>` block (`Full output saved to: <path>`), ALWAYS Read the full file via the Read tool — one Read call on the path. NEVER grep it, NEVER head/tail/cat-filter it, NEVER offset/limit-chunk it, NEVER settle for the `Preview (first NKB)` content. The full data lives at the path; read all of it. Fragmented greps on persisted output miss context and produce wrong conclusions — read the whole thing.
+When a tool_result contains a `<persisted-output>` block (`Full output saved to: <path>`), ALWAYS Read the full file via the Read tool — one Read call on the path. NEVER grep it, NEVER head/tail/cat-filter it, NEVER offset/limit-chunk it, NEVER settle for the `Preview (first NKB)` content.
 
 **Workflow:**
 1. Extract the absolute path from `Full output saved to: <path>`.
@@ -166,7 +164,7 @@ Hook `block_path_typo.py` enforces both patterns.
 
 ### 15. zsh Quoting for Repeated Path Calls
 
-When a command is called repeatedly with the same long paths, NEVER pack two paths into a single variable with whitespace (zsh doesn't word-split `$VAR`, the call fails). Three robust patterns:
+When a command is called repeatedly with the same long paths, NEVER pack two paths into a single variable with whitespace. Three robust patterns:
 
 1. **Function:** `cmd() { /full/python /full/cli.py "$@"; }`
 2. **Two-Variable-Split:** `PY=/full/python; CLI=/full/cli.py; $PY $CLI ...`
@@ -174,8 +172,6 @@ When a command is called repeatedly with the same long paths, NEVER pack two pat
 
 
 ### 16. cd-Drift across Bash-Tool-Calls
-
-Bash tool calls within a session share cwd. A `cd /target` in call N persists to call N+1.
 
 **Rule:** when a Bash call contains `cd "$WORKTREE"` or similar, the last step MUST cd back to the main cwd. Alternative: use `git -C <path>` and absolute paths throughout, never cd-ing.
 
@@ -215,7 +211,7 @@ Two zero-results in a row on the same topic = stop, rethink.
 
 **Case 1 — Python / analysis:** one-shot = heredoc, iteration (run again with changes) = Write + Edit. See Rule 1.
 
-**Case 2 — File creation or editing:** NEVER Bash heredoc / `cat > file <<EOF` / `tee file <<EOF`. Always Write (new file) or Edit (existing file). This includes `.py`, `.sh`, `.md`, config files, scripts — any file living in the repo. Reasons: (a) Bash heredocs bypass the Read-before-Edit safety check, (b) project-level hooks scan the full Bash command including heredoc bodies and false-positive on patterns like `sleep N`, etc. that legitimately occur in code, (c) no diff visibility, (d) atomic-write guarantees of Write/Edit are lost. The only files you may write via heredoc are throwaways under `/tmp/`.
+**Case 2 — File creation or editing:** NEVER Bash heredoc / `cat > file <<EOF` / `tee file <<EOF`. Always Write (new file) or Edit (existing file). This includes `.py`, `.sh`, `.md`, config files, scripts — any file living in the repo. The only files you may write via heredoc are throwaways under `/tmp/`.
 
 **Case 3 — Shell-argument heredoc for a one-shot command (git commit body, curl payload):** OK.
 
@@ -314,7 +310,7 @@ If all sections are `(none)` → nothing to commit, skip.
 | Push (NON-plugin repo) | `git -C <repo_path> push` | Falls back to `-u origin <branch>` if no upstream. **Use `plugin-publish` if `.claude-plugin/plugin.json` exists.** |
 | Push with upstream (NON-plugin repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For first push on new branch. |
 | Post-commit check | `git -C <repo_path> status --short` | Empty output = clean working tree. |
-| Push (PLUGIN repo) — replaces `git push` | `cd <plugin-source-repo> && plugin-publish` | One-step: git push + cache-sync + version-bump + MCP-server-restart. **Always use this for any repo with `.claude-plugin/plugin.json`.** Never plain `git push` on a plugin repo — cache stays stale. See `situational/plugins.md`. |
+| Push (PLUGIN repo) — replaces `git push` | `cd <plugin-source-repo> && plugin-publish` | One-step: git push + cache-sync + version-bump + MCP-server-restart. **Always use this for any repo with `.claude-plugin/plugin.json`.** Never plain `git push` on a plugin repo. See `situational/plugins.md`. |
 
 ##### Commit Flow
 
@@ -324,7 +320,7 @@ When user asks to commit:
 2. **Commit** — `gc "<message>"` (if cwd inside repo) OR `git -C <repo> commit -am "<message>"` (explicit path)
 3. **Post-check** — `git -C <repo> status --short` → empty = proceed; non-empty → stage + commit again
 4. **Push** — first check: does `<repo>/.claude-plugin/plugin.json` exist?
-   - **YES (plugin repo):** `cd <repo> && plugin-publish` — does git push + cache-sync + version-bump + MCP-restart. NEVER `git push` here, the cache would stay stale.
+   - **YES (plugin repo):** `cd <repo> && plugin-publish` — does git push + cache-sync + version-bump + MCP-restart. NEVER `git push` here.
    - **NO (regular repo):** `git -C <repo> push` (retry with `-u origin <branch>` on first push).
 
 ##### Commit Message Format

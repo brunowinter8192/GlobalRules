@@ -19,18 +19,11 @@ User-Chat is prose. Everything Claude reads or produces as ARTIFACT — code, DO
 
 Concrete: tables instead of prose where multiple dimensions need comparison, keywords instead of full sentences, references to `file:line` instead of explanatory paragraphs, no rhetorical filler ("furthermore", "as we can see", "importantly", "it's worth noting"). Where a paragraph IS needed, it is dense — no repetition, no opening sentences that say nothing.
 
-The user reads code and docs through Claude. Token-dense input leaves more context budget for actual work. Every line of prose in a DOCS.md or rule is context cost without information gain over the structured alternative.
-
 Applies to every project, not only Monitor_CC.
 
 ## No Issue References in Docs
 
 `decisions/*.md`, `decisions/OldThemes/**/*.md`, `**/DOCS.md` NEVER reference issues. The direction is one-way: issues point to docs, docs don't point back.
-
-**Why:**
-1. Issues close. A doc-reference to a closed issue becomes stale immediately (the issue number is in the archive, the work it represented is now codified in the doc itself).
-2. Issues are ephemeral work-trackers, not citations. The decision's rationale, evidence, and pending status must be self-contained in the doc.
-3. Issue numbers leak into RAG search noise: a query for "pending eval execution" should return the SOLL block, not an issue-tracker pointer.
 
 ## RAG Collection Layers
 
@@ -115,8 +108,6 @@ When citing code in decisions/, OldThemes/, or DOCS.md, the **symbol** (function
 ```
 Code: src/rag/retriever.py:embed_query()
 ```
-
-**Rationale:** a symbol survives `grep -rn '\bsymbol\b' src/` to find its current location. A wrong path silently misleads readers. The Recap-time drift check (see `~/.claude/shared-rules/opus/workers-3.md` § 1.3.3) verifies that paths exist AND named symbols resolve in source code.
 
 **When path is the anchor (legitimate, do not symbol-ize):**
 - dev/ script paths in Evidenz (the path IS the artifact: `dev/retrieval/A_retrieval_eval.py`)
@@ -337,10 +328,6 @@ Per-script: one-liner purpose + usage example. Scripts explain themselves via do
 ### dev/ vs src/ for Exploratory Rewrites (NON-NEGOTIABLE)
 
 Architectural alternatives — library swaps (httpx vs pydoll), engine rewrites (browser → HTTP), technique replacements, alternative-implementation evaluations — live in `dev/` until empirical evidence has converged on a known-good fix that addresses the actual production problem. `src/` stays untouched during the exploration.
-
-**Why:** Touching `src/` commits the work to a binary outcome — merge or drop. If the rewrite turns out to be architecturally correct but does NOT fix the production issue (the common case in non-trivial investigations), the choice becomes (a) merge an incomplete fix that adds untested code paths to production for no symptom resolution, or (b) drop the branch and lose all the proof-of-concept work. Both options are bad.
-
-A `dev/` artifact survives both decisions. The exploration is preserved as reference even when the conclusion is "this approach alone does not solve the production problem". Next time the question comes up — same project, same problem, or six months later when context has shifted — the probe script and report are still in the tree.
 
 **Pattern:**
 - Production module `src/X.py` → UNCHANGED during investigation

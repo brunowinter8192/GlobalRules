@@ -23,11 +23,11 @@ After dispatching, the worker reads files in the worktree and reports findings +
 
 ### Follow-up dispatches use the same gate
 
-The investigate-report-STOP-Go cycle applies to EVERY `worker_send` carrying a fix/change, not just initial spawn. Ad-hoc fixes are exactly where cross-model verification has the highest value — Opus formed the hypothesis under pressure and is most likely wrong.
+The investigate-report-STOP-Go cycle applies to EVERY `worker_send` carrying a fix/change, not just initial spawn.
 
 In follow-up prompts: describe the SYMPTOM and provide diagnostic data, not the solution. Include the STOP gate (same sentinel as initial spawn). Wait for the worker's report → cross-model compare → only then Go.
 
-Forbidden phrasings: "Apply this fix: <patch>" / "The bug is in line N, change A to B" / "I traced it to <root cause>. Make this change." Anything that hands over the conclusion turns the worker into Opus's typist and defeats the verification.
+Forbidden phrasings: "Apply this fix: <patch>" / "The bug is in line N, change A to B" / "I traced it to <root cause>. Make this change."
 
 ### Course Correction
 
@@ -72,8 +72,6 @@ Timers exist for ONE reason: waking Opus periodically to check progress on a `wo
 
 Brief chat hint to user before going idle: "`<task>` läuft (geschätzt ~X min), Worker steht idle bei Y% Context. Weck mich wenn du denkst es ist fertig" or equivalent. The user pings manually via "background done" / "check now" / explicit re-prompt. ONLY THEN Opus checks status (filesystem for the external task's output, `worker-cli status` for the worker).
 
-Rationale: a timer that wakes Opus only to find "still waiting" is pure waste — it consumes Opus context with no progressable action, since the next legitimate step requires either the external process to finish (a filesystem signal, not timer-pollable) OR user input (also not timer-pollable). Going truly idle preserves Opus context for the actual next orchestration step.
-
 The single exception remains worker-in-`working`-state: there a periodic status check via timer is the only mechanism to detect when the worker becomes `idle`.
 
 **Background Task Discipline:** maximum ONE background task — timer OR any other `run_in_background=true` Bash — in flight at any moment.
@@ -104,7 +102,7 @@ Worker capture dumps prompt echo + CC UI trailers + duplicate frames (often 2k+ 
 **Response Format Discriminator — intermediate vs final.** When `worker-cli response <name>` returns text that looks like a Phase-A plan or in-progress narrative ("Implementing.", "Reihenfolge:", "Files gelesen", "Now I will...", section headers without checklist), do NOT trust it as a "done" signal — even if the worker briefly went idle. Phase-A intermediate output and Completion Checklist output are syntactically distinct: the latter ends with a commit SHA, a `[x]` checklist, or a "Pre-Commit Live Checks" header; the former is open-ended prose. Test: does the response end with commit SHA / `[x]` / "Pre-Commit"? If no — re-check status with `worker-cli status` before merging.
 
 
-**Quota-Limit Detection in Worker Capture.** When a worker capture surfaces strings like `"You're out of extra usage"`, `"out of extra usage"`, `"resets <time>"` — the worker's Anthropic billing quota is exhausted. The worker can either make no further LLM calls or only severely-rate-limited ones at high latency. Continuing to let the worker investigate burns quota for no progress and produces half-done outputs. Action when this string appears in any capture: `worker_send` IMMEDIATELY with "Stop current investigation. Commit current state with whatever message captures the work. Output completion checklist for what's done. Do NOT debug further." Treat any in-progress bug or partial-feature as a follow-up issue — do NOT keep the worker running on degraded quota chasing fixes. After commit lands, merge the partial work and proceed.
+**Quota-Limit Detection in Worker Capture.** When a worker capture surfaces strings like `"You're out of extra usage"`, `"out of extra usage"`, `"resets <time>"` — the worker's Anthropic billing quota is exhausted. Action when this string appears in any capture: `worker_send` IMMEDIATELY with "Stop current investigation. Commit current state with whatever message captures the work. Output completion checklist for what's done. Do NOT debug further." Treat any in-progress bug or partial-feature as a follow-up issue — do NOT keep the worker running on degraded quota chasing fixes. After commit lands, merge the partial work and proceed.
 
 
 ### Permission Dialogs for Privileged Paths
@@ -135,7 +133,7 @@ When a worker task involves moving files to a new subdirectory, the worker must 
 > 4. **Grep verification:** `grep -rn 'from \.\|from \.\.' <affected_subdirs> | grep <moved_module_name>` — confirms all references are updated.
 > 5. **Smoke test:** run the entry-point or a targeted import check (`python -c "import <top_level_package>"`) to confirm no ModuleNotFoundError.
 
-The checklist is mirrored on the worker side in `~/.claude/shared-rules/worker/worker-rules.md` Section 3 (File-Move Checklist subsection) — so it fires via proxy-injected rules even if Opus forgets to echo it in the prompt. Add it to BOTH places when this rule is updated.
+The checklist is mirrored on the worker side in `~/.claude/shared-rules/worker/worker-rules.md` Section 3 (File-Move Checklist subsection). Add it to BOTH places when this rule is updated.
 
 
 ### Scope Extension During IMPLEMENT
@@ -179,8 +177,6 @@ After worker goes idle, review BEFORE merging.
 3. Ask: are there alternative code paths in the same function/module that would produce the same measurement but support a DIFFERENT interpretation? If yes, the worker's interpretation is one of several possible — not proven. Either accept it as one hypothesis among several, or send the worker back with a follow-up probe that discriminates between the candidates.
 4. **Reject the interpretation, accept the data.** If the worker's interpretation does not uniquely follow from the source code, the data they collected is still valid evidence — but the conclusion they drew is not yet supported. Phase 5/6 may still proceed (merge the probe artifacts), but the interpretation does NOT become the basis for the next worker's task.
 
-The canonical failure mode this prevents: Worker collects clean data, draws Interpretation A (which fits the most salient prior hypothesis), Opus reviews diff at code-shape level only, accepts Interpretation A, scopes next worker on the basis of A — and one user challenge about the underlying code reveals that Interpretation B (also consistent with the data, also in the source) was equally possible and the entire chain was inference-stacked.
-
 ### Worker-Statement vor Fix
 
 When code review finds an issue: ask the worker what they think before prescribing a fix.
@@ -205,8 +201,6 @@ When code review finds an issue: ask the worker what they think before prescribi
 ## Worker Phase 5: Recap (MANDATORY After Every Stage)
 
 **Trigger:** ALWAYS — after Phase 4 Review completes clean for ANY task / etappe, Opus sends `worker_send <name> "recap"`. Non-discretionary. The recap consolidates DOCS.md sync, decisions/ IST consistency, and OldThemes persistence into ONE commit while the worker still has the original task context in head.
-
-**Why mandatory:** drift accumulation across multiple stages compounds. If Opus skips recap to "save context for next task", the drift sits in the worker's worktree until session-end RECAP — where Opus-side archaeology must reconstruct what changed from git log + file state. Worker-side recap with original task context is cheaper (worker remembers exact intent) AND more accurate (no inference required). Recap-after-every-stage also makes the worker's committed state ALWAYS up-to-date, so when a worker dies mid-next-task, the successor inherits clean state.
 
 **Sequence per task-cycle:**
 1. Worker delivers Completion Checklist (idle)
