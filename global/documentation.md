@@ -46,8 +46,6 @@ Per project: **two** logical collections.
 
 Search-tool: `~/.claude/shared-rules/global/tool-use.md` § RAG CLI. Gate enforcement: `~/.claude/shared-rules/opus/workers-1.md` § RAG-First on Any Project Question.
 
-**RAG-related OldThemes live in both Monitor_CC and RAG repos.** Files in `decisions/OldThemes/` that concern the RAG system itself are physically duplicated across the two repos and indexed independently by each project's `update_docs`. On edit in either repo: run `sync-rag-oldthemes <filename>` to copy to the other side (mtime-based, picks newer).
-
 ## decisions/
 
 Pipeline decision records — FINAL STATE ONLY. Each file documents the current production choice (IST), the evidence backing it (Evidenz), and the recommendation for change if any (SOLL). The process that led to the current choice — alternatives evaluated, superseded values, iteration history — lives in `decisions/OldThemes/<topic>/`, NOT here. A decision file is the crystallized conclusion; OldThemes is the working memory that produced it.
