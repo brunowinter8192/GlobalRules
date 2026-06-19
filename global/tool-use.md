@@ -116,6 +116,17 @@ Before any Edit or Write call on an existing file, call Read on the same path. O
 **Forbidden shortcut:** "I know the content already" or "I just edited this in another session" does NOT satisfy. Read-state is per-session, not persisted across sessions.
 
 
+### 10. gh-cli reads: full output into context — never pipe through a filter
+
+gh-cli output is signal, not noise — it IS the file content / search result you asked for. Take it WHOLE into context. NEVER pipe a gh-cli call through `grep` / `head` / `tail` / `sed` / `awk` or any shell filter, and never chain a gh-cli read into one.
+
+- **Forbidden:** `gh-cli get_file_content … | grep X`, `gh-cli search_code … | head`, `gh-cli … | sed -n …`. Filtering a gh-cli read means Opus only ever sees fragments and tries to reconstruct the whole from them — which costs MORE context than the full read would have, and usually misses the answer anyway.
+- **To narrow scope, use gh-cli's OWN flags**, never a downstream shell filter: `get_file_content --offset N --limit M` reads a bounded file region, `--metadata-only` returns size/shape, `search_code`'s query + `repo:`/`path:` qualifiers narrow the hit set, `--document`/`--filter` narrow listings. Then take that bounded output in full.
+- **Standalone, but chainable with other gh-cli reads.** A gh-cli call runs on its own — no filter attached. Multiple gh-cli READ calls may sit back-to-back in one Bash block (e.g. `gh-cli get_file_content A; gh-cli get_file_content B`); what breaks is mixing a gh-cli read with a filter/pipe in the same pipeline.
+
+Same principle as §8 (`<persisted-output>`: read the full file, never grep). If a gh-cli read is genuinely too large for one pass, narrow it with the tool's `--offset`/`--limit`, not with a downstream `grep`.
+
+
 ### 11. Diagnostic Bash chains: `;` not `&&`
 
 **Hard test before writing `cmd_a && cmd_b`:** ask whether `cmd_b` would exit non-zero in a normal correct case — e.g. `grep` no-match, `ls` on empty/missing directory, `test -f` on a path that may not exist, `wc` on missing file. If yes → use `;`.
