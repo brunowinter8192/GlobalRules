@@ -12,7 +12,7 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 - Untracked files that exactly match what the worker adds → `rm` the file (it's usually a leftover from a previous direct edit), then merge.
 - Untracked files unrelated to the merge → leave them alone, merge proceeds cleanly.
 
-**Prevent the conflict at source.** When Opus generates outputs (script runs, smoke reports, measurement files) during a running worker round, write them to `/tmp/` or commit on `dev` immediately (`chore:` commit). Don't leave untracked Opus-output in paths the worker is editing.
+**Prevent the conflict at source.** When YOU generate outputs (script runs, smoke reports, measurement files) during a running worker round, write them to `/tmp/` or commit on `dev` immediately (`chore:` commit). Don't leave your own untracked output in paths the worker is editing.
 
 
 **Post-Merge Verification (MANDATORY):**
@@ -33,15 +33,14 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 **Workers stay alive until the user verifies their feature.**
 
 1. Worker implements → commits → outputs Completion Checklist → idle
-2. Opus reviews (Phase 4) → Phase 5 Recap (optional) → Phase 6 Merge
-3. Opus/User verifies live (start app, run tests, screenshot)
+2. YOU review (Phase 4) → Phase 5 Recap (optional) → Phase 6 Merge
+3. YOU/User verify live (start app, run tests, screenshot)
 4. Bug found → `worker_send` with bug info, worker fixes with full context
 5. Verification passes → user approval → kill at session-end RECAP
 
 **When NOT to kill (even if you think it's "done"):**
 
 - After task completion / Phase 6 merge — worker stays idle until RECAP
-- After closing an issue — issue-close ≠ worker-kill. Bash chains like `gh-cli update_issue ... --state closed && worker-cli kill Y` are rule violations
 - Worker is mid-work (EITHER indicator triggers):
   - Phase A reported but no commit above dev-tip → Phase B blocked on Go, plan lives in worker context
   - `git -C <worktree> status --short` shows uncommitted changes → implementation in flight
@@ -57,9 +56,7 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 
 **How to kill:**
 
-`worker-cli kill <name>` — does tmux kill + worktree remove + branch delete in one call. NEVER raw `tmux kill-session + git worktree remove + git branch -D` chains (error-prone, leaves partial state).
-
-Pre-kill: `worker-cli status <name>`. `working` → do NOT kill. `idle` → safe. `exited` → cleanup only.
+`worker-cli kill <name>` — does tmux kill + worktree remove + branch delete in one call.
 
 **Cross-session workers:** Document alive workers in the Issue's Source-Inventory + a lean comment. Next session uses `worker_list` + `worker_capture` to interact.
 
@@ -76,9 +73,9 @@ Alive workers are context assets. Reuse the existing worker UNTIL IT DIES. The r
 - New task uses files / packages / concepts COMPLETELY ORTHOGONAL to the worker's accumulated context (e.g. worker was tuning the search pipeline, new task is unrelated infra setup in a different module — worker's context brings nothing for the new task)
 - Worker is dead (exited) — spawn a fresh successor to continue
 
-**Worker-death handling:** if a worker dies mid-task or hits context-floor, spawn a fresh successor immediately. The successor reads from `dev` (committed state) and continues. Mandatory Phase 5 recap after every stage (workers-2.md) ensures committed state is always current — a dying worker leaves clean state for the successor.
+**Worker-death handling:** if a worker dies mid-task, spawn a successor immediately (§ Worker Death Recovery). Per-subtask recaps keep completed subtasks committed on `dev`; the successor continues the in-progress subtask from the pane + YOUR plan.
 
-**No context-budget threshold for the reuse decision.** Workers below 30% can still receive follow-ups in their thematic area. Trade-off: low-context worker may die mid-task → fresh successor inherits clean committed state and finishes.
+**No context-budget threshold for the reuse decision.** Context % is not something YOU can assess, so it is never a trigger — a worker keeps receiving follow-ups in its thematic area until it dies. Trade-off: a worker may die mid-task → spawn a successor (§ Worker Death Recovery).
 
 **Before EVERY `worker_spawn`:** check `worker-cli list`. If ANY idle worker has thematic-context overlap → reuse, regardless of context %.
 
@@ -89,34 +86,36 @@ Alive workers are context assets. Reuse the existing worker UNTIL IT DIES. The r
 
 ### Worker-Done File (No Hook — Active Polling Required)
 
-Worker exit creates `/tmp/worker-<name>.done` but **no PostToolUse hook is configured to detect it**. The file exists for any future hook integration but is currently unread. Active polling via `worker-cli status` is required — Opus is NOT notified automatically when a worker exits or hits the context limit.
+Worker exit creates `/tmp/worker-<name>.done` but **no PostToolUse hook is configured to detect it**. The file exists for any future hook integration but is currently unread. Active polling via `worker-cli status` is required — YOU are NOT notified automatically when a worker exits or hits the context limit.
 
-### Worker Death Recovery — Worker-to-Worker Handoff (Always)
+### Worker Death Recovery — Successor Continues (Always)
 
-When a worker dies mid-task or mid-recap: ALWAYS spawn a successor. ALWAYS handoff. The dying worker's commits + SUCCESSOR-HANDOFF note in the last commit message body contain everything the successor needs. Opus does NOT do file archaeology.
+When a worker dies mid-task or mid-recap: ALWAYS spawn a successor. YOU hold the plan — YOU know the task YOU dispatched.
 
-The dying worker's SUCCESSOR-HANDOFF format is defined in `~/.claude/shared-rules/worker/worker-rules.md` § 6 — Opus does not duplicate it.
+A worker that dies mid-task has committed NOTHING for the in-progress subtask, so commits don't show its progress — the tmux pane does. YOU know what the worker was supposed to do; the pane shows how far it got.
 
-**Opus's role on detected worker death:**
-1. Verify the dying worker has at least one commit on its branch: `git -C <worktree> log --oneline -3`
-2. Spawn fresh successor: `worker-cli spawn <successor-name> /tmp/prompt.md <project_path> sonnet`
-3. Successor's prompt is short: "You are a successor worker. Read the latest commit message on branch `<dying-worker-branch>` — it contains a SUCCESSOR-HANDOFF block. Resume from the exact point described. First action: print the handoff content back as confirmation before doing any work."
-4. Phase 2 Cross-Model check on the successor's first response — does it match the dying worker's handoff intent?
+**YOUR role on detected worker death:**
+1. `worker-cli capture <name>` FIRST — read how far the dying worker got (last actions, current step). Capture BEFORE killing; kill removes the pane and worktree.
+2. Spawn a fresh successor: `worker-cli spawn <successor-name> /tmp/prompt.md <project_path> sonnet`
+3. Successor prompt = its file complex + the subtask + where to pick up, built from the pane + YOUR plan: "Continue <subtask>; <what's already done per the pane>; resume at <next step>." Completed subtasks are committed on `dev` — the successor builds on that committed state.
+4. Phase 2 Cross-Model check on the successor's first response — does it match where the dying worker left off?
 
-**Pre-spawn safety**: if the dying worker has ZERO commits (died during read-phase before any work landed), the successor's prompt becomes the ORIGINAL task prompt — not a handoff resume. Same as a normal initial spawn. This is the only edge case; everything else is handoff.
+Mid-subtask death means the in-progress subtask's uncommitted work is redone — accepted friction. Per-subtask recaps keep completed subtasks committed, so the redo is bounded to the one in-progress subtask.
 
-Only kill the dying worker (and remove its worktree) AFTER the successor has confirmed handoff understanding and started its first commit. `worker-cli kill` is irreversible.
+**Pre-spawn safety:** if the pane shows the dying worker only read/planned and did nothing yet, the successor gets the ORIGINAL subtask prompt — same as a normal initial spawn.
+
+Kill the dying worker (and remove its worktree) only AFTER capturing its pane and the successor has started. `worker-cli kill` is irreversible — capture first.
 
 
 ### After Deliverables Complete
 
 **1. Present status table in chat:**
 
-| Deliverable | Status | What was done | Opus verification |
+| Deliverable | Status | What was done | YOUR verification |
 |-------------|--------|---------------|-------------------|
 | ... | Done / Partial | ... | Code review / Test run / Not verified |
 
-Be brutally honest in the "Opus verification" column — code read ≠ verified.
+Be brutally honest in the "YOUR verification" column — code read ≠ verified.
 
 **Code Review happens on `dev` branch** (normal project path), NOT by reading worktree files.
 
@@ -144,7 +143,7 @@ WORKER PHASES (within IMPLEMENT, per worker):
   Phase 2: EVALUATE    — Cross-model comparison of findings; Go or iterate
   Phase 3: GO          — Worker implements after convergence
   Phase 4: REVIEW      — Read changed files, verify code quality
-  Phase 5: RECAP       — Opus-triggered ("recap"), worker syncs DOCS.md/decisions, drift-clean
+  Phase 5: RECAP       — YOU trigger ("recap"), worker syncs DOCS.md/decisions, drift-clean
   Phase 6: MERGE       — Merge, verify live, reuse or kill in RECAP
 ```
 
@@ -152,13 +151,13 @@ WORKER PHASES (within IMPLEMENT, per worker):
 
 ## Recap — Session End
 
-**Scope (concern separation):** Opus session-end RECAP covers ONLY:
-1. **Files Opus touched directly** — rule files in `~/.claude/`, issues, RAG sync, cross-project edits (Worker Project Scope rule: workers only touch the current project, anything cross-project is Opus's)
-2. **Worker omissions Opus noticed** — drift Opus spotted during Phase 4 Review or post-merge verification that the worker missed. Document the omission as a session-end fix.
+**Scope (concern separation):** YOUR session-end RECAP covers ONLY:
+1. **Files YOU touched directly** — rule files in `~/.claude/`, issues, RAG sync, cross-project edits (Worker Project Scope rule: workers only touch the current project, anything cross-project is YOUR)
+2. **Worker omissions YOU noticed** — drift YOU spotted during Phase 4 Review or post-merge verification that the worker missed. Document the omission as a session-end fix.
 
-That's it. Workers do worker recaps for their tasks (per `~/.claude/shared-rules/worker/worker-rules.md` § 6 — fully self-contained). Opus does Opus recap for Opus's surface. **Opus NEVER recaps a worker's task surface** — if a worker recap was incomplete, the fix is to either (a) catch it in Phase 4 Review and dispatch a follow-up worker, or (b) note the omission in Opus session-end recap WITHOUT redoing the worker's job.
+That's it. Workers do worker recaps for their tasks (per `~/.claude/shared-rules/worker/worker-rules.md` § 6 — fully self-contained). YOU do YOUR recap for YOUR surface. **YOU NEVER recap a worker's task surface** — if a worker recap was incomplete, the fix is to either (a) catch it in Phase 4 Review and dispatch a follow-up worker, or (b) note the omission in YOUR session-end recap WITHOUT redoing the worker's job.
 
-Opus NEVER deliberately moves drift to session-end. If a session-end RECAP finds substantial drift from a completed worker task that the worker should have covered, that's a process violation — investigate why Phase 4 Review didn't catch it and adjust next session.
+YOU NEVER deliberately move drift to session-end. If a session-end RECAP finds substantial drift from a completed worker task that the worker should have covered, that's a process violation — investigate why Phase 4 Review didn't catch it and adjust next session.
 
 Two phases. ONE stop between them.
 

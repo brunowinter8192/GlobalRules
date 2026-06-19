@@ -2,14 +2,15 @@
   "system2_rules": {
     "global": {
       "files": [
-        "global/communication.md",
         "global/documentation.md",
         "global/tool-use.md"
       ]
     },
     "opus": {
       "files": [
+        "opus/communication.md",
         "opus/chat-output.md",
+        "opus/tool-use.md",
         "opus/gh-issues.md",
         "opus/workers-1.md",
         "opus/workers-2.md",

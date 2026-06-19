@@ -44,7 +44,7 @@ Per project: **two** logical collections.
 - Question about own project (code, architecture, decisions, past iterations) → **docs**
 - Question about external behavior (API features, framework conventions, library semantics, vendor docs) → **reference**
 
-Search-tool: `~/.claude/shared-rules/global/tool-use.md` § RAG CLI. Gate enforcement: `~/.claude/shared-rules/opus/workers-1.md` § RAG-First on Any Project Question.
+Search-tool: `opus/tool-use.md` § RAG CLI. Gate enforcement: `~/.claude/shared-rules/opus/workers-1.md` § RAG-First on Any Project Question.
 
 ## decisions/
 

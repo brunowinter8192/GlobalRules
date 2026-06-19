@@ -4,13 +4,13 @@ Development scripts for testing, debugging, and experimentation.
 
 ## dev/ Purpose — Analysis Only, Not Debug-Script Dumping
 
-Three different activities get easily mixed in debugging — this rule separates them:
+Three activities, kept separate:
 
-1. **Live-Verification of source-code fix.** Worker builds fix in worktree, Opus or user restarts the application, triggers the scenario, observes result. Standard loop, no script.
+1. **Live-Verification of source-code fix.** You build the fix in the worktree, Opus or user restarts the application, triggers the scenario, observes result. Standard loop, no script.
 
-2. **Forensics on existing data.** Example: "does this code line wrap after `truncate_visible` or not?" — can't be triggered live without manipulating the live environment. Load the real data source (JSONL, log), call the function with a real entry, measure properties. Without such a script you speculate in circles. Script lives in the worker worktree or `/tmp/`, throwaway — once the analysis clarifies root cause, the script is worthless.
+2. **Forensics on existing data.** Example: "does the output wrap at function X or not?" — can't be triggered live without manipulating the live environment. Load the real data source (JSONL, log), call the function with a real entry, measure properties. Script lives in your worktree or `/tmp/`, throwaway — gone once the analysis clarifies root cause.
 
-3. **Assertion across many data points after a fix.** Example: pair-alignment in `render_messages` across 145 stripped entries. Live-test would mean 145 manual expand-clicks, infeasible. Script does it in milliseconds. Decision point: does the assertion have permanent regression-guard value? Then fold the test case into an EXISTING test file in `dev/`. Just historical value for the one fix? Then worktree or `/tmp/`, gone on merge.
+3. **Assertion across many data points after a fix.** Example: an invariant checked across N entries where live-testing would mean N manual steps — infeasible by hand, milliseconds by script. Decision point: does the assertion have permanent regression-guard value? Then fold the test case into an EXISTING test file in `dev/`. Just historical value for the one fix? Then worktree or `/tmp/`, gone on merge.
 
 **What goes in `dev/` (permanent value):**
 - Benchmarks (pipeline performance measurements)
@@ -30,7 +30,7 @@ Three different activities get easily mixed in debugging — this rule separates
 - `dev/feature_debug/` → investigation module for documented problem ✅
 - `verify_fix_works.py` → one-shot, does NOT belong in `dev/`. Worktree or `/tmp/` ❌
 
-**Worker consequence:** when forensics or one-shot assertion is needed, the worker builds the script in the worktree (not staged on merge — explicitly do not stage) or under `/tmp/`. When a one-shot assertion becomes a permanent regression guard, the test case is folded into an EXISTING `test_*.py` in `dev/` — no new file per fix.
+**Consequence:** when forensics or one-shot assertion is needed, you build the script in the worktree (not staged on merge — explicitly do not stage) or under `/tmp/`. When a one-shot assertion becomes a permanent regression guard, the test case is folded into an EXISTING `test_*.py` in `dev/` — no new file per fix.
 
 ## Structure
 

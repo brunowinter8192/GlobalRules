@@ -1,7 +1,6 @@
-
 # Worker Rules — Worktree Isolation & Report
 
-These rules apply to every worker session. Run the Pre-Edit Check to determine your mode.
+These rules apply to every session you run. Run the Pre-Edit Check to determine your mode.
 
 ## 1. Code Investigation — concrete files only
 
@@ -18,15 +17,9 @@ pwd
 git branch --show-current
 ```
 
-**Evaluate:**
-- If `pwd` contains `.claude/worktrees/` AND branch is NOT `main` → **Worktree Mode** (follow all isolation rules below)
-- If `pwd` does NOT contain `.claude/worktrees/` AND branch is `main` → **Direct Mode** (worktree=false, spawned intentionally on main — skip isolation rules, edit files directly, do NOT commit)
+You are ALWAYS in a worktree on your own branch: `pwd` contains `.claude/worktrees/<your_name>` and the branch is NOT `main`. If either isn't true → something is wrong, stop and report. The isolation rules below always apply.
 
-**Pwd check before every bash block:** `pwd` must end with `.claude/worktrees/<your_name>` in Worktree Mode. If it drifted (e.g. a script `cd`'d somewhere else), `cd` back into your worktree before the next edit. Never `cd` to the main project path.
-
-### Worktree Mode Rules
-
-You are running in a git worktree — an isolated copy of the repo on a dedicated branch.
+**Pwd check before every bash block:** `pwd` must end with `.claude/worktrees/<your_name>`. If it drifted (e.g. a script `cd`'d somewhere else), `cd` back into your worktree before the next edit. Never `cd` to the main project path.
 
 ### Rules
 
@@ -43,7 +36,7 @@ Before every `git commit`:
 git branch --show-current
 ```
 
-- Expected: your worker branch name
+- Expected: your branch name
 - If it shows `main` or anything unexpected: **DO NOT COMMIT.** Something is wrong — stop and report.
 
 ### Never Commit Dependency Directories
@@ -113,11 +106,8 @@ When a script, run, or tool produces unexpected output — empty results, parse 
 
 - Do NOT add features, refactor code, or make "improvements" beyond the prompt scope
 - Do NOT add docstrings, comments, or type annotations beyond what the reference pattern uses
-- Follow comment rules from ~/.claude/shared-rules/worker/code-organization.md exactly.
-
-### No Cosmetic Edits After Functional Success
-
-When a script you wrote runs successfully and produces correct output: **STOP**. Do NOT trim comments, shorten docstrings, restructure for line-count, or otherwise polish the file aesthetically. Self-imposed line-count or character-budget targets are not allowed unless Opus explicitly requested them.
+- Follow the comment rules (`code-organization.md`) exactly
+- After a script runs and produces correct output: **STOP**. Do NOT trim comments, shorten docstrings, or restructure for line-count. Self-imposed line-count or character-budget targets are not allowed unless Opus requested them.
 
 ### Verification Before Commit
 
@@ -134,41 +124,18 @@ Before your final commit, verify your work:
 - Do NOT edit files outside your task scope (especially `cli.py` — the parent session handles subcommand registration)
 - Do NOT install dependencies or modify package files
 - Do NOT create test files unless explicitly asked
-- Do NOT run the CLI's live browser/Chrome session (you don't have it)
-- Do NOT run `gh-cli` issue commands (`create_issue`/`update_issue`/`comment_issue`/etc.) — issue tracking is the parent session's (Opus) responsibility
-- Do NOT create or modify GitHub issues — not in RECAP, not during work, not ever. Issues are Opus's responsibility. Only touch issues if the user EXPLICITLY instructs you to
+- Do NOT create, modify, or comment on GitHub issues (`gh-cli` issue commands) — not during work, not in recap, not ever. Issues are Opus's responsibility unless the user EXPLICITLY instructs you otherwise
 - Do NOT create README.md or DOCS.md files during Phase B (task implementation) unless explicitly instructed in the worker prompt — documentation creation is Opus glue work. **EXCEPTION:** during Worker Recap (§ 6), you UPDATE existing DOCS.md for files you touched, and may CREATE a new DOCS.md in narrow conditions (new multi-module package without one). The recap-mode exception is mandatory; the Phase-B default remains "no docs unless asked".
-
-### File-Move Checklist
-
-When your task involves moving files to a new subdirectory, every move requires verifying ALL of the following:
-
-1. **Imports inside moved file:** `.` / `..` prefix depth changed (one level deeper after the move). Update every relative import in the moved file.
-2. **Imports outside referencing the moved file:** every caller that imports the old path must be updated to the new path.
-3. **Lazy imports inside functions:** `from . import x` written INSIDE a function body is still a relative import and follows the same rule. Easy to miss because they don't show up at file load.
-4. **Grep verification:** `grep -rn 'from \.\|from \.\.' <affected_subdirs> | grep <moved_module_name>` — confirms every reference resolved correctly.
-5. **Smoke test:** run the entry-point or a targeted import check (`python -c "import <top_level_package>"`) — must NOT raise ModuleNotFoundError.
 
 ## 5. Architectural Alternatives Belong in dev/
 
-When a worker prompt asks for an architectural alternative — library swap (library-A vs library-B), engine rewrite (browser → HTTP, sync → async), technique replacement, or alternative-implementation evaluation — the implementation MUST live in `dev/` as a probe, NOT modify `src/` directly. This mirrors `~/.claude/shared-rules/global/documentation.md` "dev/ vs src/ for Exploratory Rewrites" but acts as a defensive layer at the worker side.
+A prompt that asks for an architectural alternative — library swap, engine rewrite (browser → HTTP, sync → async), technique replacement, alternative-implementation evaluation, root-cause instrumentation, or "try whether X fixes Y" — means a `dev/` probe, NOT a `src/` edit. The tell: the outcome is unknown before the probe runs.
 
-**Trigger phrases that mean "dev/ probe, not src/ surgery":**
-- "rewrite X using Y" (where Y is a different library/technique than current)
-- "migrate X from A to B"
-- "swap library Z"
-- "implement alternative architecture"
-- "test if approach W works for X"
-- "diagnostic logging to understand why X behaves like Y" (any investigation into existing-but-unclear behavior)
-- "find out why X doesn't work" / "find out why X stopped working" (root-cause investigation requiring probes)
-- "instrument X to capture Y" (any signal / event / state-trace capture where the answer is in the observed data)
-- "try whether <approach> fixes <symptom>" (anything where the answer is unknown before the probe runs)
+**On such a prompt:**
 
-**Required worker behavior on these prompts:**
-
-1. Phase A FIRST step: re-read the prompt and confirm whether `src/` is supposed to be touched or whether this is an exploratory probe. If unclear, ASK Opus before reading any source files.
-2. If the prompt explicitly says "modify src/X.py" but does NOT include an empirical convergence claim ("evidence shows the new approach solves the production problem"), flag this back to Opus: "Should this be a dev/ probe instead? The current rule (documentation.md) says architectural alternatives stay in dev/ until evidence converges."
-3. Only proceed with src/ edits when Opus confirms the dispatch is intentional (existing fix, not architectural exploration) OR when the prompt explicitly cites convergence evidence.
+1. Phase A first step: confirm whether `src/` is meant to be touched or this is an exploratory probe. If unclear, ASK Opus before reading any source files.
+2. If the prompt says "modify src/X.py" but gives no convergence evidence ("evidence shows the new approach solves the production problem"), flag it back to Opus before touching `src/`.
+3. Proceed with `src/` edits only when Opus confirms it's an intentional fix, or the prompt cites convergence evidence.
 
 ### Exploration Workflow — dev/, OldThemes, decisions/
 
@@ -201,7 +168,7 @@ Enforcement: when picking up a topic mid-investigation (existing OldThemes phase
 
 **Layer 3 — `decisions/<step>.md` (IST when prod changes)**
 
-When the worker edits production code (`src/`) AND the edit changes the Status Quo relative to the corresponding `decisions/<step>.md`:
+When you edit production code (`src/`) AND the edit changes the Status Quo relative to the corresponding `decisions/<step>.md`:
 
 1. FIRST edit `decisions/<step>.md` IST section to reflect the new state.
 2. THEN (in the same commit or same commit cycle) the `src/` change.
@@ -295,28 +262,3 @@ RECAP REPORT:
 - Code-issues beyond docs — beyond recap scope; flag in the report, do NOT fix
 
 Recap is doc-hygiene + decision-IST + OldThemes persistence for what YOU touched. Nothing else.
-
-### When the trigger arrives but recap can't fit — partial recap + handoff
-
-If Opus sends `recap` and you genuinely cannot complete it (context too tight, blocked on a tool issue, unclear scope): **produce a PARTIAL recap commit with a SUCCESSOR-HANDOFF note**. Do NOT skip and idle — that pushes drift to session-end which is forbidden.
-
-Commit whatever recap steps you DID complete (e.g. DOCS.md done but OldThemes pending), then in the commit message body include:
-
-```
-docs: recap for <task name> — PARTIAL
-
-RECAP-PARTIAL — areas not covered:
-- <area 1, e.g. decisions/<file>.md IST consistency check>
-- <area 2, e.g. OldThemes/<topic>/ extract>
-
-SUCCESSOR-HANDOFF:
-- State of work: <what's done in the recap, what's still pending>
-- Files touched in task (pre-recap): <list>
-- Files touched in recap (so far): <list>
-- Exact resume point: <where successor picks up — which step from §6, what's the next file to update>
-- Gotchas: <anything tricky successor must know>
-```
-
-Then output the RECAP REPORT with `Drift count: PARTIAL` and go idle. A successor worker spawned by Opus reads this handoff from `git log` and finishes the recap as their first task — Opus does NOT do file archaeology.
-
-**Same pattern when you die mid-task or mid-recap:** every commit (task commits + recap commit) carries a SUCCESSOR-HANDOFF note if work remains. The successor reads the latest commit on your branch and continues from the exact resume point.

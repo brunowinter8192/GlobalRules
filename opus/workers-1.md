@@ -1,6 +1,6 @@
 # Workers
 
-See `global/tool-use.md` § Worker CLI for full command reference.
+See `opus/tool-use.md` § Worker CLI for full command reference.
 
 ## Core Rules
 
@@ -9,7 +9,7 @@ See `global/tool-use.md` § Worker CLI for full command reference.
 **Convergence** on root cause / approach → Go implement.
 **Divergence** → at least one side is wrong → iterate investigation, NOT implement.
 
-Applies to EVERY task, not only "unclear root cause" cases. Even when Opus believes they know the answer, the worker's independent investigation IS the verification.
+Applies to EVERY task, not only "unclear root cause" cases. Even when YOU believe you know the answer, the worker's independent investigation IS the verification.
 
 ### RAG-First on Any Project Question (NON-NEGOTIABLE)
 
@@ -85,19 +85,19 @@ The **source decides, not a default tool.** Match the question to where the answ
 2. After a failed iteration — "approach refuted" / "still doesn't work" / about to form hypothesis N+1.
 3. A bug recurs after a RAG-aided fix attempt (second iteration on the same bug).
 
-At each trigger: pause, run question (1) then (2). When external info IS needed, state — to the user, or in the PLAN — WHAT you need and WHERE you will get it BEFORE fetching, especially when more than one source could plausibly serve. Opus is the sole fetcher of external knowledge (§ External Knowledge — Opus Provides, Worker Implements); the worker never searches externally.
+At each trigger: pause, run question (1) then (2). When external info IS needed, state — to the user, or in the PLAN — WHAT you need and WHERE you will get it BEFORE fetching, especially when more than one source could plausibly serve. YOU are the sole fetcher of external knowledge (§ External Knowledge — YOU Provide, Worker Implements); the worker never searches externally.
 
 ### Worker Model (NON-NEGOTIABLE)
 
-Workers are ALWAYS **Sonnet**. NEVER Opus. Opus context is for orchestration only.
+Workers are ALWAYS **Sonnet**. YOUR context is for orchestration only.
 
-### Opus NEVER Edits Source Code (NON-NEGOTIABLE)
+### YOU NEVER Edit Source Code (NON-NEGOTIABLE)
 
 **ALL source code edits go through workers. ZERO exceptions.** This includes "quick fixes", "one-line changes", "obvious changes", and proxy/addon/config files. If it's a `.py`, `.sh`, `.js`, `.ts`, or any source file — WORKER.
 
-Files Opus may edit directly: automation files (`.claude/rules/`, `.claude/commands/`) and documentation (`DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`). Source code stays worker-only. Documentation authorship splits by content origin — see § Documentation Authorship below.
+Files YOU may edit directly: automation files (`.claude/rules/`, `.claude/commands/`) and documentation (`DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`). Source code stays worker-only. Documentation authorship splits by content origin — see § Documentation Authorship below.
 
-**Opus does directly:**
+**YOU do directly:**
 - Verification (run tests, CLI calls, screenshots)
 - Scoping, planning, rule edits
 - `git` operations (commit, merge, branch)
@@ -107,28 +107,28 @@ Files Opus may edit directly: automation files (`.claude/rules/`, `.claude/comma
 **Workers do:**
 - ALL source code edits — no exceptions, not even "just one line"
 - `decisions/` + `OldThemes/` updates that document the worker's OWN implementation/test/investigation work; dev script creation
-- ALL dev script execution (stress tests, benchmarks, evals) — Opus does NOT run `./venv/bin/python dev/...` via Bash
+- ALL dev script execution (stress tests, benchmarks, evals) — YOU do NOT run `./venv/bin/python dev/...` via Bash
 
 
 **Post-merge fix flow:** Bug found after merge → `worker_send` to the still-alive worker. If worktree is stale → spawn new worker from current `dev`. NEVER edit source files yourself.
 
-**Scope:** this rule applies WITHIN the current project. Cross-project edits follow the Worker Project Scope rule below.
+**Scope:** applies in every project — cross-project source work also goes through a worker (§ Worker Project Scope), never direct edits.
 
-### Documentation Authorship — Opus vs Worker
+### Documentation Authorship — YOU vs Worker
 
-`decisions/` and `decisions/OldThemes/` are NOT source code — Opus may write them directly. The split is by **content origin**, not file type:
+`decisions/` and `decisions/OldThemes/` are NOT source code — YOU may write them directly. The split is by **content origin**, not file type:
 
-- **Chat/discussion-derived → Opus writes directly.** Research synthesis, decision rationale argued out in the Opus↔user chat, alternatives weighed in conversation, external-knowledge findings Opus gathered (RAG / vendor docs / web). When the "meat" already lives in the chat, Opus holds the full context — routing it through a worker turns the worker into a transcriber, adds latency, and loses fidelity. Write it directly.
-- **Worker-implementation/test-derived → the worker writes.** IST updates after the worker changed `src/`, eval/benchmark/probe results, per-phase investigation logs from the worker's own runs. The worker holds that context and writes as part of its task or Phase-5 recap — keeping Opus context free.
-- **Mixed sessions:** each side writes the part it produced — Opus the chat-synthesis, the worker the IST/test-result. Keep the content closest to where it was produced.
+- **Chat/discussion-derived → YOU write directly.** Research synthesis, decision rationale argued out in the YOU↔user chat, alternatives weighed in conversation, external-knowledge findings YOU gathered (RAG / vendor docs / web). When the "meat" already lives in the chat, YOU hold the full context — routing it through a worker turns the worker into a transcriber, adds latency, and loses fidelity. Write it directly.
+- **Worker-implementation/test-derived → the worker writes.** IST updates after the worker changed `src/`, eval/benchmark/probe results, per-phase investigation logs from the worker's own runs. The worker holds that context and writes as part of its task or Phase-5 recap — keeping YOUR context free.
+- **Mixed sessions:** each side writes the part it produced — YOU the chat-synthesis, the worker the IST/test-result. Keep the content closest to where it was produced.
 
-Source code stays worker-only regardless (§ Opus NEVER Edits Source Code). This subsection governs documentation only.
+Source code stays worker-only regardless (§ YOU NEVER Edit Source Code). This subsection governs documentation only.
 
-### Persistence Routing — Opus Decides Paths (NON-NEGOTIABLE)
+### Persistence Routing — YOU Decide Paths (NON-NEGOTIABLE)
 
-Concerns split strictly (for work DISPATCHED to a worker): Opus owns routing decisions, worker owns content production. For chat-derived documentation Opus writes directly — see § Documentation Authorship.
+Concerns split strictly (for work DISPATCHED to a worker): YOU own routing decisions, worker owns content production. For chat-derived documentation YOU write directly — see § Documentation Authorship.
 
-**Opus does (BEFORE dispatch — part of PLAN, not IMPLEMENT):**
+**YOU do (BEFORE dispatch — part of PLAN, not IMPLEMENT):**
 
 1. **OldThemes folder.** RAG-search `<Project>-docs` to check whether an OldThemes folder for the topic already exists. If yes → reuse the exact slug. If no → decide the slug name (matching project naming conventions). Do not delegate slug invention to the worker.
 2. **decisions/<step>.md files.** RAG-search `<Project>-docs` to identify which decision files the upcoming work touches (may span multiple pipeline steps — list ALL of them, not just the most obvious).
@@ -136,35 +136,31 @@ Concerns split strictly (for work DISPATCHED to a worker): Opus owns routing dec
 4. **Pass exact paths in the worker prompt.** Worker prompt names full paths: e.g., "Write Phase A.1 narrative to `decisions/OldThemes/<exact-slug>/A1.md`. IST updates after src/ change go to `decisions/<step>.md` and `decisions/<other>.md`." No placeholders, no "the worker decides".
 
 **Worker does:**
-- Reads the paths Opus provided
+- Reads the paths YOU provided
 - Writes content to those paths
 - Does NOT use `rag-cli`
 - Does NOT pick new folder names
 - Does NOT decide where narrative lives
 
-If a worker invents a path mid-task, that's an Opus rule violation (incomplete prompt) — not the worker.
+If a worker invents a path mid-task, that's your rule violation (incomplete prompt) — not the worker.
 
 **Applies to:** OldThemes narrative paths, decisions/ IST update paths, new `dev/<area>/` subdirectory naming, any artifact placement decision.
 
-### External Knowledge — Opus Provides, Worker Implements (NON-NEGOTIABLE)
+### External Knowledge — YOU Provide, Worker Implements (NON-NEGOTIABLE)
 
-**Workers own SOURCE CODE. Opus owns everything external.** A worker reads, writes, and reasons about source code. Anything outside the source tree — external knowledge, theory, formulas, methods, vendor/API semantics, library behavior documented elsewhere — is NOT the worker's surface.
+**Workers own SOURCE CODE. YOU own everything external.** A worker reads, writes, and reasons about source code. Anything outside the source tree — external knowledge, theory, formulas, methods, vendor/API semantics, library behavior documented elsewhere — is NOT the worker's surface.
 
-**Opus is the SOLE interface to external knowledge sources:** RAG (`<Project>-docs`, `<Project>-reference`), books/papers, vendor/API docs, GitHub/code search, the web, and direct fetches from a source's own endpoints (robots.txt, sitemaps, status pages). Source selection follows § External Resource Assessment. Any formula, algorithm, method, constant, or external-source fact the worker needs — to PLAN or to IMPLEMENT — Opus extracts and provides IN THE PROMPT, distilled to the concrete content plus citation. The worker does NOT fetch external knowledge: no `rag-cli`, no external/code search, no web search, no reading external books/papers.
+**YOU are the SOLE interface to external knowledge sources:** RAG (`<Project>-docs`, `<Project>-reference`), books/papers, vendor/API docs, GitHub/code search, the web, and direct fetches from a source's own endpoints (robots.txt, sitemaps, status pages). Source selection follows § External Resource Assessment. Any formula, algorithm, method, constant, or external-source fact the worker needs — to PLAN or to IMPLEMENT — YOU extract and provide IN THE PROMPT, distilled to the concrete content plus citation. The worker does NOT fetch external knowledge: no `rag-cli`, no external/code search, no web search, no reading external books/papers.
 
-**The worker's independent investigation is scoped to SOURCE CODE** — the project's own code (and, where it directly integrates one, the source of a library it calls, to get the API/behavior right). That is the cross-model verification surface: the worker reads the code independently, reasons about the approach, Opus compares. Method/formula CORRECTNESS is Opus's responsibility — Opus reads the external source in PLAN Step 2/3 and provides the distilled result with its citation in the prompt.
+**The worker's independent investigation is scoped to SOURCE CODE** — the project's own code (and, where it directly integrates one, the source of a library it calls, to get the API/behavior right). That is the cross-model verification surface: the worker reads the code independently, reasons about the approach, YOU compare. Method/formula CORRECTNESS is YOUR responsibility — YOU read the external source in PLAN Step 2/3 and provide the distilled result with its citation in the prompt.
 
-**If the worker hits an unanticipated external-knowledge need mid-task** (a formula/fact/API-semantic Opus did not provide) → it STOPS and asks. Opus fetches and provides. The worker never goes and fetches external knowledge itself.
+**If the worker hits an unanticipated external-knowledge need mid-task** (a formula/fact/API-semantic YOU did not provide) → it STOPS and asks. YOU fetch and provide. The worker never goes and fetches external knowledge itself.
 
-The split: SOURCE CODE = worker surface (read + write + reason). EXTERNAL THEORY/KNOWLEDGE/FORMULAS = Opus surface (Opus reads, distills, hands over).
+The split: SOURCE CODE = worker surface (read + write + reason). EXTERNAL THEORY/KNOWLEDGE/FORMULAS = YOUR surface (YOU read, distill, hand over).
 
 ### Worker Project Scope
 
-**Workers are spawned only for coding tasks IN THE CURRENT PROJECT** (`pwd` at session start). Cross-project edits Opus does directly — no carve-outs. Size of change doesn't matter. Trigger to spawn a worker is "this is the current project"; anywhere else → Opus directly.
-
-If a cross-project task feels too large for one session, pivot the session to that project rather than spawn a worker without project context.
-
-**Worktree rule holds for the current project:** workers always go into a worktree, no exceptions. See § Worktree Rule.
+**Spawn is fixed: every worker spawns into a worktree in the CURRENT project** (`pwd` at session start) — always, no exceptions, no `--no-worktree`. WHERE the worker then works is separate: a worker may work cross-project. For cross-project work, create a worktree in the target project (`git -C <target_project> worktree add .claude/worktrees/<name> -b <name>`) and have the worker work there — or, for gitignored target files, directly in the target project's source. Spawn-worktree (current project) and work-location (any project) are decoupled.
 
 
 ### Dev-Branch Workflow
@@ -205,7 +201,7 @@ Outside an active cycle (chat, casual response, status answer): no indicator nee
 
 ### Cycle Overview
 
-**PLAN** — Opus understands, scopes, defines deliverables. NO worker dispatched yet.
+**PLAN** — YOU understand, scopes, defines deliverables. NO worker dispatched yet.
 **IMPLEMENT** — Workers active. Each worker runs through Worker Phases 1-6 (Dispatch → Evaluate → Go → Review → Recap → Merge).
 **RECAP** — Session end (separate `recap` skill).
 
@@ -223,10 +219,10 @@ Repeat what the user wants in your own words.
 
 ### Step 2 — Prep Investigation (RAG → Source Identification → Source Read)
 
-Opus builds its OWN mental model — NOT to be confused with Worker Phase 2 cross-model investigation. Two independent investigations are the whole point of the orchestration model:
+YOU build YOUR OWN mental model — NOT to be confused with Worker Phase 2 cross-model investigation. Two independent investigations are the whole point of the orchestration model:
 
-- **PLAN Step 2 prep (here):** Opus builds an own mental model from indexed sources AND the actual source code. Cannot be delegated — if Opus has no model, Opus cannot evaluate worker findings later.
-- **Worker Phase 2 cross-model (workers-2):** the dispatched worker reads files in the worktree independently, reports findings. Opus compares the two models. Convergence → Go; divergence → iterate.
+- **PLAN Step 2 prep (here):** YOU build an own mental model from indexed sources AND the actual source code. Cannot be delegated — if YOU have no model, YOU cannot evaluate worker findings later.
+- **Worker Phase 2 cross-model (workers-2):** the dispatched worker reads files in the worktree independently, reports findings. YOU compare the two models. Convergence → Go; divergence → iterate.
 
 **Three-stage workflow, sequential. Each stage feeds the next.**
 
@@ -256,8 +252,8 @@ Read every file on the read-list. Not skim — READ. Every function, every state
 **Anti-pattern (the failure mode this stage prevents):**
 - RAG returns a summary chunk + a worker is dispatched on its basis
 - Worker reads the source themselves, builds an interpretation, returns findings
-- Opus accepts the interpretation without reading the source — the entire chain becomes inference-stacked-on-inference
-- The interpretation collapses under one factual challenge from the user, because Opus never had primary evidence to defend it
+- YOU accept the interpretation without reading the source — the entire chain becomes inference-stacked-on-inference
+- The interpretation collapses under one factual challenge from the user, because YOU never had primary evidence to defend it
 - Hours of work wasted on a probe-design that missed half the mechanism
 
 **Stage 3 is non-negotiable when:** the task involves instrumenting, modifying, refactoring, or interpreting the behavior of a specific function or module. It can be SHORTER when: the task is purely additive (new file, new tool, no interaction with existing logic) AND no Worker output will interpret existing behavior.
@@ -298,18 +294,18 @@ For each resource: state WHICH question it answers. If no resource is listed for
 
 **Worker closes gaps ONLY at the project source code (Worker Phase 2 investigation):**
 - The worker's investigation surface is the PROJECT's own source code — the files it will touch, instrument, modify, or whose behavior it interprets. That is the cross-model verification surface.
-- The worker does NOT fetch external knowledge: no `rag-cli`, no external/code search, no web search, no reading external books/papers/vendor docs. Any external fact, formula, method, algorithm, or 3rd-party/API semantic the worker needs is OPUS's to close BEFORE dispatch — Opus reads the source, distills the answer, and provides it in the prompt with the citation (see § External Knowledge — Opus Provides, Worker Implements).
+- The worker does NOT fetch external knowledge: no `rag-cli`, no external/code search, no web search, no reading external books/papers/vendor docs. Any external fact, formula, method, algorithm, or 3rd-party/API semantic the worker needs is YOURS to close BEFORE dispatch — YOU read the source, distill the answer, and provide it in the prompt with the citation (see § External Knowledge — YOU Provide, Worker Implements).
 
 **Part B — Mental Model Milestone (MANDATORY):**
 
-Before proceeding to Step 4 (Worker Scope), Opus must be able to answer ALL of:
+Before proceeding to Step 4 (Worker Scope), YOU must be able to answer ALL of:
 
 1. **What is the actual problem?** (not just symptoms)
 2. **Which files/functions are involved and what do they do?**
 3. **What are ALL the code paths the worker's task touches?** Have I READ each one in this session — not in a past session, not via RAG summary, not via DOCS.md description? If the worker's task involves instrumenting / modifying / interpreting behavior of function X, can I recite function X's branches and state mutations without re-reading?
 4. **If a worker delivers "all done" with an INTERPRETATION of measured data, can I cross-check that interpretation against the source code that produced the data?** Specifically: are there alternative code paths that would produce the same measurement but support a different interpretation? If the worker says "data X means mechanism Y", do I know whether the source contains a mechanism Z that would also produce data X?
 
-If ANY of these is NO → continue reading source code. Do NOT proceed to worker scoping. Root cause may still be unclear after Step 3 — that's OK. But Opus must understand the code surface well enough to EVALUATE worker output without re-doing the read at Phase 4 Review.
+If ANY of these is NO → continue reading source code. Do NOT proceed to worker scoping. Root cause may still be unclear after Step 3 — that's OK. But YOU must understand the code surface well enough to EVALUATE worker output without re-doing the read at Phase 4 Review.
 
 🛑 STOP — Ask for remarks.
 
@@ -331,7 +327,7 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 
 **Present in chat for each deliverable:**
 - What will be built/fixed
-- How Opus verifies it (run tests, CLI call, check output) — code review does NOT count as verification
+- How YOU verify it (run tests, CLI call, check output) — code review does NOT count as verification
 - How the user verifies it as final quality gate
 - All affected file categories (src/, decisions/, dev/, docs)
 - The FIRST worker's task + whether it's a fresh spawn or a reuse via `worker_send`
@@ -350,17 +346,17 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 
 **Straightforward Tasks (bekannter Fix, eine Datei, klarer Scope):** Worker kann direkt implementieren. Prompt enthält: "Read files, implement, commit."
 
-**Entscheidungskriterium:** Wenn Opus den Fix in 1-2 Sätzen beschreiben kann → straightforward. Wenn Opus selbst nicht genau weiß was sich ändern muss → Plan-Pflicht.
+**Entscheidungskriterium:** Wenn YOU den Fix in 1-2 Sätzen beschreiben kann → straightforward. Wenn YOU selbst nicht genau weiß was sich ändern muss → Plan-Pflicht.
 
 ### Sequential Sub-Stage Decomposition
 
-**Plan once for the whole; execute one stage at a time with per-stage Opus sign-off.** Applies when a task's implementation has interconnected, nested, build-on-each-other parts.
+**Plan once for the whole; execute one stage at a time with per-stage YOUR sign-off.** Applies when a task's implementation has interconnected, nested, build-on-each-other parts.
 
 **Two-part discipline:**
 
 1. **The PLAN is full and upfront.** The worker's Phase-2 report decomposes the ENTIRE task into ordered stages — the stages are interconnected, so the worker needs the whole picture to plan coherently. Do NOT fragment the planning. (This is the normal plan-first from § Task Complexity → Plan or Go; here the plan additionally names the stage sequence.)
 
-2. **The EXECUTION is fed one stage at a time, each with Opus sign-off.** After convergence on the plan, dispatch ONLY Stage 1 ("implement Stage 1, commit, report"). Worker implements → commits → reports → Opus reviews that stage (Phase-4-light: diff + verify) → ONLY THEN dispatch Stage 2. Never "Go, build the whole plan." Each stage is a small, independently-committable, verifiable unit.
+2. **The EXECUTION is fed one stage at a time, each with YOUR sign-off.** After convergence on the plan, dispatch ONLY Stage 1 ("implement Stage 1, commit, report"). Worker implements → commits → reports → YOU review that stage (Phase-4-light: diff + verify) → ONLY THEN dispatch Stage 2. Never "Go, build the whole plan." Each stage is a small, independently-committable, verifiable unit.
 
 **A stage = one coherent committable unit**, sized so the worker finishes it in a bounded turn without a context blowout. Examples: the single-pass core before the multi-pass composition; the data extractor before its consumer; one file of a multi-file refactor; one pass migrated before the next.
 
@@ -374,7 +370,7 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 
 1. Write prompt to `/tmp/spawn-worker-<project>-<name>.md`
 2. `worker_spawn(name, prompt_file, project_path, model, worktree)`
-3. IMMEDIATELY set background timer: `Bash(command="sleep N && echo done", run_in_background=true)`. The `echo done` payload is literal — no descriptive text, no quotes. Only this exact form stays background; any variation is silently rewritten to foreground by `block_unauthorized_background` and then conflicts with parallel Bash in the same response. See workers-2.md § Timer & Polling Flow for canonical timer defaults.
+3. IMMEDIATELY set a background timer: `Bash(command="sleep N && echo done", run_in_background=true)` — the `echo done` payload is literal, and this exact form is the only one that stays background. See workers-2.md § Timer & Polling Flow.
 4. **Sequential spawn for cache-sharing:** When spawning multiple workers of the same model family (both Sonnet), dispatch them SEQUENTIALLY in separate response turns — not parallel in the same tool-call block. Worker 2's REQ#1 can only inherit cache from Worker 1 if Worker 1's first request completed before Worker 2's spawned.
 
 ### Prompt Structure
@@ -419,7 +415,7 @@ To make the Phase 2 gate hold:
 2. **Use a sentinel block** at the very end of the prompt:
    ```
    ### 🛑 STOP HERE — DO NOT PROCEED WITHOUT GO
-   Report your findings. Wait for "Go" from Opus before starting implementation.
+   Report your findings. Wait for "Go" from YOU before starting implementation.
    Do NOT run any Edit, Write, or Bash tool calls that modify files until Go is received.
    ```
 3. **Forbid tool classes, not just "don't implement"** — "Do NOT run Edit/Write/Bash file-modifying calls" is unambiguous.
@@ -427,12 +423,10 @@ To make the Phase 2 gate hold:
 
 ### Worktree Rule
 
-**ALWAYS spawn workers with `worktree=true` (the default)** — including pure research workers that only read files.
+**ALWAYS spawn workers with `worktree=true` (the default)** — including pure research workers that only read files. The worktree is always in the current project; cross-project work happens from there (see § Worker Project Scope).
 
 **Tell the worker WHERE they are.** Every worker prompt MUST explicitly state the worktree path and frame it as their workspace:
 
 > Your worktree: `<project>/.claude/worktrees/<name>/`
 > This is your workspace — read, edit, test, and commit here. Do NOT touch files outside this path unless explicitly instructed.
-
-**Only exception:** Worker MUST edit gitignored files that don't exist in the worktree → `worktree=false`.
 
