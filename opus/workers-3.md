@@ -20,11 +20,11 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 - Run `git diff HEAD~1 --name-only` — check expected files are modified
 - If no changes: `worker_send` with commit instructions
 
-**After merge:** Verify — run tests, MCP tool calls, screenshots, check integration.
+**After merge:** Verify — run tests, CLI calls, screenshots, check integration.
 
 **"Verified" ≠ Actually Tested:**
 - Worker Completion Checklists saying "verified" are claims, not proof
-- Workers in worktrees may lack venv, MCP tools — their "tests" may never have run
+- Workers in worktrees may lack venv or CLI tooling — their "tests" may never have run
 - After merging: run actual test commands yourself
 
 
@@ -213,6 +213,6 @@ One run through, no stops.
 3. **Sync docs to RAG** — `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest).
 4. **Issues hygiene** — `gh-cli update_issue --state closed` / `comment_issue` / `create_issue` per chat output.
 5. **Cross-session verification** — when verification needs next session (plugin needing CC restart, infra change requiring reboot), worker stays alive + issue comment documents what to verify next session.
-6. **Git closing** — `dev_sync` MCP → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
+6. **Git closing** — `git checkout main && git merge dev` → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
 
 Done when commits are pushed.

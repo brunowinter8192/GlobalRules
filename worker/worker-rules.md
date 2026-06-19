@@ -58,7 +58,7 @@ Your worker prompt includes a **Completion Checklist** section — task-specific
 
 ### How It Works
 
-1. The orchestrator defines checklist items in your prompt (e.g., "List all MCP tools found in server.py", "Confirm no absolute paths")
+1. The orchestrator defines checklist items in your prompt (e.g., "List all subcommands found in cli.py", "Confirm no absolute paths")
 2. You complete the task
 3. The orchestrator reads your output via `worker-cli capture <name>` to verify
 
@@ -131,10 +131,10 @@ Before your final commit, verify your work:
 
 ### What NOT to Do
 
-- Do NOT edit files outside your task scope (especially `server.py` — the parent session handles tool registration)
+- Do NOT edit files outside your task scope (especially `cli.py` — the parent session handles subcommand registration)
 - Do NOT install dependencies or modify package files
 - Do NOT create test files unless explicitly asked
-- Do NOT run the MCP server or make MCP tool calls (you don't have the Chrome session)
+- Do NOT run the CLI's live browser/Chrome session (you don't have it)
 - Do NOT run `gh-cli` issue commands (`create_issue`/`update_issue`/`comment_issue`/etc.) — issue tracking is the parent session's (Opus) responsibility
 - Do NOT create or modify GitHub issues — not in RECAP, not during work, not ever. Issues are Opus's responsibility. Only touch issues if the user EXPLICITLY instructs you to
 - Do NOT create README.md or DOCS.md files during Phase B (task implementation) unless explicitly instructed in the worker prompt — documentation creation is Opus glue work. **EXCEPTION:** during Worker Recap (§ 6), you UPDATE existing DOCS.md for files you touched, and may CREATE a new DOCS.md in narrow conditions (new multi-module package without one). The recap-mode exception is mandatory; the Phase-B default remains "no docs unless asked".

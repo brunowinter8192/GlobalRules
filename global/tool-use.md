@@ -39,7 +39,7 @@ tail -20 /tmp/03_test_output.md
 ```
 
 **Direct-to-context path** (the output IS the answer):
-- Search-CLI / RAG / MCP tool results
+- Search-CLI / RAG tool results
 - Single-file reads via `cat` / `head` / `tail` of bounded size
 - Git status / log / diff (when bounded)
 
@@ -310,7 +310,7 @@ If all sections are `(none)` → nothing to commit, skip.
 | Push (NON-plugin repo) | `git -C <repo_path> push` | Falls back to `-u origin <branch>` if no upstream. **Use `plugin-publish` if `.claude-plugin/plugin.json` exists.** |
 | Push with upstream (NON-plugin repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For first push on new branch. |
 | Post-commit check | `git -C <repo_path> status --short` | Empty output = clean working tree. |
-| Push (PLUGIN repo) — replaces `git push` | `cd <plugin-source-repo> && plugin-publish` | One-step: git push + cache-sync + version-bump + MCP-server-restart. **Always use this for any repo with `.claude-plugin/plugin.json`.** Never plain `git push` on a plugin repo. See `situational/plugins.md`. |
+| Push (PLUGIN repo) — replaces `git push` | `cd <plugin-source-repo> && plugin-publish` | One-step: git push + cache-sync + version-bump. **Always use this for any repo with `.claude-plugin/plugin.json`.** Never plain `git push` on a plugin repo. |
 
 ##### Commit Flow
 
@@ -320,7 +320,7 @@ When user asks to commit:
 2. **Commit** — `gc "<message>"` (if cwd inside repo) OR `git -C <repo> commit -am "<message>"` (explicit path)
 3. **Post-check** — `git -C <repo> status --short` → empty = proceed; non-empty → stage + commit again
 4. **Push** — first check: does `<repo>/.claude-plugin/plugin.json` exist?
-   - **YES (plugin repo):** `cd <repo> && plugin-publish` — does git push + cache-sync + version-bump + MCP-restart. NEVER `git push` here.
+   - **YES (plugin repo):** `cd <repo> && plugin-publish` — does git push + cache-sync + version-bump. NEVER `git push` here.
    - **NO (regular repo):** `git -C <repo> push` (retry with `-u origin <branch>` on first push).
 
 ##### Commit Message Format

@@ -14,7 +14,7 @@ Every script follows INFRASTRUCTURE → ORCHESTRATOR → FUNCTIONS
 - Same constant defined in 2+ files is PROHIBITED — always centralize
 
 **ORCHESTRATOR:**
-- ONE function (named: tool_name_workflow for MCP, freely chosen for scripts)
+- ONE function (named: `<command>_workflow` for CLI commands, freely chosen for scripts)
 - Calls only (function composition)
 - ZERO functional logic (no calculations, transformations, business rules)
 - Meta-logic allowed: conditional workflow execution, parameter routing

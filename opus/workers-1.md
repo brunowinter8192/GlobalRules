@@ -98,7 +98,7 @@ Workers are ALWAYS **Sonnet**. NEVER Opus. Opus context is for orchestration onl
 Files Opus may edit directly: automation files (`.claude/rules/`, `.claude/commands/`) and documentation (`DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`). Source code stays worker-only. Documentation authorship splits by content origin — see § Documentation Authorship below.
 
 **Opus does directly:**
-- Verification (run tests, MCP calls, screenshots)
+- Verification (run tests, CLI calls, screenshots)
 - Scoping, planning, rule edits
 - `git` operations (commit, merge, branch)
 - Reading/grepping source code for investigation
@@ -175,7 +175,7 @@ Workers merge onto `dev`, not `main`. Session end: `git checkout main && git mer
 2. **Branch-State-Check when switching to existing dev (MANDATORY):** `git -C <repo> log dev..main --oneline | head -10` — if non-empty, dev is BEHIND main. Workers would spawn on stale code. Resolve before spawning: rebase dev onto main (clean when no dev-only commits) OR merge main into dev (preserve dev topology). Stay on stale dev only with explicit user OK.
 3. Workers spawn (worktrees branch from `dev`)
 4. `worker_merge` merges into `dev`
-5. Session end: `dev_sync` MCP tool to sync dev→main
+5. Session end: `git checkout main && git merge dev` to sync dev→main
 
 
 ### Pre-Spawn Shared-File Conflict Check
@@ -331,7 +331,7 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 
 **Present in chat for each deliverable:**
 - What will be built/fixed
-- How Opus verifies it (run tests, MCP call, check output) — code review does NOT count as verification
+- How Opus verifies it (run tests, CLI call, check output) — code review does NOT count as verification
 - How the user verifies it as final quality gate
 - All affected file categories (src/, decisions/, dev/, docs)
 - The FIRST worker's task + whether it's a fresh spawn or a reuse via `worker_send`

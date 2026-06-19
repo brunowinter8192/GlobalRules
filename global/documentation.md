@@ -357,4 +357,4 @@ External sources (papers, vendor docs, GitHub issues/repos, forum threads, web) 
 - **`decisions/OldThemes/<topic>/`** — cited inline at the point of consultation ("X consulted → finding Y → decision Z"); investigation modules use the **External Research** table (Source | Result | Relevance).
 - **`<Project>-reference`** — external sources that warrant full-text RAG indexing (vendor docs, papers) are indexed into the project's reference collection and cited by collection + document name (e.g. `rag-cli-reference: Fusion_Functions_Hybrid_Retrieval`).
 
-Forum sources from MCP plugin searches (reddit-cli-search, LinkedIn) stay inline references only — no web-crawl, no RAG index.
+Forum sources from CLI plugin searches (reddit-cli, LinkedIn) stay inline references only — no web-crawl, no RAG index.
