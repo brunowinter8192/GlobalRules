@@ -47,7 +47,7 @@ Sources referencing this topic:
 - OldThemes: <subfolder or file paths if any>
 - <Project>-reference: <document names if any>
 
-Resume: rag-cli search_hybrid "<query>" <Project>-docs [--document "%filter%"]
+Resume: RAG search "<query>" on <Project>-docs
 ```
 
 Source paths relative to project root. The Source-Inventory is a snapshot at the moment of writing — Recap is responsible for keeping it current.
@@ -87,10 +87,9 @@ Source paths relative to project root. The Source-Inventory is a snapshot at the
 When picking up an open issue in a new session:
 
 1. Read the issue: `gh-cli get_issue <owner> <repo> <number>` — the body carries the Source-Inventory (no comments to read)
-2. RAG-search for context:
-   - `rag-cli search_hybrid "<topic>" <Project>-docs [--document "%feature%"]` — current state + discussion trail / iteration history
-   - `rag-cli search_hybrid "<topic>" <Project>-reference` — external papers / sources
-3. Optional: targeted `rag-cli read_document` to expand a hit when the chunk doesn't carry enough.
+2. RAG search for context:
+   - `<Project>-docs` — current state + discussion trail / iteration history
+   - `<Project>-reference` — external papers / sources
 
 The issue does not contain narrative. The sources do.
 

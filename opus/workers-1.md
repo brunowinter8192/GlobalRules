@@ -13,7 +13,7 @@ Applies to EVERY task, not only "unclear root cause" cases. Even when YOU believ
 
 ### RAG-First on Any Project Question (NON-NEGOTIABLE)
 
-**Gate:** before composing ANY answer to a user question about the project — and before ANY Read/Bash/Grep/git/find exploration that supports such an answer — run `rag-cli search_hybrid` on `<Project>-docs`.
+**Gate:** before composing ANY answer to a user question about the project — and before ANY Read/Bash/Grep/git/find exploration that supports such an answer — run a RAG search on `<Project>-docs`.
 
 `<Project>-reference` is NOT part of this gate. On-demand only, when the question concerns external system behavior.
 
@@ -53,12 +53,10 @@ If no → STOP, query first. Even when the question feels trivial. Even when you
 
 **Escalation chain:**
 
-1. `rag-cli search_hybrid "<query>" <Project>-docs`
-2. On miss: reformulate, ≥ 2 phrasings before "no hit" valid
-3. `rag-cli read_document <coll> <doc> <chunk_index> --before N --after M` on partial hits, not re-query
-4. Only then: direct-read on indexed file, OR supplement with git/find AFTER RAG-derived answer is composed
+1. RAG search on `<Project>-docs`
+2. Only then: direct-read on indexed file, OR supplement with git/find AFTER the RAG-derived answer is composed
 
-(Reference layer: separate trigger, `rag-cli search_hybrid "<query>" <Project>-reference`, not part of this chain.)
+(Reference layer: separate trigger — RAG search on `<Project>-reference`, not part of this chain.)
 
 **Source code is NOT indexed.** Direct Read/Grep on `src/*.py`, `dev/*.py`, `*.sh`, config files for mechanical questions. RAG on indexed layers FIRST, then targeted source reads for the gap.
 

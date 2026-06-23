@@ -113,7 +113,7 @@ Trigger: project has `.rag-docs.json` at root → `<Project>-docs` collection ex
 rag-cli search_hybrid "<query>" <Project>-docs
 ```
 
-The returned chunk IS the answer. No follow-up direct-read of the same file needed.
+For a simple status lookup the chunk is the answer. For important chunks, expand via `read_document`, not a direct-read of the file.
 
 **Direct-read on the full decision file ONLY when:**
 - The file is being EDITED (need all sections in view)
@@ -127,6 +127,8 @@ The returned chunk IS the answer. No follow-up direct-read of the same file need
 |---|---|
 | Content search | `rag-cli search_hybrid <query> <coll>` |
 | Expand context around a hit | `rag-cli read_document <coll> <doc> <chunk> --before N --after M` |
+
+**RAG search (the pattern other rules reference):** `search_hybrid` first; for the most important chunks also `read_document <coll> <doc> <chunk_index> --before N --after M`. "Use RAG search" elsewhere means exactly this.
 
 Defaults: `top_k` is hardcoded to 10 in `search_hybrid_workflow` (not configurable, no flag exposed). Reranking is always on — `search_hybrid` unconditionally cross-encoder-reranks the top-30 dense candidates; there is no `--rerank` flag to toggle. `--document` filter narrows to matching doc names (optional).
 

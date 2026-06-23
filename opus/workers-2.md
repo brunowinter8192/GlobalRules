@@ -57,7 +57,7 @@ Worker implements after receiving Go. During implementation:
 
 **Pattern:**
 1. Spawn worker → do independent work (rule edits, other planning, exploration)
-2. Background timer fires → `worker_status` → if idle, proceed with Phase 4
+2. Timer launch ends the turn → STOP → its completion opens a NEW turn → `worker_status` → if idle, proceed with Phase 4
 3. Use `worker_capture(tail=N)` to read output after worker goes idle
 
 ### Timer & Polling Flow (NON-NEGOTIABLE)
@@ -65,8 +65,10 @@ Worker implements after receiving Go. During implementation:
 Timers exist for ONE reason: waking YOU periodically to check progress on a `working` worker. They have NO other legitimate use.
 
 1. **Spawn worker.**
-2. **If worker becomes `working`** (active tool calls): set 10min timer `Bash(command="sleep 600 && echo done", run_in_background=true)`.
-3. **Timer wakes → `worker-cli status <name>`.** `working` → new 10min timer. `idle` → `worker-cli response <name>` (fallback: `worker-cli capture` + tail + sed-filter), proceed to next phase.
+2. **If worker becomes `working`** (active tool calls): set 10min timer `Bash(command="sleep 600 && echo done", run_in_background=true)`. This timer launch is the SOLE and FINAL action of the turn. STOP. No further tool call in the same turn — never a `worker-cli status` check.
+3. **The timer's `echo done` completion wakes you in a NEW turn.** ONLY then run `worker-cli status <name>`. `working` → set a new 10min timer (sole + final action of the turn, then STOP). `idle` → `worker-cli response <name>` (fallback: `worker-cli capture` + tail + sed-filter), proceed to next phase.
+
+**NEVER chain anything after a timer launch.** One timer = the whole turn = STOP. A `worker-cli status` check happens only in a later turn that a timer completion opened.
 
 **Worker `idle` ≠ timer needed.** When the worker is `idle` and YOU have no further immediate action queued — e.g., waiting on user review of intermediate output, waiting on a long-running external process that the worker spawned and then went idle (sweep, indexing, smoke run, background compute) — YOU do NOT set a timer. YOU go truly idle itself and waits for the user to wake it.
 
