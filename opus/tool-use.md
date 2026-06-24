@@ -88,8 +88,8 @@ Indexed-document search and lookup. All RAG operations via `rag-cli` (`~/.local/
 | Operation | Command |
 |---|---|
 | List collections | `rag-cli list_collections [--filter PATTERN]` |
-| List documents | `rag-cli list_documents <collection> [--document PATTERN] [--filter PATTERN]` |
-| Search hybrid | `rag-cli search_hybrid <query> <collection> [--document PATTERN]` |
+| List documents | `rag-cli list_documents <collection> [--document PATTERN] [--exclude PATTERN] [--filter PATTERN]` |
+| Search hybrid | `rag-cli search_hybrid <query> <collection> [--document PATTERN] [--exclude PATTERN]` |
 | Read context | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
 | Delete | `rag-cli delete --collection <name> [--document <doc>]` |
 | Index | `rag-cli index --collection <name> [--document <doc>]` |
@@ -115,6 +115,14 @@ rag-cli search_hybrid "<query>" <Project>-docs
 
 For a simple status lookup the chunk is the answer. For important chunks, expand via `read_document`, not a direct-read of the file.
 
+**Exclude process-memory from current-state queries.** `OldThemes/` nests under `decisions/` and carries SUPERSEDED values that misread as current. When the question is about the CURRENT state, append `--exclude "%OldThemes%"` to drop the whole OldThemes subtree (the `document` field is the full path, so one pattern catches it):
+
+```bash
+rag-cli search_hybrid "<query>" <Project>-docs --exclude "%OldThemes%"
+```
+
+Omit `--exclude` only when you specifically want iteration history / why-it-was-decided. Default for "what IS the state of X" = exclude OldThemes.
+
 **Direct-read on the full decision file ONLY when:**
 - The file is being EDITED (need all sections in view)
 - The file was edited THIS session and RAG hasn't been resynced
@@ -130,7 +138,7 @@ For a simple status lookup the chunk is the answer. For important chunks, expand
 
 **RAG search (the pattern other rules reference):** `search_hybrid` first; for the most important chunks also `read_document <coll> <doc> <chunk_index> --before N --after M`. "Use RAG search" elsewhere means exactly this.
 
-Defaults: `top_k` is hardcoded to 10 in `search_hybrid_workflow` (not configurable, no flag exposed). Reranking is always on — `search_hybrid` unconditionally cross-encoder-reranks the top-30 dense candidates; there is no `--rerank` flag to toggle. `--document` filter narrows to matching doc names (optional).
+Defaults: `top_k` is hardcoded to 10 in `search_hybrid_workflow` (not configurable, no flag exposed). Reranking is always on — `search_hybrid` unconditionally cross-encoder-reranks the top-30 dense candidates; there is no `--rerank` flag to toggle. `--document PATTERN` filter narrows TO matching doc names (`LIKE`, optional); `--exclude PATTERN` narrows OUT matching doc names (`NOT LIKE`, optional, composable with `--document`). Both match the `document` field, which carries the full relative path (e.g. `decisions/OldThemes/eval_suite/foo.md`), so a substring pattern catches a whole folder subtree.
 
 **Two collection layers per project** — `<Project>-docs` (internal) + `<Project>-reference` (external). Full convention: `global/documentation.md` § RAG Collection Layers. Reference is on-demand only, not part of the routine docs query.
 
