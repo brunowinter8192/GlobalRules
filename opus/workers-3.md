@@ -4,7 +4,7 @@
 
 ### Merging
 
-`worker_merge(name)` merges the branch into current branch (`dev`). Worker stays alive.
+`worker_merge(name)` merges the branch into current branch (`integration`). Worker stays alive.
 
 **Pre-Merge Clean-Check (MANDATORY):**
 BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If there are uncommitted changes OR untracked files in files that the worker's branch also touches → merge will abort with "your local changes / untracked working tree files would be overwritten". Handle BEFORE merging:
@@ -12,7 +12,7 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 - Untracked files that exactly match what the worker adds → `rm` the file (it's usually a leftover from a previous direct edit), then merge.
 - Untracked files unrelated to the merge → leave them alone, merge proceeds cleanly.
 
-**Prevent the conflict at source.** When YOU generate outputs (script runs, smoke reports, measurement files) during a running worker round, write them to `/tmp/` or commit on `dev` immediately (`chore:` commit). Don't leave your own untracked output in paths the worker is editing.
+**Prevent the conflict at source.** When YOU generate outputs (script runs, smoke reports, measurement files) during a running worker round, write them to `/tmp/` or commit on `integration` immediately (`chore:` commit). Don't leave your own untracked output in paths the worker is editing.
 
 
 **Post-Merge Verification (MANDATORY):**
@@ -42,10 +42,10 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 
 - After task completion / Phase 6 merge — worker stays idle until RECAP
 - Worker is mid-work (EITHER indicator triggers):
-  - Phase A reported but no commit above dev-tip → Phase B blocked on Go, plan lives in worker context
+  - Phase A reported but no commit above integration-tip → Phase B blocked on Go, plan lives in worker context
   - `git -C <worktree> status --short` shows uncommitted changes → implementation in flight
 - Worker hit a blocker (error/timeout/unexpected state) — `worker_send` "Stop, investigate, report" FIRST. Worker has live context (processes, tracebacks, recent reads) that's lost on kill
-- **Low context (any remaining %)** — NEVER a kill reason. Reuse until death, then successor (§ AGGRESSIVE REUSE).
+- Never kill for "low context" — context is not observable. Reuse the worker until it dies (status → `limit reached`), then spawn a successor (§ AGGRESSIVE REUSE).
 
 **When TO kill:**
 
@@ -62,31 +62,29 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 
 ### Reusing Workers — AGGRESSIVE REUSE (Thematic Continuity)
 
-Alive workers are context assets. Reuse the existing worker UNTIL IT DIES. The reuse-vs-fresh decision is NOT about context-budget thresholds — it is about THEMATIC CONTINUITY:
+Reuse the existing worker UNTIL IT DIES. The reuse-vs-fresh decision is about THEMATIC CONTINUITY:
 
 **Reuse the existing worker when:**
 - New task touches the same files, packages, or conceptual area as the worker's prior tasks
 - New task extends, refines, or builds on committed work the worker did
-- Worker has ANY context overlap with the new task — even at low remaining context
+- Worker has ANY thematic overlap with the new task
 
 **Spawn fresh ONLY when:**
 - New task uses files / packages / concepts COMPLETELY ORTHOGONAL to the worker's accumulated context (e.g. worker was tuning the search pipeline, new task is unrelated infra setup in a different module — worker's context brings nothing for the new task)
-- Worker is dead (exited) — spawn a fresh successor to continue
+- Worker is dead (status → `limit reached`) — spawn a fresh successor to continue
 
-**Worker-death handling:** if a worker dies mid-task, spawn a successor immediately (§ Worker Death Recovery). Per-subtask recaps keep completed subtasks committed on `dev`; the successor continues the in-progress subtask from the pane + YOUR plan.
+**Worker-death handling:** if a worker dies mid-task, spawn a successor immediately (§ Worker Death Recovery). Per-subtask recaps keep completed subtasks committed on `integration`; the successor continues the in-progress subtask from the pane + YOUR plan.
 
-**No context-budget threshold for the reuse decision.** Context % is not something YOU can assess, so it is never a trigger — a worker keeps receiving follow-ups in its thematic area until it dies. Trade-off: a worker may die mid-task → spawn a successor (§ Worker Death Recovery).
+**Reuse continues until the worker dies.** A worker keeps receiving follow-ups in its thematic area until its status turns `limit reached`; then spawn a successor (§ Worker Death Recovery).
 
-**Before EVERY `worker_spawn`:** check `worker-cli list`. If ANY idle worker has thematic-context overlap → reuse, regardless of context %.
+**Pre-followup Branch Sync (when reusing across merges):** Worker's branch tip is behind current `integration` if merges happened while it was idle. ALWAYS prefix follow-up `worker-cli send` with: "FIRST: in your worktree, run `git -C <worktree-path> fetch origin integration && git -C <worktree-path> merge integration`. Verify with relevant grep. THEN do the work: ..."
 
-**Pre-followup Branch Sync (when reusing across merges):** Worker's branch tip is behind current `dev` if merges happened while it was idle. ALWAYS prefix follow-up `worker-cli send` with: "FIRST: in your worktree, run `git -C <worktree-path> fetch origin dev && git -C <worktree-path> merge dev`. Verify with relevant grep. THEN do the work: ..."
-
-**Batch Dispatch Cost (sequential N-item tasks):** for tasks batching N items where each burns context (LLM cleanup per file, file conversion, multi-file refactor), have the worker checkpoint progress to disk after each item so a fresh successor can resume from the last checkpoint when the original worker dies. Do NOT pre-split into multiple parallel workers — sequential reuse-until-death + successor-from-checkpoint is the pattern.
+**Batch Dispatch Cost (sequential N-item tasks):** for tasks batching N sizable items (LLM cleanup per file, file conversion, multi-file refactor), have the worker checkpoint progress to disk after each item so a fresh successor can resume from the last checkpoint when the original worker dies. Do NOT pre-split into multiple parallel workers — sequential reuse-until-death + successor-from-checkpoint is the pattern.
 
 
 ### Worker-Done File (No Hook — Active Polling Required)
 
-Worker exit creates `/tmp/worker-<name>.done` but **no PostToolUse hook is configured to detect it**. The file exists for any future hook integration but is currently unread. Active polling via `worker-cli status` is required — YOU are NOT notified automatically when a worker exits or hits the context limit.
+Worker exit creates `/tmp/worker-<name>.done` but **no PostToolUse hook is configured to detect it**. The file exists for any future hook integration but is currently unread. Active polling via `worker-cli status` is required — a worker that has died or hit its limit surfaces as `limit reached`, never as a push notification.
 
 ### Worker Death Recovery — Successor Continues (Always)
 
@@ -97,7 +95,7 @@ A worker that dies mid-task has committed NOTHING for the in-progress subtask, s
 **YOUR role on detected worker death:**
 1. `worker-cli capture <name>` FIRST — read how far the dying worker got (last actions, current step). Capture BEFORE killing; kill removes the pane and worktree.
 2. Spawn a fresh successor: `worker-cli spawn <successor-name> /tmp/prompt.md <project_path> sonnet`
-3. Successor prompt = its file complex + the subtask + where to pick up, built from the pane + YOUR plan: "Continue <subtask>; <what's already done per the pane>; resume at <next step>." Completed subtasks are committed on `dev` — the successor builds on that committed state.
+3. Successor prompt = its file complex + the subtask + where to pick up, built from the pane + YOUR plan: "Continue <subtask>; <what's already done per the pane>; resume at <next step>." Completed subtasks are committed on `integration` — the successor builds on that committed state.
 4. Phase 2 Cross-Model check on the successor's first response — does it match where the dying worker left off?
 
 Mid-subtask death means the in-progress subtask's uncommitted work is redone — accepted friction. Per-subtask recaps keep completed subtasks committed, so the redo is bounded to the one in-progress subtask.
@@ -117,7 +115,7 @@ Kill the dying worker (and remove its worktree) only AFTER capturing its pane an
 
 Be brutally honest in the "YOUR verification" column — code read ≠ verified.
 
-**Code Review happens on `dev` branch** (normal project path), NOT by reading worktree files.
+**Code Review happens on `integration` branch** (normal project path), NOT by reading worktree files.
 
 **2. Scope user verification (STOP)**
 
@@ -212,6 +210,6 @@ One run through, no stops.
 3. **Sync docs to RAG** — `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest).
 4. **Issues hygiene** — `gh-cli update_issue --state closed` / `comment_issue` / `create_issue` per chat output.
 5. **Cross-session verification** — when verification needs next session (plugin needing CC restart, infra change requiring reboot), worker stays alive + issue comment documents what to verify next session.
-6. **Git closing** — `git checkout main && git merge dev` → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
+6. **Git closing** — `git checkout main && git merge integration` → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
 
 Done when commits are pushed.

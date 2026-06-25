@@ -109,7 +109,7 @@ There are NO issue comments. `comment_issue` does not exist. The Source-Inventor
 
 **FORBIDDEN in the body (always belong in OldThemes prosa):**
 
-- State transitions ("Phase A done", "merged on dev", "blocked on X", "awaiting verification")
+- State transitions ("Phase A done", "merged on integration", "blocked on X", "awaiting verification")
 - Commit SHAs / merge announcements / fix-landed phrasing
 - Live-test instructions or verification steps
 - Investigation findings, hypotheses, evidence comparisons

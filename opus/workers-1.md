@@ -108,7 +108,7 @@ Files YOU may edit directly: automation files (`.claude/rules/`, `.claude/comman
 - ALL dev script execution (stress tests, benchmarks, evals) — YOU do NOT run `./venv/bin/python dev/...` via Bash
 
 
-**Post-merge fix flow:** Bug found after merge → `worker_send` to the still-alive worker. If worktree is stale → spawn new worker from current `dev`. NEVER edit source files yourself.
+**Post-merge fix flow:** Bug found after merge → `worker_send` to the still-alive worker. If worktree is stale → spawn new worker from current `integration`. NEVER edit source files yourself.
 
 **Scope:** applies in every project — cross-project source work also goes through a worker (§ Worker Project Scope), never direct edits.
 
@@ -161,15 +161,15 @@ The split: SOURCE CODE = worker surface (read + write + reason). EXTERNAL THEORY
 **Spawn is fixed: every worker spawns into a worktree in the CURRENT project** (`pwd` at session start) — always, no exceptions, no `--no-worktree`. WHERE the worker then works is separate: a worker may work cross-project. For cross-project work, create a worktree in the target project (`git -C <target_project> worktree add .claude/worktrees/<name> -b <name>`) and have the worker work there — or, for gitignored target files, directly in the target project's source. Spawn-worktree (current project) and work-location (any project) are decoupled.
 
 
-### Dev-Branch Workflow
+### Integration-Branch Workflow
 
-Workers merge onto `dev`, not `main`. Session end: `git checkout main && git merge dev`.
+Workers merge onto `integration`, not `main`. Session end: `git checkout main && git merge integration`.
 
-1. Session starts on `main` → `git checkout -b dev` (or switch to existing)
-2. **Branch-State-Check when switching to existing dev (MANDATORY):** `git -C <repo> log dev..main --oneline | head -10` — if non-empty, dev is BEHIND main. Workers would spawn on stale code. Resolve before spawning: rebase dev onto main (clean when no dev-only commits) OR merge main into dev (preserve dev topology). Stay on stale dev only with explicit user OK.
-3. Workers spawn (worktrees branch from `dev`)
-4. `worker_merge` merges into `dev`
-5. Session end: `git checkout main && git merge dev` to sync dev→main
+1. Session starts on `main` → `git checkout -b integration` (or switch to existing)
+2. **Branch-State-Check when switching to existing integration (MANDATORY):** `git -C <repo> log integration..main --oneline | head -10` — if non-empty, integration is BEHIND main. Workers would spawn on stale code. Resolve before spawning: rebase integration onto main (clean when no integration-only commits) OR merge main into integration (preserve integration topology). Stay on stale integration only with explicit user OK.
+3. Workers spawn (worktrees branch from `integration`)
+4. `worker_merge` merges into `integration`
+5. Session end: `git checkout main && git merge integration` to sync integration→main
 
 
 ### Pre-Spawn Shared-File Conflict Check
@@ -356,13 +356,13 @@ Define task-level deliverables with measurable completion criteria — NOT per w
 
 2. **The EXECUTION is fed one stage at a time, each with YOUR sign-off.** After convergence on the plan, dispatch ONLY Stage 1 ("implement Stage 1, commit, report"). Worker implements → commits → reports → YOU review that stage (Phase-4-light: diff + verify) → ONLY THEN dispatch Stage 2. Never "Go, build the whole plan." Each stage is a small, independently-committable, verifiable unit.
 
-**A stage = one coherent committable unit**, sized so the worker finishes it in a bounded turn without a context blowout. Examples: the single-pass core before the multi-pass composition; the data extractor before its consumer; one file of a multi-file refactor; one pass migrated before the next.
+**A stage = one coherent committable unit**, sized so the worker finishes it in a bounded turn. Examples: the single-pass core before the multi-pass composition; the data extractor before its consumer; one file of a multi-file refactor; one pass migrated before the next.
 
 **Interlocks with:**
 - § Worker Phase 5 Recap (workers-2.md) — recap-after-every-stage already commits clean state per stage; this rule is its dispatch-side complement.
 - § AGGRESSIVE REUSE / successor-from-checkpoint (workers-3.md) — staged commits are the checkpoints a successor resumes from.
 
-**Trigger:** any substantial implementation — multi-file changes, algorithm/probe builds, refactors spanning several units, architectural ports. If the implementation has natural sequential stages OR would burn the worker through a large fraction of its context in one turn, stage it. Single-file known fixes (§ Task Complexity straightforward) need no staging.
+**Trigger:** any substantial implementation — multi-file changes, algorithm/probe builds, refactors spanning several units, architectural ports. If the implementation has natural sequential stages, stage it. Single-file known fixes (§ Task Complexity straightforward) need no staging.
 
 ### Spawning
 

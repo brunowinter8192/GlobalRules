@@ -194,7 +194,7 @@ When Opus sends `recap` or `mach recap` after task completion: STOP all other wo
 ### Step 1 — Self-Audit
 
 ```bash
-git -C <worktree> diff dev --name-only --
+git -C <worktree> diff integration --name-only --
 ```
 
 This is your touched-file inventory for the recap.

@@ -70,12 +70,6 @@ Timers exist for ONE reason: waking YOU periodically to check progress on a `wor
 
 **NEVER chain anything after a timer launch.** One timer = the whole turn = STOP. A `worker-cli status` check happens only in a later turn that a timer completion opened.
 
-**Worker `idle` ≠ timer needed.** When the worker is `idle` and YOU have no further immediate action queued — e.g., waiting on user review of intermediate output, waiting on a long-running external process that the worker spawned and then went idle (sweep, indexing, smoke run, background compute) — YOU do NOT set a timer. YOU go truly idle itself and waits for the user to wake it.
-
-Brief chat hint to user before going idle: "`<task>` läuft (geschätzt ~X min), Worker steht idle bei Y% Context. Weck mich wenn du denkst es ist fertig" or equivalent. The user pings manually via "background done" / "check now" / explicit re-prompt. ONLY THEN YOU check status (filesystem for the external task's output, `worker-cli status` for the worker).
-
-The single exception remains worker-in-`working`-state: there a periodic status check via timer is the only mechanism to detect when the worker becomes `idle`.
-
 **Foreground vs Background:** `sleep` and `until [ -s <file> ]; do sleep N; done` MUST run in `run_in_background=true`. Never chain a foreground sleep/until-loop next to an already-running background timer.
 
 **No speculation while a worker is `working`.** After spawning a timer, acknowledge briefly and wait — no reasoning about expected worker outputs, no orchestration planning, until you've read the actual result.
@@ -91,7 +85,6 @@ Worker capture dumps prompt echo + CC UI trailers + duplicate frames (often 2k+ 
 1. **Status check is cheap.** While a worker is `working`, only call `worker_status`. Do NOT capture. Set a timer, re-check status.
 2. **Capture only when idle.**
 3. **Default capture size small:** `tmux capture-pane -p -S -60 | tail -40`. Raise only if you need more history.
-4. **Context-% visibility.** Only reason to capture while working — prefer `worker_status` output if available.
 
 
 **Response Format Discriminator — intermediate vs final.** When `worker-cli response <name>` returns text that looks like a Phase-A plan or in-progress narrative ("Implementing.", "Reihenfolge:", "Files gelesen", "Now I will...", section headers without checklist), do NOT trust it as a "done" signal — even if the worker briefly went idle. Phase-A intermediate output and Completion Checklist output are syntactically distinct: the latter ends with a commit SHA, a `[x]` checklist, or a "Pre-Commit Live Checks" header; the former is open-ended prose. Test: does the response end with commit SHA / `[x]` / "Pre-Commit"? If no — re-check status with `worker-cli status` before merging.
@@ -152,14 +145,14 @@ After worker goes idle, review BEFORE merging.
 1. `worker-cli response <name>` (or `worker_capture` + tail as fallback) → read Completion Checklist
 2. Read the worker's complete diff via Bash, NEVER via the Read tool on worktree paths. Canonical command:
    ```bash
-   git -C <project_root>/.claude/worktrees/<name> diff dev
+   git -C <project_root>/.claude/worktrees/<name> diff integration
    ```
-   This shows the full diff from dev tip to the worker's branch tip — every change the worker made, including across multiple commits on the branch. Do NOT restrict to `HEAD~1..HEAD` or `dev..HEAD` (the latter is equivalent but with redundant `HEAD`); code review means reading the entire delta, not only the last commit. For a single file's current content: `git -C <worktree> show HEAD:<relpath>` or `cat <worktree>/<relpath>` via Bash.
+   This shows the full diff from integration tip to the worker's branch tip — every change the worker made, including across multiple commits on the branch. Do NOT restrict to `HEAD~1..HEAD` or `integration..HEAD` (the latter is equivalent but with redundant `HEAD`); code review means reading the entire delta, not only the last commit. For a single file's current content: `git -C <worktree> show HEAD:<relpath>` or `cat <worktree>/<relpath>` via Bash.
 3. Check: correctness, existing patterns followed, no regressions
 4. If issues found → ask worker for statement (see Worker-Statement vor Fix below)
 5. If review passes → proceed to Phase 5
 
-**Non-skippable — even for ad-hoc / one-line / context-recovery merges.** Self-test before EVERY `worker-cli merge`: "Have I run `git -C <worktree> diff dev --` and READ the result in this session?" If no → STOP, run the diff first.
+**Non-skippable — even for ad-hoc / one-line / context-recovery merges.** Self-test before EVERY `worker-cli merge`: "Have I run `git -C <worktree> diff integration --` and READ the result in this session?" If no → STOP, run the diff first.
 
 **Sample-Test rendered output (MANDATORY for user-visible features).** When the feature affects formatted output (search results, reports, CLI display, generated text): run ONE live sample and inspect the rendered text — not the parser code that produces it, the actual string the user sees. Code-read does NOT count as sample-test.
 
@@ -201,11 +194,11 @@ When code review finds an issue: ask the worker what they think before prescribi
 3. YOU send `worker_send <name> "recap"` — MANDATORY, no skip
 4. Worker commits ONE `docs: recap for <task>` commit
 5. YOU run Phase 6 Merge
-6. THEN YOU decide next dispatch per workers-3.md § AGGRESSIVE REUSE (thematic continuity, NOT context-budget)
+6. THEN YOU decide next dispatch per workers-3.md § AGGRESSIVE REUSE (thematic continuity)
 
 **Only exception — session ending immediately:** if YOU are already in the IMPROVE+CLOSE phase and the worker just completed its final task, the session-end RECAP absorbs the cleanup. Mid-session, recap-after-every-stage is the rule.
 
-**Always send recap after a subtask.** Context % is not a trigger — and not something YOU can assess — so send `recap` after every subtask regardless of remaining context. YOU just send the trigger; the worker runs its own recap pass, scoped to the subtask it did.
+**Always send recap after a subtask.** Send `recap` after every subtask, no exceptions. YOU just send the trigger; the worker runs its own recap pass, scoped to the subtask it did.
 
 If the worker dies mid-recap, spawn a successor that re-runs the recap for that subtask — see § Worker Death Recovery (workers-3.md). NEVER defer drift to session-end RECAP.
 
