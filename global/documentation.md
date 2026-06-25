@@ -13,6 +13,10 @@ Documentation lives in two parallel chains.
 - source code — full detail
 - dev/*.md — investigations, probes, evals (sit beside the chain, not inside)
 
+## Language (NON-NEGOTIABLE)
+
+ALL documentation files are written in ENGLISH — always, without exception. Applies to README.md, every DOCS.md, every `decisions/*.md`, every `decisions/OldThemes/**` file, dev/ reports, and code comments. The conversation language is irrelevant: when the user chat is in German, the artifacts are STILL English. No mixed-language files, no German headers, no German prose in any doc.
+
 ## Artifact Density
 
 User-Chat is prose. Everything Claude reads or produces as ARTIFACT — code, DOCS.md, rules/, decisions/, code-comments — is machine-readable and token-dense.

@@ -26,6 +26,14 @@
         "worker/worker-rules.md"
       ]
     },
+    "projects": {
+      "trading": {
+        "path_contains": "ai/trading",
+        "files": [
+          "situational/trading-rules.md"
+        ]
+      }
+    },
     "exclude_projects": [
       "wise2627"
     ]

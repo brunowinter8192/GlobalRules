@@ -96,6 +96,7 @@ Indexed-document search and lookup. All RAG operations via `rag-cli` (`~/.local/
 
 ### Rules
 
+- RAG queries are ALWAYS written in English, regardless of conversation language.
 - Issue the search command directly — no prior `rag-cli server start` needed.
 - On persisted-output: read the file completely in ONE Read call, no offset/limit chunking.
 - Indexed collections in `data/documents/<collection>/` → rag-cli. Local source files → Read tool, not rag-cli.
