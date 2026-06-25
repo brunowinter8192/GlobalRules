@@ -207,7 +207,7 @@ One run through, no stops.
 
 1. **Persist session substance** — write OldThemes / decisions / DOCS files per Persistence Routing.
 2. **Update Issue Source-Inventory** — `gh-cli comment_issue brunowinter8192 <repo> <number> "Source-Inventory updated: + <paths>"` when new files came into existence in Step 1.
-3. **Sync docs to RAG** — `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest).
+3. **Sync docs to RAG** — `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest). RAG sync runs ONLY here at recap — NEVER mid-session.
 4. **Issues hygiene** — `gh-cli update_issue --state closed` / `comment_issue` / `create_issue` per chat output.
 5. **Cross-session verification** — when verification needs next session (plugin needing CC restart, infra change requiring reboot), worker stays alive + issue comment documents what to verify next session.
 6. **Git closing** — `git checkout main && git merge integration` → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
