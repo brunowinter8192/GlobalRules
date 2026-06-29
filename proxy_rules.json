@@ -12,9 +12,7 @@
         "opus/chat-output.md",
         "opus/tool-use.md",
         "opus/gh-issues.md",
-        "opus/workers-1.md",
-        "opus/workers-2.md",
-        "opus/workers-3.md"
+        "opus/workers.md"
       ]
     },
     "worker": {
@@ -26,14 +24,7 @@
         "worker/worker-rules.md"
       ]
     },
-    "projects": {
-      "trading": {
-        "path_contains": "ai/trading",
-        "files": [
-          "situational/trading-rules.md"
-        ]
-      }
-    },
+    "projects": {},
     "exclude_projects": [
       "wise2627"
     ]
@@ -50,8 +41,8 @@
       "type": "adaptive",
       "display": "omitted"
     },
-    "effort": "xhigh",
-    "max_tokens": 128000
+    "effort": "high",
+    "max_tokens": 64000
   },
   "model_override_worker": {
     "enabled": true,
