@@ -15,7 +15,7 @@ Three activities, kept separate:
 **What goes in `dev/` (permanent value):**
 - Benchmarks (pipeline performance measurements)
 - Evals (retrieval/reranker/quality evaluation suites)
-- Investigation modules for a documented problem (see `documentation.md` → "dev/ Investigation Modules")
+- Investigation modules for a documented problem
 - Growing unit-test suites / assertion libraries
 
 **What does NOT go in `dev/` (one-shot value):**
@@ -37,7 +37,6 @@ Three activities, kept separate:
 ```
 dev/
 ├── <pipeline_stage>/              # Grouped by pipeline stage
-│   ├── DOCS.md                    # MANDATORY — describes modules and scripts
 │   ├── p1_<first_module>.py       # Pipeline module, numbered by position/dependency
 │   ├── p2_<second_module>.py
 │   ├── A_<analysis_script>.py     # Analysis/eval script
@@ -77,13 +76,11 @@ dev/
 ## Rules
 
 1. **Pipeline grouping** — top-level dev/ dirs correspond to pipeline stages (e.g., `indexing/`, `retrieval/`)
-2. **DOCS.md per pipeline stage** — pipeline dirs with multiple scripts MUST have a DOCS.md. Single-script pipeline dirs are documented in the parent DOCS.md (per `global/documentation.md` §dev/ Suites).
-3. **`pN_` prefix for pipeline modules** — numbered by position/dependency order within the directory. Self-contained, no imports from `src/`. These ARE the dev implementations that get migrated to prod when proven.
-4. **`A_` prefix for analysis/eval scripts** — import from `pN_` modules, produce MD reports. Output to `A_<name>_reports/`.
-5. **Dev is self-contained** — dev modules do NOT import from `src/`. Dev mirrors prod interfaces but is independent. When a dev implementation is proven, it gets migrated to `src/` (lean, without report output).
-6. **Renumber when structure changes** — numbering is per-directory. Adding/removing modules = renumber the directory.
-7. **Reports include timestamps** — output filenames contain `<label>_<timestamp>` for history tracking
-8. **cleanup/** — utility scripts without decision mapping (data cleanup, migration). No pipeline grouping needed.
-9. **MD output, never console** — dev scripts write results to MD files in their report directories. Console output is limited to the report file path. Analysis happens by reading the MD together, not by dumping into the terminal.
-10. **Python execution** — ALL Python commands MUST use `./venv/bin/python` (not `python` or `python3`). The system Python does not have project dependencies installed.
-11. **Rate limiting** — when a suite script makes multiple HTTP requests to external services, include a 1-2s delay between requests to avoid triggering rate limits or engine suspensions.
+2. **`pN_` prefix for pipeline modules** — numbered by position/dependency order within the directory. Self-contained, no imports from `src/`. These ARE the dev implementations that get migrated to prod when proven.
+3. **`A_` prefix for analysis/eval scripts** — import from `pN_` modules, produce MD reports. Output to `A_<name>_reports/`.
+4. **Dev is self-contained** — dev modules do NOT import from `src/`. Dev mirrors prod interfaces but is independent. When a dev implementation is proven, it gets migrated to `src/` (lean, without report output).
+5. **Renumber when structure changes** — numbering is per-directory. Adding/removing modules = renumber the directory.
+6. **Reports include timestamps** — output filenames contain `<label>_<timestamp>` for history tracking
+7. **cleanup/** — utility scripts without pipeline mapping (data cleanup, migration). No pipeline grouping needed.
+8. **MD output, never console** — dev scripts write results to MD files in their report directories. Console output is limited to the report file path. Analysis happens by reading the MD together, not by dumping into the terminal.
+9. **Python execution** — ALL Python commands MUST use `./venv/bin/python` (not `python` or `python3`). The system Python does not have project dependencies installed.

@@ -26,19 +26,19 @@ Integration: URL-transform end-to-end workflow → real output on disk;
 Regression-guards: pure-function asserts on transforms/filter/regex behavior.
 ```
 
-Never just "X/X passing" without this separation. The user should see at a glance what was actually verified vs what is boilerplate.
+Never just "X/X passing" without this separation. Opus should see at a glance what was actually verified vs what is boilerplate.
 
-### Pattern 3 — PARTIAL Without Fallback Verification
+### Pattern 3 — PARTIAL Reported Honestly, Not Masked
 
-When the planned verification fails due to an **unrelated** cause (CAPTCHA hang, server 503, test data missing), the answer is NOT "report PARTIAL and stop". The answer is: find a smaller or alternative verification that still hits the contract.
+When the planned verification fails due to an **unrelated** cause (CAPTCHA hang, server 503, test data missing), report the status as **PARTIAL** and state PRECISELY what happened: which verification could not run, why it could not run, and what you WERE able to verify. Do NOT mask the gap by substituting a weaker check and calling it "done" — that is falsification.
 
-**Rule:** "PARTIAL" as a verification status is acceptable only when you have attempted at least 2 alternative smaller verifications and list in the report why each failed. The default is: break the verification into smaller parts that can run individually, rather than giving up.
+**Rule:** PARTIAL is a legitimate, expected status. Your job is honesty, not a green checkmark. Report what was verified, what was not, and the exact reason the planned verification could not complete. Opus picks up the PARTIAL in review and decides the next step (cross-model). If a smaller verification genuinely hits the same contract and you can run it, include it — but NEVER inflate PARTIAL into "verified" with a substitute that does not actually test the contract.
 
 ### Pattern 4 — User-visible Entry Point Skipped
 
 Code that has a CLI/HTTP entry-point MUST be verified at least once via that entry-point. Direct Python import + function call is NOT enough — the CLI wrapper path often has its own routing/argument/auto-detect logic that a direct import bypasses.
 
-**Rule:** the Completion Checklist must include a line that explicitly invokes the user-facing entry-point: a `<cli-tool> ...` call or a curl against the HTTP endpoint. Not just a Python import. The output of that call belongs in the checklist (truncated).
+**Rule:** the Completion Checklist must include a line that explicitly invokes the user-facing entry-point: a `<cli-tool> ...` call or a curl against the HTTP endpoint. Not just a Python import. The output of that call belongs in the checklist (truncated). If your worktree cannot run the entry-point (no CLI tooling / no venv), report PARTIAL with that reason — do NOT write a CLI line that did not actually run. Opus runs the entry-point in review and after merge.
 
 ## What Verification "Done Right" Looks Like
 
@@ -49,7 +49,7 @@ Your Completion Checklist should contain, in this order:
 3. **End-to-end verification via the user-facing entry-point** — CLI call or HTTP request. With real output truncated.
 4. **Other verifications** (smoke runs, sample tests) when relevant.
 
-If any step from 1-3 is not possible → explicit entry in the checklist explaining why, plus an alternative that hits the contract instead.
+If any step from 1-3 is not possible → explicit entry in the checklist explaining why. Include a smaller alternative only if it genuinely hits the same contract; otherwise report PARTIAL with the reason and let Opus decide. Do not invent a substitute check just to avoid PARTIAL.
 
 ## What This Rule Does NOT Say
 

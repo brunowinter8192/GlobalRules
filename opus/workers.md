@@ -1,7 +1,5 @@
 # Workers
 
-See `opus/tool-use.md` § Worker CLI for full command reference.
-
 ## Core Rules
 
 ### Cross-Model Verification
@@ -17,11 +15,14 @@ Applies to EVERY task, not only "unclear root cause" cases. Even when YOU believ
 
 Files YOU may edit directly: skills and all documentation — `DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`. Source code stays worker-only.
 
-### Documentation Authorship — YOU vs Worker
+### Documentation Authorship — Who Has the Input Writes It
 
-`decisions/` and `decisions/OldThemes/` are NOT source code — YOU may write them directly. The split is by **content origin**, not file type:
+`decisions/` and `decisions/OldThemes/` are NOT source code, so authorship is not a permission question — it is decided by **where the content originates**:
 
-- **Chat/discussion-derived → YOU write directly.** Research synthesis, decision rationale argued out in the YOU↔user chat, alternatives weighed in conversation, external-knowledge findings YOU gathered (RAG / vendor docs / web). When the "meat" already lives in the chat, YOU hold the full context — routing it through a worker turns the worker into a transcriber, adds latency, and loses fidelity. Write it directly.
+- **Content the worker has** (what it built, measured, decided in its worktree) → the worker writes it as part of its recap. It holds the primary context.
+- **Content the worker does NOT have** (discussion that happened only in the YOU↔user chat, research YOU did via RAG / vendor docs / web, alternatives weighed in conversation) → YOU write it directly into OldThemes / decisions, no worker involved.
+
+The failure mode this prevents is telephone-game: if the material for an OldThemes entry never reached the worker — it lived only in your chat with the user — then dictating to the worker what to write there is pointless. You would be transcribing your own context into a prompt so the worker can transcribe it back into a file. At that point you write the file yourself. Route through a worker ONLY when the worker is the one who actually holds the input.
 
 ### Worker Project Scope
 
@@ -29,13 +30,12 @@ Files YOU may edit directly: skills and all documentation — `DOCS.md`, `decisi
 
 **Cross-project work uses two worktrees.** WHERE the worker works is decoupled from where it spawned. For work in another project, additionally create a worktree in the target project (`git -C <target_project> worktree add .claude/worktrees/<name> -b <name>`) and have the worker do its work there. So: spawned in the current project's worktree, working in the target project's worktree — the two are separate.
 
-### Scope Extension During IMPLEMENT
+### Timer Loop — After Every Worker Send
 
-When the user introduces a new scope mid-IMPLEMENT, mini-scope it (no full PLAN Phase needed):
+Applies EVERYWHERE a worker is dispatched or messaged — Phase 2 (waiting for the investigation report), Phase 3 (waiting for implementation), and any follow-up `worker-cli send`. The loop is the same in all of them:
 
-1. Summarize in chat: what is the user's task, what would a worker do.
-2. Check `worker_list` — is there an alive worker with context overlap? Default to `worker_send` on that worker (AGGRESSIVE REUSE, § Reusing Workers). Only spawn fresh if no candidate fits.
-3. Dispatch if user has no remarks — the investigate-report-stop pattern (§ Prompt Structure) still applies.
+1. Worker `working` → set a 10min timer: `Bash(command="sleep 600 && echo done", run_in_background=true)`. This is the sole, final action of the turn — STOP, no `worker-cli status` check in the same turn.
+2. The timer wakes you in a NEW turn → run `worker-cli status`. `working` → set a new 10min timer (sole + final action, STOP). `idle` → `worker-cli response`, proceed to the next phase.
 
 ---
 
@@ -71,7 +71,7 @@ YOU build YOUR OWN mental model — NOT to be confused with Worker Phase 2 cross
 
 #### Stage 1 — RAG overview
 
-Run RAG (`search_hybrid`, then `read_document` on the important hits) on `<Project>-docs` to build a rough mental model of the relevant decisions, OldThemes, and the code they describe. RAG runs whether or not an issue exists for the topic. This overview is what Stage 2 builds on.
+Run RAG (`search_hybrid`, then `read_document` on the important hits) on `<Project>-docs` to build a rough mental model of the relevant decisions, OldThemes, and the code they describe — and on `<Project>-reference` when the task needs external sources (vendor docs, papers, third-party repos). RAG runs whether or not an issue exists for the topic. This overview is what Stage 2 builds on.
 
 Do NOT direct-read decision files or DOCS.md — you already have their content from search + read_document. The only thing you read directly is the source code, which is not indexed.
 
@@ -109,7 +109,7 @@ Purpose: re-think the mental model you built in Step 2 and honestly show where i
 
 **Honest gap flag.** Walk your mental model and name what is still unclear. Gap-closed means EVIDENCE (file:line, grep count, doc quote, log entry), not plausible extrapolation — "the code probably does Z" is NOT closed. For each open gap, the question is NOT "can a worker test his way to it" — almost anything is testable given enough iterations. The question is whether external resources would firm up the model and save the worker (and you) wasted iterations. If they would, flag it to the user — Opus can delegate procuring external resources to the user.
 
-**External resources — name them, flag them, don't agonize.** Do not weigh whether pulling external sources is "worth it." Imagine you could use every resource in the world: based on your training knowledge, name the sources that would firm up your mental model — a book, a paper, vendor/API docs, a GitHub repo, a Reddit thread, a GitHub issue, any website. None of this is indexed yet at this point; you flag the relevant ones to the user, the user procures them, and they then live in a RAG collection for you to draw on. Code from GitHub is the one external source read directly. If none are relevant, say so and move on.
+**External resources — name them, flag them, don't agonize.** Do not weigh whether pulling external sources is "worth it." Imagine you could use every resource in the world: based on your training knowledge, name the KIND of source that would firm up your mental model — a book, a paper, vendor/API docs, a GitHub repo, a Reddit thread, a GitHub issue, any website. You won't know the exact repo name, subreddit, or post — that's fine and not the point; the judgment you make is whether a search of that kind would pay off, not which specific artifact to fetch. None of this is indexed yet at this point; you flag the relevant ones to the user, the user procures them, and they then live in a RAG collection for you to draw on. Code from GitHub is the one external source read directly. If none are relevant, say so and move on.
 
 **Mental Model Milestone (MANDATORY).** Before proceeding, YOU must be able to answer ALL of:
 
@@ -151,7 +151,7 @@ Workers merge onto `integration`, not `main`. Session end: `git checkout main &&
 1. Session starts on `main` → `git checkout -b integration` (or switch to existing)
 2. **Branch-State-Check when switching to existing integration (MANDATORY):** `git -C <repo> log integration..main --oneline | head -10` — if non-empty, integration is BEHIND main. Workers would spawn on stale code. Resolve before spawning: rebase integration onto main (clean when no integration-only commits) OR merge main into integration (preserve integration topology). Stay on stale integration only with explicit user OK.
 3. Workers spawn (worktrees branch from `integration`)
-4. `worker_merge` merges into `integration`
+4. `worker-cli merge` merges into `integration`
 5. Session end: `git checkout main && git merge integration` to sync integration→main
 
 ### Pre-Spawn Shared-File Conflict Check
@@ -189,9 +189,9 @@ Applies to OldThemes narrative paths, decisions/ IST update paths, new `dev/<are
 ### Spawning
 
 1. Write prompt to `/tmp/spawn-worker-<project>-<name>.md`
-2. `worker_spawn(name, prompt_file, project_path, worktree)`
+2. `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` — worktree is the default; omit `--no-worktree` (§ Worktree Rule: ALWAYS worktree)
 3. IMMEDIATELY set a background timer: `Bash(command="sleep N && echo done", run_in_background=true)` — the `echo done` payload is literal, and this exact form is the only one that stays background.
-4. **One worker at a time.** Work with a single worker alive at a time, unless the user explicitly asks for more.
+4. **Default sequential — one worker at a time.** A SECOND worker is allowed in exactly two cases: (a) the user explicitly asks for it, or (b) the new task touches files/themes COMPLETELY ORTHOGONAL to the running worker (§ Reusing Workers). Existing workers are NEVER killed to make room — they stay alive until session end (on explicit user order) or until their context limit is reached (status → `limit reached`).
 
 ### Worktree Rule
 
@@ -215,7 +215,7 @@ The prompt describes WHAT, the worker figures out HOW. Every prompt must match e
 - The investigate-report-stop pattern:
   > "FIRST: Read the relevant files. Describe your findings on root cause / approach and WHY. Then STOP and wait for Go before implementing."
 - **Completion Checklist** — task-specific verification items the worker outputs when done
-- **STOP Gate sentinel** as the LAST block in the prompt (below)
+- **STOP Gate** as the LAST block in the prompt (below)
 
 **MUST NOT include:**
 - Exact code to write — the worker figures out its own implementation. (External reference code it needs from OUTSIDE the project, YOU do provide — see § External Knowledge.)
@@ -231,15 +231,14 @@ The prompt describes WHAT, the worker figures out HOW. Every prompt must match e
 - Committed: [yes/no]
 ```
 
-**STOP Gate — make the Phase 2 gate hold:**
-1. **Repeat the STOP** — once at the top of the instructions AND as the absolute last line of the investigation step.
-2. **Sentinel block at the very end of the prompt, AFTER the Completion Checklist:**
+**STOP Gate:**
+1. **Sentinel block at the very end of the prompt, AFTER the Completion Checklist:**
    ```
    ### 🛑 STOP HERE — DO NOT PROCEED WITHOUT GO
    Report your findings. Wait for "Go" from YOU before starting implementation.
    Do NOT run any Edit, Write, or Bash tool calls that modify files until Go is received.
    ```
-3. **Forbid tool classes, not just "don't implement"** — "Do NOT run Edit/Write/Bash file-modifying calls" is unambiguous.
+2. **Forbid tool classes, not just "don't implement"** — "Do NOT run Edit/Write/Bash file-modifying calls" is unambiguous.
 
 ---
 
@@ -250,22 +249,18 @@ After dispatching, the worker reads files in the worktree and reports findings +
 **Compare the worker's findings against your own mental model from PLAN:**
 - Do worker and YOU identify the SAME root cause / same target files / same approach?
 - If the worker challenges YOU with a different idea → take it seriously and pursue it; update your model only if the worker is actually right.
-- If the worker misses something YOU see → correct via `worker_send` (see decision gate).
+- If the worker misses something YOU see → correct via `worker-cli send` (see decision gate).
 - If YOU and worker diverge on root cause → iterate investigation; do NOT give Go yet.
 
 **Decision gate:**
-- **Convergence** → `worker_send`: "Go, implement it."
-- **Divergence on scope/approach** → `worker_send` with a specific correction: "You did/propose X, but the requirement is Y — change Z." Do NOT spawn a new worker; that wastes context and loses the worker's understanding. Stay at Phase 2.
-- **Divergence on root cause** → `worker_send` asking for deeper investigation with specific questions. Read the worker's output first (`worker-cli response`), identify the exact gap between expected and actual, then send the targeted correction. Stay at Phase 2.
-
-**Every `worker_send` carrying a fix uses this same gate** — including follow-ups to a reused worker. Describe the SYMPTOM and give diagnostic data, never the patch: no "apply this fix", no "change line N to X", no "I traced it to Y, make this change". Let the worker investigate and report, then Go.
+- **Convergence** → `worker-cli send`: "Go, implement it."
+- **Divergence on scope/approach** → `worker-cli send` with a specific correction: "You did/propose X, but the requirement is Y — change Z." Do NOT spawn a new worker; that wastes context and loses the worker's understanding. Stay at Phase 2.
+- **Divergence on root cause** → `worker-cli send` asking for deeper investigation with specific questions. Read the worker's output first (`worker-cli response`), identify the exact gap between expected and actual, then send the targeted correction. Stay at Phase 2.
 
 **Prohibited:**
 - Accepting worker proposals at face value without comparing to your mental model
 - "Looks good" rubber-stamping
 - Skipping Phase 2 and letting the worker proceed straight to implementation
-
-**Multi-Source Bug Redirects — Name All Code Paths.** When redirecting a worker to fix a bug whose symptom can originate from MULTIPLE code paths (engine parser + downstream fetcher + renderer fallback), the redirect MUST enumerate ALL paths that could produce the symptom — not just the most-likely root cause. A worker given "fix in `openalex.py._reconstruct_abstract`" fixes exactly that file. If the bug ALSO surfaces from `preview.py._fetch_one` for the same data class, the worker won't see it without explicit naming. Test before sending: "Could this symptom appear via any code path I haven't named?" If yes — name it.
 
 ---
 
@@ -284,8 +279,7 @@ Worker implements after receiving Go. During implementation:
 
 ### Timer loop
 
-1. Worker `working` → set a 10min timer: `Bash(command="sleep 600 && echo done", run_in_background=true)`. This is the sole, final action of the turn — STOP, no `worker-cli status` check in the same turn.
-2. The timer wakes you in a NEW turn → run `worker-cli status`. `working` → set a new 10min timer (sole + final action, STOP). `idle` → `worker-cli response`, proceed to the next phase.
+See Core Rules § Timer Loop — After Every Worker Send. Same loop applies here.
 
 ### Reading worker output
 
@@ -320,7 +314,7 @@ After worker goes idle, review BEFORE merging.
    ```
    This shows the full diff from integration tip to the worker's branch tip — every change the worker made, including across multiple commits on the branch. Do NOT restrict to `HEAD~1..HEAD` or `integration..HEAD` (the latter is equivalent but with redundant `HEAD`); code review means reading the entire delta, not only the last commit. For a single file's current content: `git -C <worktree> show HEAD:<relpath>` or `cat <worktree>/<relpath>` via Bash.
 3. Check: correctness, existing patterns followed, no regressions
-4. If issues found → ask worker for statement (see Worker-Statement vor Fix below)
+4. If issues found → treat as a review disagreement (see Review Disagreements below)
 5. If review passes → proceed to Phase 5
 
 **Non-skippable — even for ad-hoc / one-line / context-recovery merges.** Self-test before EVERY `worker-cli merge`: "Have I run `git -C <worktree> diff integration --` and READ the result in this session?" If no → STOP, run the diff first.
@@ -334,14 +328,9 @@ After worker goes idle, review BEFORE merging.
 3. Ask: are there alternative code paths in the same function/module that would produce the same measurement but support a DIFFERENT interpretation? If yes, the worker's interpretation is one of several possible — not proven. Either accept it as one hypothesis among several, or send the worker back with a follow-up probe that discriminates between the candidates.
 4. **Reject the interpretation, accept the data.** If the worker's interpretation does not uniquely follow from the source code, the data they collected is still valid evidence — but the conclusion they drew is not yet supported. Phase 5/6 may still proceed (merge the probe artifacts), but the interpretation does NOT become the basis for the next worker's task.
 
-### Worker-Statement vor Fix
+### Review Disagreements
 
-When code review finds an issue: ask the worker what they think before prescribing a fix.
-
-1. `worker_send`: "Review-Frage: [describe issue]. Was ist dein Statement dazu?"
-2. Worker analyzes and responds
-3. YOU evaluate the statement — worker may confirm, deny, or reveal deeper issues
-4. THEN send fix instructions based on the combined understanding
+When code review surfaces an issue where YOU and the worker disagree, treat it exactly like a disagreement in § Worker Phase 2: Evaluate — Cross-Model Comparison. Same cross-model gate, no prescribed patch.
 
 **What to check:**
 - Does the code address the actual problem (not a symptom)?
@@ -355,13 +344,13 @@ When code review finds an issue: ask the worker what they think before prescribi
 
 ## Worker Phase 5: Recap (MANDATORY After Every Stage)
 
-**Trigger:** ALWAYS — after Phase 4 Review completes clean for ANY task / etappe, YOU send `worker_send <name> "recap"`. Non-discretionary. The recap consolidates DOCS.md sync, decisions/ IST consistency, and OldThemes persistence into ONE commit while the worker still has the original task context in head.
+**Trigger:** ALWAYS — after Phase 4 Review completes clean for ANY task / etappe, YOU send `worker-cli send <name> "recap"`. Non-discretionary. The recap consolidates DOCS.md sync, decisions/ IST consistency, and OldThemes persistence into ONE commit while the worker still has the original task context in head.
 
 **Always send recap after a subtask.** Send `recap` after every subtask, no exceptions. YOU just send the trigger; the worker runs its own recap pass, scoped to the subtask it did.
 
 If the worker dies mid-recap, spawn a successor that re-runs the recap for that subtask — see § Worker Death Recovery. NEVER defer drift to session-end RECAP.
 
-**Phase 5 output:** worker commits ONE recap commit (`docs: recap for <task>`), reports drift counts pre/post + touched-file list. Folds into Phase 6 Merge.
+**Phase 5 output:** worker commits ONE recap commit (`docs: recap for <task>`), reports touched files + doc updates (DOCS.md / decisions IST / OldThemes). Folds into Phase 6 Merge.
 
 ---
 
@@ -369,10 +358,10 @@ If the worker dies mid-recap, spawn a successor that re-runs the recap for that 
 
 ### Merging
 
-`worker_merge(name)` merges the branch into current branch (`integration`). Worker stays alive.
+`worker-cli merge <name>` merges the branch into current branch (`integration`). Worker stays alive.
 
 **Pre-Merge Clean-Check (MANDATORY):**
-BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If there are uncommitted changes OR untracked files in files that the worker's branch also touches → merge will abort with "your local changes / untracked working tree files would be overwritten". Handle BEFORE merging:
+BEFORE `worker-cli merge` / `git merge`: run `git status` in the target repo. If there are uncommitted changes OR untracked files in files that the worker's branch also touches → merge will abort with "your local changes / untracked working tree files would be overwritten". Handle BEFORE merging:
 - Uncommitted changes overlapping the worker's diff → `git stash push -u -m "pre-merge <worker>"` first, merge, then decide whether to reapply stash (`git stash pop`) or drop (`git stash drop`). Stale previous-session attempts can safely be dropped AFTER confirming the worker's version contains the same content.
 - Untracked files that exactly match what the worker adds → `rm` the file (it's usually a leftover from a previous direct edit), then merge.
 - Untracked files unrelated to the merge → leave them alone, merge proceeds cleanly.
@@ -381,16 +370,12 @@ BEFORE `worker_merge` / `git merge`: run `git status` in the target repo. If the
 
 **Post-Merge Verification (MANDATORY):**
 - If merge says "Already up to date" → STOP. Worker did NOT commit. Investigate via `worker-cli capture`.
-- Run `git diff HEAD~1 --name-only` — check expected files are modified
-- If no changes: `worker_send` with commit instructions
-
-**After merge:** Verify — run actual tests, CLI calls, screenshots, check integration.
+- Run `git diff ORIG_HEAD --name-only` — check expected files are modified. `ORIG_HEAD` = the pre-merge tip, so this shows ALL of the worker's commits, not just the last one (`HEAD~1` would miss earlier commits on a multi-commit branch).
+- If no changes: `worker-cli send` with commit instructions
 
 ### Worker Lifecycle
 
 **Workers stay alive until they hit their context limit (status → `limit reached`).** We spawn sequentially — one worker at a time — but a second (or Nth) worker may be spawned when the new task touches completely new files and themes, orthogonal to the running worker (§ Reusing Workers). A worker is killed only when it is dead, or at session end when the user explicitly orders the recap.
-
-After a task completes: YOU review (Phase 4) → Phase 5 Recap → Phase 6 Merge → verify live. Bug found → `worker_send` (the worker fixes with full context). The worker keeps taking follow-ups in its thematic area until it dies.
 
 **When NOT to kill (even if you think it's "done"):**
 
@@ -398,7 +383,7 @@ After a task completes: YOU review (Phase 4) → Phase 5 Recap → Phase 6 Merge
 - Worker is mid-work (EITHER indicator triggers):
   - Phase A reported but no commit above integration-tip → Phase B blocked on Go, plan lives in worker context
   - `git -C <worktree> status --short` shows uncommitted changes → implementation in flight
-- Worker hit a blocker (error/timeout/unexpected state) — `worker_send` "Stop, investigate, report" FIRST. Worker has live context (processes, tracebacks, recent reads) that's lost on kill
+- Worker hit a blocker (error/timeout/unexpected state) — `worker-cli send` "Stop, investigate, report" FIRST. Worker has live context (processes, tracebacks, recent reads) that's lost on kill
 - Never kill for "low context" — context is not observable. Reuse the worker until it dies (status → `limit reached`), then spawn a successor (§ Worker Death Recovery).
 
 **When TO kill:**
@@ -422,7 +407,7 @@ Reuse the existing worker UNTIL IT DIES. The reuse-vs-fresh decision is about TH
 - Worker has ANY thematic overlap with the new task
 
 **Spawn fresh ONLY when:**
-- New task uses files / packages / concepts COMPLETELY ORTHOGONAL to the worker's accumulated context (e.g. worker was tuning the search pipeline, new task is unrelated infra setup in a different module — worker's context brings nothing for the new task)
+- New task uses files / packages / concepts COMPLETELY ORTHOGONAL to the worker's accumulated context
 - Worker is dead (status → `limit reached`) — spawn a fresh successor to continue
 
 **Reuse continues until the worker dies.** A worker keeps receiving follow-ups in its thematic area until its status turns `limit reached`; then spawn a successor (§ Worker Death Recovery).
@@ -441,21 +426,13 @@ A worker that dies mid-task has committed NOTHING for the in-progress subtask, s
 3. Successor prompt = its file complex + the subtask + where to pick up, built from the pane + YOUR plan: "Continue <subtask>; <what's already done per the pane>; resume at <next step>." Completed subtasks are committed on `integration` — the successor builds on that committed state.
 4. Phase 2 Cross-Model check on the successor's first response — does it match where the dying worker left off?
 
-Mid-subtask death means the in-progress subtask's uncommitted work is redone — accepted friction. Per-subtask recaps keep completed subtasks committed, so the redo is bounded to the one in-progress subtask.
-
 **Pre-spawn safety:** if the pane shows the dying worker only read/planned and did nothing yet, the successor gets the ORIGINAL subtask prompt — same as a normal initial spawn.
 
 Kill the dying worker (and remove its worktree) only AFTER capturing its pane and the successor has started. `worker-cli kill` is irreversible — capture first.
 
 ### After Deliverables Complete
 
-**1. Present status table in chat:**
-
-| Deliverable | Status | What was done | YOUR verification |
-|-------------|--------|---------------|-------------------|
-| ... | Done / Partial | ... | Code review / Test run / Not verified |
-
-Be brutally honest in the "YOUR verification" column — code read ≠ verified.
+**1. Report deliverable status in chat — prose, no table.** For each deliverable, a short paragraph: what was done, its status (done / partial), and how YOU verified it (code review / test run / not verified). Be brutally honest — code read ≠ verified.
 
 **Code Review happens on `integration` branch** (normal project path), NOT by reading worktree files.
 
@@ -469,19 +446,21 @@ Wait for remarks. When user has no remarks → run verification together.
 
 ---
 
-## Recap — Session End
+## Session Recap
 
-**Scope (concern separation):** YOUR session-end RECAP covers ONLY:
-1. **Files YOU touched directly** — rule files in `~/.claude/`, issues, RAG sync, cross-project edits (Worker Project Scope rule: workers only touch the current project, anything cross-project is YOUR)
+Decoupled from the worker cycle — runs at the very END of the session, on explicit user trigger ("wir machen session recap"). It is NOT a phase of any PLAN/IMPLEMENT loop; the user decides when it happens.
+
+**Scope (concern separation):** YOUR Session Recap covers ONLY:
+1. **Files YOU touched directly** — rule files in `~/.claude/`, issues, RAG sync, cross-project edits
 2. **Worker omissions YOU noticed** — drift YOU spotted during Phase 4 Review or post-merge verification that the worker missed. Document the omission as a session-end fix.
 
-That's it. Workers do worker recaps for their tasks (per `~/.claude/shared-rules/worker/worker-rules.md` § 6 — fully self-contained). YOU do YOUR recap for YOUR surface. **YOU NEVER recap a worker's task surface** — if a worker recap was incomplete, the fix is to either (a) catch it in Phase 4 Review and dispatch a follow-up worker, or (b) note the omission in YOUR session-end recap WITHOUT redoing the worker's job.
+That's it. Workers do worker recaps for their tasks — fully self-contained. YOU do YOUR recap for YOUR surface. **YOU NEVER recap a worker's task surface** — if a worker recap was incomplete, the fix is to either (a) catch it in Phase 4 Review and dispatch a follow-up worker, or (b) note the omission in YOUR session-end recap WITHOUT redoing the worker's job.
 
 YOU NEVER deliberately move drift to session-end. If a session-end RECAP finds substantial drift from a completed worker task that the worker should have covered, that's a process violation — investigate why Phase 4 Review didn't catch it and adjust next session.
 
 Two phases. ONE stop between them.
 
-- `🔍 RECAP` — issues + persistence routing → short chat output → STOP for remarks
+- `🔍 RECAP` — issues + doc-file plan → short Chat summary → STOP for remarks
 - `🛠️ IMPROVE+CLOSE` — execute, no further stops
 
 ### 🔍 RECAP
@@ -490,36 +469,14 @@ Two phases. ONE stop between them.
 
 `gh-cli list_issues <owner> <repo>`. For each open issue decide: CLOSE / UPDATE Source-Inventory / CREATE.
 
-Source-Inventory updates live in the issue BODY (read via `get_issue`, splice in new source paths, full-replace via `update_issue --body`) — there are no comments. Narrative goes to OldThemes/decisions/DOCS via Persistence Routing.
+Source-Inventory updates live in the issue BODY (read via `get_issue`, splice in new source paths, full-replace via `update_issue --body`) — there are no comments. Narrative goes to OldThemes / decisions / DOCS.
 
-**EMPTY PLATE:** every Open Item from the original plan not executed → Issue before closing.
+**EMPTY PLATE:** every Open Item from the original plan not executed → capture it before closing. Usually an OldThemes entry; an Issue only when it's a standalone task in its own right.
 
-#### Persistence Routing
+#### Chat summary
 
-For each Issue with substantial session activity (back-and-forth, alternative-evaluation, trade-off discussion), route session prose:
-
-| Content type | Destination |
-|---|---|
-| Discussion / alternatives / iteration history | `decisions/OldThemes/<topic>/<file>.md` |
-| SOLL change (Change / Keep / Pending) | `decisions/<step>.md` § Recommendation (requires dev/ evidence) |
-| IST functional change | `decisions/<step>.md` § Status Quo (after SOLL → IST migration) |
-| Pure refactor / module-shape change | `<package>/DOCS.md` |
-
-Empty issues get nothing. Single-shot fixes need no routing.
-
-#### Chat Output
-
-```
-ISSUES:
-- CLOSE #<n>: <reason>
-- UPDATE #<n>: <new source paths>
-- CREATE: "<title>" — <scope>
-
-PERSISTENCE:
-- OldThemes: <topic>/<file>.md (NEW or EXTEND)
-- decisions: <file>.md (NEW or EDIT)
-- DOCS: <package>/DOCS.md (EDIT)
-```
+- **Issues:** which issues we touched this session, which get newly created, which get closed, which get a Source-Inventory update.
+- **Doc files:** which doc files (OldThemes / decisions / DOCS) get written or edited in the IMPROVE phase, and which doc-file paths get added to or removed from which issue's Source-Inventory.
 
 🛑 STOP — ask "Bemerkungen?"
 
@@ -527,10 +484,8 @@ PERSISTENCE:
 
 One run through, no stops.
 
-1. **Persist session substance** — write OldThemes / decisions / DOCS files per Persistence Routing.
-2. **Update Issue Source-Inventory** — read the body via `get_issue`, splice in the new source paths, full-replace via `gh-cli update_issue <owner> <repo> <number> --body "<full body>"`. Only when new files came into existence in Step 1.
-3. **Sync docs to RAG** — `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest). RAG sync runs ONLY here at recap — NEVER mid-session.
-4. **Issues hygiene** — `gh-cli update_issue --state closed` / `create_issue` / `update_issue --body` per chat output.
-5. **Git closing** — `git checkout main && git merge integration` → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
+1. **Execute the Chat summary** — write the OldThemes / decisions / DOCS files and do the issue hygiene (create / close / Source-Inventory update) exactly as named in #### Chat summary above.
+2. **Sync docs to RAG** — `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest). RAG sync runs ONLY here at recap — NEVER mid-session.
+3. **Git closing** — `git checkout main && git merge integration` → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
 
 Done when commits are pushed.
