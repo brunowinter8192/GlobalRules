@@ -170,9 +170,9 @@ The worker gets, in its prompt, the exact documentation it works on — which fi
 
 **YOU do:**
 1. **OldThemes folder.** RAG-search `<Project>-docs` for an existing OldThemes folder on the topic. Whether to extend an existing one or create a new one is YOUR judgment — it can't be hard-ruled. Reuse → use its exact slug; new → name it per project conventions.
-2. **decisions/<step>.md files.** RAG-search `<Project>-docs` to identify which decision files the work touches — may span multiple pipeline steps, list ALL of them.
-3. **New vs extend.** Decide whether the task creates a new OldThemes folder / new `decisions/<step>.md` or only extends existing ones — your judgment.
-4. **Pass exact full paths in the prompt.** E.g. "Write the Phase A.1 narrative to `decisions/OldThemes/<exact-slug>/A1.md`; IST updates after the src/ change go to `decisions/<step>.md`." No placeholders, no "the worker decides".
+2. **decisions/<area>.md files.** RAG-search `<Project>-docs` to identify which decision files the work touches — may span multiple areas, list ALL of them.
+3. **New vs extend.** Decide whether the task creates a new OldThemes folder / new `decisions/<area>.md` or only extends existing ones — your judgment.
+4. **Pass exact full paths in the prompt.** E.g. "Write the Phase A.1 narrative to `decisions/OldThemes/<exact-slug>/A1.md`; IST updates after the src/ change go to `decisions/<area>.md`." No placeholders, no "the worker decides".
 
 **The worker** reads the paths you named and writes content there — it does NOT use `rag-cli`, pick folder names, or decide where narrative lives. If a worker invents a path mid-task, that's your incomplete prompt — not the worker.
 

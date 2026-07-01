@@ -13,7 +13,7 @@ Three activities, kept separate:
 3. **Assertion across many data points after a fix.** Example: an invariant checked across N entries where live-testing would mean N manual steps — infeasible by hand, milliseconds by script. Decision point: does the assertion have permanent regression-guard value? Then fold the test case into an EXISTING test file in `dev/`. Just historical value for the one fix? Then worktree or `/tmp/`, gone on merge.
 
 **What goes in `dev/` (permanent value):**
-- Benchmarks (pipeline performance measurements)
+- Benchmarks (performance measurements)
 - Evals (retrieval/reranker/quality evaluation suites)
 - Investigation modules for a documented problem
 - Growing unit-test suites / assertion libraries
@@ -25,8 +25,8 @@ Three activities, kept separate:
 **Rule of thumb:** "is this script still useful in 3 months?" Yes → `dev/`. No → worktree or `/tmp/`.
 
 **Examples:**
-- `dev/pipeline/run_smoke.py` → permanent analysis tool ✅
-- `dev/pipeline/test_assertions.py` → growing assertion library, new test cases come per fix ✅
+- `dev/retrieval/run_smoke.py` → permanent analysis tool ✅
+- `dev/retrieval/test_assertions.py` → growing assertion library, new test cases come per fix ✅
 - `dev/feature_debug/` → investigation module for documented problem ✅
 - `verify_fix_works.py` → one-shot, does NOT belong in `dev/`. Worktree or `/tmp/` ❌
 
@@ -36,51 +36,41 @@ Three activities, kept separate:
 
 ```
 dev/
-├── <pipeline_stage>/              # Grouped by pipeline stage
-│   ├── p1_<first_module>.py       # Pipeline module, numbered by position/dependency
-│   ├── p2_<second_module>.py
-│   ├── A_<analysis_script>.py     # Analysis/eval script
-│   ├── A_<name>_reports/          # Output dir for analysis script
-│   └── ...
-└── cleanup/                       # Utility scripts (no pipeline mapping)
+├── <area>/                        # One dir per area — SAME name as decisions/<area>.md
+│   ├── 01_<report_script>.py      # produces a report → numbered
+│   ├── <helper>.py                # produces no report → no number
+│   ├── md/                        # report outputs (.md), file prefixed with the script number
+│   │   └── 01_<label>.md
+│   ├── csv/                       # report outputs (.csv)
+│   └── png/                       # report outputs (.png)
+└── cleanup/                       # Utility scripts (no area mapping)
 ```
 
 ## Naming Convention
 
-**Pipeline modules (`pN_`):** Numbered by position in the pipeline or dependency order. These are self-contained implementations that can be migrated to prod (`src/`) when proven. `p1_` runs first or has no dependencies, `p2_` depends on `p1_`, etc.
+**Only report scripts are numbered.** A script that PRODUCES a report gets a number (`01_`, `02_`, …). A script that produces no report carries no number. The number is not a dependency or position order — it marks "this one emits a report".
 
-**Analysis scripts (`A_`):** Scripts that evaluate, benchmark, or analyze the pipeline modules. They import from `pN_` modules and produce MD reports. Reports go to `A_<name>_reports/`.
+**The report carries the script's number.** A report-script `01_test.py` writes `md/01_testresults.md` (or `.csv` / `.png`) — same number prefix, so every report is traceable to the script that made it.
 
-**Numbering is per-directory** — each pipeline stage dir starts at `p1_`. When modules are added or removed, renumber within that directory.
+**Report outputs live in type-folders** inside the area dir: `md/`, `csv/`, `png/`. All three are possible, none is mandatory — a script writes to whichever type(s) it emits.
 
-**Example (RAG):**
+**Example:**
 ```
-dev/
-├── indexing/
-│   ├── p1_chunker.py              # Pipe step 1: text → chunks
-│   ├── p2_embedder.py             # Pipe step 2: chunks → dense embeddings
-│   ├── p3_sparse_embedder.py      # Pipe step 3: chunks → sparse embeddings
-│   ├── p4_db.py                   # Pipe step 4: storage + search
-│   ├── p5_indexer.py              # Pipe step 5: orchestrates 1-4
-│   ├── A_index_collection.py      # Analysis: index + report stats
-│   ├── A_index_collection_reports/
-│   ├── A_chunking_stats.py        # Analysis: chunk size distribution
-│   └── A_chunking_stats_reports/
-├── retrieval/
-│   ├── p1_retriever.py            # Pipe step 1: query → results
-│   ├── A_retrieval_sandbox.py     # Analysis: test queries across modes
-│   └── A_retrieval_sandbox_reports/
-└── cleanup/
+dev/retrieval/
+├── 01_retrieval_eval.py        # emits a report → numbered
+├── retriever.py                # no report → no number
+├── md/
+│   └── 01_retrieval_eval_baseline.md
+└── csv/
+    └── 01_retrieval_eval_sweep.csv
 ```
 
 ## Rules
 
-1. **Pipeline grouping** — top-level dev/ dirs correspond to pipeline stages (e.g., `indexing/`, `retrieval/`)
-2. **`pN_` prefix for pipeline modules** — numbered by position/dependency order within the directory. Self-contained, no imports from `src/`. These ARE the dev implementations that get migrated to prod when proven.
-3. **`A_` prefix for analysis/eval scripts** — import from `pN_` modules, produce MD reports. Output to `A_<name>_reports/`.
-4. **Dev is self-contained** — dev modules do NOT import from `src/`. Dev mirrors prod interfaces but is independent. When a dev implementation is proven, it gets migrated to `src/` (lean, without report output).
-5. **Renumber when structure changes** — numbering is per-directory. Adding/removing modules = renumber the directory.
-6. **Reports include timestamps** — output filenames contain `<label>_<timestamp>` for history tracking
-7. **cleanup/** — utility scripts without pipeline mapping (data cleanup, migration). No pipeline grouping needed.
-8. **MD output, never console** — dev scripts write results to MD files in their report directories. Console output is limited to the report file path. Analysis happens by reading the MD together, not by dumping into the terminal.
-9. **Python execution** — ALL Python commands MUST use `./venv/bin/python` (not `python` or `python3`). The system Python does not have project dependencies installed.
+1. **Area grouping** — top-level dev/ dirs correspond to areas, each named exactly like its `decisions/<area>.md` (e.g., `indexing/`, `retrieval/`)
+2. **Number only report scripts** — a script that produces a report is numbered (`01_`, `02_`, …); a script that produces no report is not.
+3. **Report carries the script number** — output goes to `md/`/`csv/`/`png/`, and the file is prefixed with the producing script's number (`01_test.py` → `md/01_testresults.md`).
+4. **Dev is self-contained** — dev code does NOT import from `src/`. Dev mirrors prod interfaces but is independent. When a dev implementation is proven, it gets migrated to `src/` (lean, without report output).
+5. **cleanup/** — utility scripts without area mapping (data cleanup, migration). No area grouping needed.
+6. **Reports never go to console** — a report-producing script writes to `md/`/`csv/`/`png/`, never dumps results to the terminal. Console is limited to the output file path.
+7. **Python execution** — ALL Python commands MUST use `./venv/bin/python` (not `python` or `python3`). The system Python does not have project dependencies installed.

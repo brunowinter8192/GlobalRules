@@ -22,8 +22,8 @@
 
 An Issue is a **lean entry-point**: topic + sources that reference it. Content lives elsewhere:
 
-- `decisions/<area>.md` — current architectural state (IST/Evidenz/SOLL)
-- `decisions/OldThemes/<topic>/` or `decisions/OldThemes/<topic>.md` — discussion trail, iteration history
+- `decisions/<area>.md` — current architectural state (IST/Evidenz/Offene Fragen)
+- `decisions/OldThemes/<area>/` or `decisions/OldThemes/<area>.md` — discussion trail, iteration history
 - `<package>/DOCS.md` — module map
 - RAG `<Project>-reference` collection — external sources (vendor docs, papers, GitHub, Reddit, repos)
 

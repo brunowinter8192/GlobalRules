@@ -153,8 +153,8 @@ This is your touched-file inventory for the recap.
 You already know the full docs structure from the documentation rules. Bring every place you touched in sync with what you did:
 
 - **DOCS.md** for every `src/` AND `dev/` file you touched — module shape matching the file as you left it. CREATE one only when you added a new module to a package that had none and now has multiple modules.
-- **decisions/<step>.md** IST when your change moved production behavior — IST must describe reality, with no stale symbol/path refs (spot-grep `src/` for each symbol you cited).
-- **decisions/OldThemes/<topic>/** for the investigation/discussion trail with Opus, when it was substantial.
+- **decisions/<area>.md** IST when your change moved production behavior — IST must describe reality, with no stale symbol/path refs (spot-grep `src/` for each symbol you cited).
+- **decisions/OldThemes/<area>/** for the investigation/discussion trail with Opus, when it was substantial.
 
 ### Step 3 — Commit + Report
 
