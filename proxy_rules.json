@@ -46,7 +46,7 @@
   },
   "model_override_worker": {
     "enabled": true,
-    "model": "claude-sonnet-4-6",
+    "model": "claude-sonnet-5",
     "thinking": {"type": "adaptive", "display": "omitted"},
     "effort": "high",
     "max_tokens": 64000
