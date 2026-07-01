@@ -15,8 +15,9 @@ Worker names are globally unique (registry-tracked). Project path is required on
 | Clean last N assistant turns (JSONL) | `worker-cli response <name> [N]` |
 | Send message to running worker | `worker-cli send <name> <message>` |
 | Merge worker branch | `worker-cli merge <name>` |
-| Kill worker | `worker-cli kill <name>` |
+| Kill worker (+ registered cross-project worktrees) | `worker-cli kill <name>` |
 | Spawn worker in worktree | `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` |
+| Create cross-project worktree | `worker-cli worktree <name> <target_repo> [branch]` |
 | Revive dead worker (resume CC session) | `worker-cli revive <name>` |
 
 `worker-cli response <name>` is the default for reading idle workers — clean assistant text from the session JSONL. `worker-cli capture <name>` is the fallback when `response` misses context (rare — Phase-A partial-report situations); it returns the pane already cleaned and scoped to since the last prompt. Both print straight to context — never pipe them through `tail` / `head` / `sed`; a hook strips that anyway.

@@ -28,7 +28,7 @@ The failure mode this prevents is telephone-game: if the material for an OldThem
 
 **Spawn is fixed: every worker spawns into a worktree in the CURRENT project** (`pwd` at session start) — always, no exceptions, no `--no-worktree`.
 
-**Cross-project work uses two worktrees.** WHERE the worker works is decoupled from where it spawned. For work in another project, additionally create a worktree in the target project (`git -C <target_project> worktree add .claude/worktrees/<name> -b <name>`) and have the worker do its work there. So: spawned in the current project's worktree, working in the target project's worktree — the two are separate.
+**Cross-project work uses two worktrees.** WHERE the worker works is decoupled from where it spawned. For work in another project, after spawning, create the target-project worktree with `worker-cli worktree <name> <target_project>` (creates + registers `.claude/worktrees/<name>` in the target on branch `<name>`, echoes the path) and have the worker do its work there. So: spawned in the current project's worktree, working in the target project's worktree — the two are separate. `worker-cli kill <name>` cleans both the spawn-side and the registered cross-project worktree + branch.
 
 ### Timer Loop — After Every Worker Send
 
