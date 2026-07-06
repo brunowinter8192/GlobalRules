@@ -36,7 +36,7 @@ Three activities, kept separate:
 
 ```
 dev/
-├── <area>/                        # One dir per area — SAME name as decisions/<area>.md
+├── <area>/                        # One dir per area — SAME name as process-docs/<area>/
 │   ├── 01_<report_script>.py      # produces a report → numbered
 │   ├── <helper>.py                # produces no report → no number
 │   ├── md/                        # report outputs (.md), file prefixed with the script number
@@ -67,7 +67,7 @@ dev/retrieval/
 
 ## Rules
 
-1. **Area grouping** — top-level dev/ dirs correspond to areas, each named exactly like its `decisions/<area>.md` (e.g., `indexing/`, `retrieval/`)
+1. **Area grouping** — top-level dev/ dirs correspond to areas, each named like its `process-docs/<area>/` folder (e.g., `indexing/`, `retrieval/`)
 2. **Number only report scripts** — a script that produces a report is numbered (`01_`, `02_`, …); a script that produces no report is not.
 3. **Report carries the script number** — output goes to `md/`/`csv/`/`png/`, and the file is prefixed with the producing script's number (`01_test.py` → `md/01_testresults.md`).
 4. **Dev is self-contained** — dev code does NOT import from `src/`. Dev mirrors prod interfaces but is independent. When a dev implementation is proven, it gets migrated to `src/` (lean, without report output).

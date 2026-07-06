@@ -87,15 +87,9 @@ When committing multiple repos (e.g., project + plugin source):
 
 `search_hybrid` finds the hit; **`read_document <coll> <doc> <chunk> --before N --after M`** pulls that chunk plus the chunks around it, where the useful detail usually sits.
 
-**Every chunk you build on gets expanded with `read_document` first.** The moment a chunk becomes the basis for an artifact — a rule, a decision, an IST description, anything you write — expand it before you use it; don't draft from the bare search hit. A single chunk is a pointer, not the full context: what you need is often in the neighbors the search didn't return — the caveat sitting one chunk away that you'd otherwise miss.
+**Every chunk you build on gets expanded with `read_document` first.** The moment a chunk becomes the basis for an artifact — a rule, a process-docs entry, anything you write — expand it before you use it; don't draft from the bare search hit. A single chunk is a pointer, not the full context: what you need is often in the neighbors the search didn't return — the caveat sitting one chunk away that you'd otherwise miss.
 
-**Exclude process-memory from current-state queries.** `OldThemes/` nests under `decisions/` and carries SUPERSEDED values that misread as current. When the question is about the CURRENT state, append `--exclude "%OldThemes%"` to drop the whole OldThemes subtree (the `document` field is the full path, so one pattern catches it):
-
-```bash
-rag-cli search_hybrid "<query>" <Project>-docs --exclude "%OldThemes%"
-```
-
-Omit `--exclude` only when you specifically want iteration history / why-it-was-decided. Default for "what IS the state of X" = exclude OldThemes.
+**Current state comes from CODE, not RAG.** The `<Project>-docs` collection indexes `process-docs/**` (write-once history) + `DOCS.md` (module map) — process-docs carries SUPERSEDED values that misread as current. So a "what IS the state of X" question is answered by reading the source code, not by a docs query. Use `<Project>-docs` when you want the reasoning / iteration history / why-it-was-decided; use the code (Read/grep) when you want the live value. DOCS.md is the one docs surface that tracks current code shape.
 
 **Miss handling:** on 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / bash `grep`. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
 

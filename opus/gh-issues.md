@@ -22,12 +22,12 @@
 
 An Issue is a **lean entry-point**: topic + sources that reference it. Content lives elsewhere:
 
-- `decisions/<area>.md` — current architectural state (IST/Evidenz/Offene Fragen)
-- `decisions/OldThemes/<area>/` or `decisions/OldThemes/<area>.md` — discussion trail, iteration history
+- source code — the current architectural state (read the code; there is no doc mirror)
+- `process-docs/<area>/` — process history: investigation, measurements, iteration, the reasoning behind chosen code values (write-once entries)
 - `<package>/DOCS.md` — module map
 - RAG `<Project>-reference` collection — external sources (vendor docs, papers, GitHub, Reddit, repos)
 
-Resume mechanism: RAG-search on `<Project>-docs` (decisions/DOCS/CLAUDE/OldThemes), `<Project>-reference` (external sources).
+Resume mechanism: RAG-search on `<Project>-docs` (DOCS/CLAUDE/process-docs) + reading the code, `<Project>-reference` (external sources).
 
 Issues are created at exactly two points: when the user asks mid-session, or at Recap for whatever is still open at session end. There is no autonomous mid-session issue-keeping between those.
 
@@ -40,9 +40,9 @@ What it is:
 [2-3 sentences — goal + scope. No iteration history. No decision rationale.]
 
 Sources referencing this topic:
-- decisions: <file paths if any>
+- code: <key src/ paths if any>
 - DOCS: <DOCS.md paths if any>
-- OldThemes: <subfolder or file paths if any>
+- process-docs: <subfolder or file paths if any>
 - <Project>-reference: <document names if any>
 
 Resume: RAG search "<query>" on <Project>-docs
@@ -67,6 +67,6 @@ The issue does not contain narrative. The sources do.
 
 Close proactively: when the issue's code is merged AND live-verify shows the new behavior works as intended, close it in the same flow — don't wait for the user to ask.
 
-No verification of prosa-state at close (Recap is responsible for persistence). The OldThemes prosa is the journey summary — nothing is posted to the issue.
+No verification of prosa-state at close (Recap is responsible for persistence). The process-docs prosa is the journey summary — nothing is posted to the issue.
 
 If an issue defines a specific verification test that has not been run yet → issue stays open, run the test, then close.

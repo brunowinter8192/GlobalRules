@@ -13,16 +13,16 @@ Applies to EVERY task, not only "unclear root cause" cases. Even when YOU believ
 
 **ALL source code edits go through workers. ZERO exceptions.** This includes "quick fixes", "one-line changes", "obvious changes", and proxy/addon/config files. If it's a `.py`, `.sh`, `.js`, `.ts`, or any source file — WORKER.
 
-Files YOU may edit directly: skills and all documentation — `DOCS.md`, `decisions/*.md`, `decisions/OldThemes/**`. Source code stays worker-only.
+Files YOU may edit directly: skills and all documentation — `DOCS.md`, `process-docs/**`. Source code stays worker-only.
 
 ### Documentation Authorship — Who Has the Input Writes It
 
-`decisions/` and `decisions/OldThemes/` are NOT source code, so authorship is not a permission question — it is decided by **where the content originates**:
+`process-docs/` and `DOCS.md` are NOT source code, so authorship is not a permission question — it is decided by **where the content originates**:
 
 - **Content the worker has** (what it built, measured, decided in its worktree) → the worker writes it as part of its recap. It holds the primary context.
-- **Content the worker does NOT have** (discussion that happened only in the YOU↔user chat, research YOU did via RAG / vendor docs / web, alternatives weighed in conversation) → YOU write it directly into OldThemes / decisions, no worker involved.
+- **Content the worker does NOT have** (discussion that happened only in the YOU↔user chat, research YOU did via RAG / vendor docs / web, alternatives weighed in conversation) → YOU write it directly into process-docs, no worker involved.
 
-The failure mode this prevents is telephone-game: if the material for an OldThemes entry never reached the worker — it lived only in your chat with the user — then dictating to the worker what to write there is pointless. You would be transcribing your own context into a prompt so the worker can transcribe it back into a file. At that point you write the file yourself. Route through a worker ONLY when the worker is the one who actually holds the input.
+The failure mode this prevents is telephone-game: if the material for a process-docs entry never reached the worker — it lived only in your chat with the user — then dictating to the worker what to write there is pointless. You would be transcribing your own context into a prompt so the worker can transcribe it back into a file. At that point you write the file yourself. Route through a worker ONLY when the worker is the one who actually holds the input.
 
 ### Worker Project Scope
 
@@ -71,9 +71,9 @@ YOU build YOUR OWN mental model — NOT to be confused with Worker Phase 2 cross
 
 #### Stage 1 — RAG overview
 
-Run RAG (`search_hybrid`, then `read_document` on the important hits) on `<Project>-docs` to build a rough mental model of the relevant decisions, OldThemes, and the code they describe — and on `<Project>-reference` when the task needs external sources (vendor docs, papers, third-party repos). RAG runs whether or not an issue exists for the topic. This overview is what Stage 2 builds on.
+Run RAG (`search_hybrid`, then `read_document` on the important hits) on `<Project>-docs` to build a rough mental model of the relevant process-docs and the code they describe — and on `<Project>-reference` when the task needs external sources (vendor docs, papers, third-party repos). RAG runs whether or not an issue exists for the topic. This overview is what Stage 2 builds on.
 
-Do NOT direct-read decision files or DOCS.md — you already have their content from search + read_document. The only thing you read directly is the source code, which is not indexed.
+Do NOT direct-read process-docs or DOCS.md — you already have their content from search + read_document. The only thing you read directly is the source code, which is not indexed.
 
 #### Stage 2 — Source Identification (which files MUST be read)
 
@@ -96,7 +96,7 @@ Assemble the relevant files and read them. Not skim — READ. Every function, ev
 
 **Present status quo to user after all three stages:**
 - Which files/components are affected — with file:line citations from Stage 3, not just RAG summary phrasing
-- Current state (IST) and why it matters
+- Current state and why it matters
 - Reference Files identified (Stage 2 read-list, marked as read)
 - The actual code paths the worker's task touches (Stage 3 finding)
 - Relevant dev/ scripts
@@ -134,7 +134,7 @@ Define task-level deliverables with measurable completion criteria. Each deliver
 - What will be built/fixed
 - How YOU verify it (run tests, CLI call, check output) — code review does NOT count
 - How the user verifies it as final quality gate
-- All affected file categories (src/, decisions/, dev/, docs)
+- All affected file categories (src/, process-docs/, dev/, docs)
 
 🛑 STOP — Ask for remarks before proceeding to IMPLEMENT.
 
@@ -169,14 +169,14 @@ Worktrees branch from the last COMMIT — uncommitted changes are NOT visible to
 The worker gets, in its prompt, the exact documentation it works on — which file to write, what to create. YOU decide the paths before dispatch; the worker never picks them.
 
 **YOU do:**
-1. **OldThemes folder.** RAG-search `<Project>-docs` for an existing OldThemes folder on the topic. Whether to extend an existing one or create a new one is YOUR judgment — it can't be hard-ruled. Reuse → use its exact slug; new → name it per project conventions.
-2. **decisions/<area>.md files.** RAG-search `<Project>-docs` to identify which decision files the work touches — may span multiple areas, list ALL of them.
-3. **New vs extend.** Decide whether the task creates a new OldThemes folder / new `decisions/<area>.md` or only extends existing ones — your judgment.
-4. **Pass exact full paths in the prompt.** E.g. "Write the Phase A.1 narrative to `decisions/OldThemes/<exact-slug>/A1.md`; IST updates after the src/ change go to `decisions/<area>.md`." No placeholders, no "the worker decides".
+1. **process-docs folder.** RAG-search `<Project>-docs` for an existing `process-docs/<area>/` folder on the topic. Whether to extend the theme with a new dated entry or start a new theme folder is YOUR judgment — it can't be hard-ruled. Reuse → use its exact slug; new → name it per project conventions. Entries are write-once — the worker writes a NEW entry, never edits an old one.
+2. **DOCS.md files.** Identify which `DOCS.md` the src/ change touches (the module level that changed) — may span multiple, list ALL of them. DOCS.md is the maintained surface updated in the same commit as the code.
+3. **New vs extend.** Decide whether the task starts a new `process-docs/<area>/` theme or adds an entry to an existing one — your judgment.
+4. **Pass exact full paths in the prompt.** E.g. "Write the Phase A.1 narrative to `process-docs/<exact-slug>/A1_2026-06.md`; after the src/ change, update the module's `DOCS.md`." No placeholders, no "the worker decides".
 
 **The worker** reads the paths you named and writes content there — it does NOT use `rag-cli`, pick folder names, or decide where narrative lives. If a worker invents a path mid-task, that's your incomplete prompt — not the worker.
 
-Applies to OldThemes narrative paths, decisions/ IST update paths, new `dev/<area>/` subdirectory naming — any artifact placement.
+Applies to process-docs narrative paths, DOCS.md update paths, new `dev/<area>/` subdirectory naming — any artifact placement.
 
 ### External Knowledge — YOU Provide, Worker Implements
 
@@ -208,7 +208,7 @@ The prompt describes WHAT, the worker figures out HOW. Every prompt must match e
 
 **MUST include:**
 - The task described abstractly — what is the problem, what is the desired outcome
-- Which files/directories are relevant — including any OldThemes or decision files the worker should READ for context. In recap the worker extends those, or creates new OldThemes/decisions if YOU ordered it (with the exact paths from § Documentation Paths).
+- Which files/directories are relevant — including any process-docs entries the worker should READ for context. In recap the worker writes new process-docs entries and updates the touched DOCS.md if YOU ordered it (with the exact paths from § Documentation Paths).
 - Worktree path (§ Worktree Rule)
 - Explicit negative scope: "Do NOT add features/improvements beyond the listed deliverables"
 - "You are a WORKER."
@@ -344,13 +344,13 @@ When code review surfaces an issue where YOU and the worker disagree, treat it e
 
 ## Worker Phase 5: Recap (MANDATORY After Every Stage)
 
-**Trigger:** ALWAYS — after Phase 4 Review completes clean for ANY task / etappe, YOU send `worker-cli send <name> "recap"`. Non-discretionary. The recap consolidates DOCS.md sync, decisions/ IST consistency, and OldThemes persistence into ONE commit while the worker still has the original task context in head.
+**Trigger:** ALWAYS — after Phase 4 Review completes clean for ANY task / etappe, YOU send `worker-cli send <name> "recap"`. Non-discretionary. The recap consolidates DOCS.md sync (code-shape update) and process-docs persistence (write-once entry) into ONE commit while the worker still has the original task context in head.
 
 **Always send recap after a subtask.** Send `recap` after every subtask, no exceptions. YOU just send the trigger; the worker runs its own recap pass, scoped to the subtask it did.
 
 If the worker dies mid-recap, spawn a successor that re-runs the recap for that subtask — see § Worker Death Recovery. NEVER defer drift to session-end RECAP.
 
-**Phase 5 output:** worker commits ONE recap commit (`docs: recap for <task>`), reports touched files + doc updates (DOCS.md / decisions IST / OldThemes). Folds into Phase 6 Merge.
+**Phase 5 output:** worker commits ONE recap commit (`docs: recap for <task>`), reports touched files + doc updates (DOCS.md / process-docs). Folds into Phase 6 Merge.
 
 ---
 
@@ -469,14 +469,14 @@ Two phases. ONE stop between them.
 
 `gh-cli list_issues <owner> <repo>`. For each open issue decide: CLOSE / UPDATE Source-Inventory / CREATE.
 
-Source-Inventory updates live in the issue BODY (read via `get_issue`, splice in new source paths, full-replace via `update_issue --body`) — there are no comments. Narrative goes to OldThemes / decisions / DOCS.
+Source-Inventory updates live in the issue BODY (read via `get_issue`, splice in new source paths, full-replace via `update_issue --body`) — there are no comments. Narrative goes to process-docs / DOCS.
 
-**EMPTY PLATE:** every Open Item from the original plan not executed → capture it before closing. Usually an OldThemes entry; an Issue only when it's a standalone task in its own right.
+**EMPTY PLATE:** every Open Item from the original plan not executed → capture it before closing. Usually a process-docs entry; an Issue only when it's a standalone task in its own right.
 
 #### Chat summary
 
 - **Issues:** which issues we touched this session, which get newly created, which get closed, which get a Source-Inventory update.
-- **Doc files:** which doc files (OldThemes / decisions / DOCS) get written or edited in the IMPROVE phase, and which doc-file paths get added to or removed from which issue's Source-Inventory.
+- **Doc files:** which doc files (process-docs / DOCS) get written or edited in the IMPROVE phase, and which doc-file paths get added to or removed from which issue's Source-Inventory.
 
 🛑 STOP — ask "Bemerkungen?"
 
@@ -484,7 +484,7 @@ Source-Inventory updates live in the issue BODY (read via `get_issue`, splice in
 
 One run through, no stops.
 
-1. **Execute the Chat summary** — write the OldThemes / decisions / DOCS files and do the issue hygiene (create / close / Source-Inventory update) exactly as named in #### Chat summary above.
+1. **Execute the Chat summary** — write the process-docs / DOCS files and do the issue hygiene (create / close / Source-Inventory update) exactly as named in #### Chat summary above.
 2. **Sync docs to RAG** — `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest). RAG sync runs ONLY here at recap — NEVER mid-session.
 3. **Git closing** — `git checkout main && git merge integration` → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
 

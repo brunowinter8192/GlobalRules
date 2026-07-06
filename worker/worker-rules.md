@@ -4,9 +4,9 @@ These rules apply to every session you run. Run the Pre-Edit Check to determine 
 
 ## Code Investigation — concrete files only
 
-Investigate using the concrete files Opus names in your prompt (src/, decisions/, DOCS.md, dev/). Read those files directly. NEVER run `rag-cli` or any external research (gh-cli, web) — RAG and external lookups are Opus's job; Opus passes the relevant findings and file paths into your prompt. If you need a file that isn't named, ask — do not go searching collections.
+Investigate using the concrete files Opus names in your prompt (src/, process-docs/, DOCS.md, dev/). Read those files directly. NEVER run `rag-cli` or any external research (gh-cli, web) — RAG and external lookups are Opus's job; Opus passes the relevant findings and file paths into your prompt. If you need a file that isn't named, ask — do not go searching collections.
 
-**Commit logs are NOT an evidence source** and are NOT used for choice-rationale, verification claims, or historical inference. All choice + rationale + verification info lives exclusively in DOCS.md + decisions/. If it's not there, the statement is "not documented / unverified", not "check the git log".
+**Commit logs are NOT an evidence source** and are NOT used for choice-rationale, verification claims, or historical inference. All choice + rationale + verification info lives exclusively in DOCS.md + process-docs/ + the source code itself. If it's not there, the statement is "not documented / unverified", not "check the git log".
 
 ## Worktree Isolation
 
@@ -152,9 +152,8 @@ This is your touched-file inventory for the recap.
 
 You already know the full docs structure from the documentation rules. Bring every place you touched in sync with what you did:
 
-- **DOCS.md** for every `src/` AND `dev/` file you touched — module shape matching the file as you left it. CREATE one only when you added a new module to a package that had none and now has multiple modules.
-- **decisions/<area>.md** IST when your change moved production behavior — IST must describe reality, with no stale symbol/path refs (spot-grep `src/` for each symbol you cited).
-- **decisions/OldThemes/<area>/** for the investigation/discussion trail with Opus, when it was substantial.
+- **DOCS.md** for every `src/` AND `dev/` file you touched — module shape matching the file as you left it. This is the ONE surface that must track current code shape; update it in the same commit. CREATE one only when you added a new module to a package that had none and now has multiple modules.
+- **process-docs/<area>/** — a NEW write-once entry for the investigation/discussion trail with Opus, when it was substantial. Never edit an existing entry; add a dated one. No present-tense "current" claims (the code is the current state).
 
 ### Step 3 — Commit + Report
 
@@ -170,8 +169,7 @@ Output the recap report (after committing, before going idle):
 RECAP REPORT:
 - Touched files (task commits): <list>
 - DOCS.md updates: <list or "none">
-- decisions/ IST corrections: <list or "none">
-- OldThemes extracts: <list or "none">
+- process-docs entries written: <list or "none">
 - Recap commit SHA: <hash>
 ```
 
@@ -183,4 +181,4 @@ RECAP REPORT:
 - Rule files in `~/.claude/shared-rules/` — Opus's responsibility (cache-invalidation territory)
 - Code-issues beyond docs — beyond recap scope; flag in the report, do NOT fix
 
-Recap is doc-hygiene + decision-IST + OldThemes persistence for what YOU touched. Nothing else.
+Recap is DOCS.md sync + process-docs persistence for what YOU touched. Nothing else.
