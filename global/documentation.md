@@ -52,7 +52,7 @@ There is **no documentation mirror of current production state.** The source cod
 
 ## dev/ Layout
 
-**Report outputs in dev/.** A dev script that produces a report is numbered (`01_`, `02_`, …), and its report carries the same number — e.g. `01_test.py` → `md/01_testresults.md`. Reports live in a `md/`, `csv/`, or `png/` folder inside `dev/<area>/`, never the console. Scripts that produce no report are not numbered. Organize dev work by theme in `dev/<area>/` — the same area name used in `process-docs/<area>/` where the two align.
+**Report outputs in dev/.** A dev script that produces a report writes it to a `md/`, `csv/`, or `png/` folder (by output type) inside `dev/<area>/`, never the console and never into a per-script `NN_reports/` folder. The report file carries a DESCRIPTIVE name that traces to its producing script — dev scripts are NOT numbered. DATA outputs (raw corpora, cached run payloads) are kept separate from reports, never mixed into `md/`. Organize dev work by theme in `dev/<area>/` — the same area name used in `process-docs/<area>/` where the two align.
 
 ## DOCS.md
 

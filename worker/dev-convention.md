@@ -37,10 +37,10 @@ Three activities, kept separate:
 ```
 dev/
 ├── <area>/                        # One dir per area — SAME name as process-docs/<area>/
-│   ├── 01_<report_script>.py      # produces a report → numbered
-│   ├── <helper>.py                # produces no report → no number
-│   ├── md/                        # report outputs (.md), file prefixed with the script number
-│   │   └── 01_<label>.md
+│   ├── <report_script>.py         # a script that produces a report
+│   ├── <helper>.py                # library / helper code
+│   ├── md/                        # report outputs (.md), descriptive names
+│   │   └── <descriptive_label>.md
 │   ├── csv/                       # report outputs (.csv)
 │   └── png/                       # report outputs (.png)
 └── cleanup/                       # Utility scripts (no area mapping)
@@ -48,28 +48,28 @@ dev/
 
 ## Naming Convention
 
-**Only report scripts are numbered.** A script that PRODUCES a report gets a number (`01_`, `02_`, …). A script that produces no report carries no number. The number is not a dependency or position order — it marks "this one emits a report".
+**Dev scripts are NOT numbered.** A report traces to its producing script by a DESCRIPTIVE report name (`retrieval_eval.py` → `md/retrieval_eval_baseline.md`), not a number prefix — there is no run-order to encode (dev scripts rarely build on each other's reports).
 
-**The report carries the script's number.** A report-script `01_test.py` writes `md/01_testresults.md` (or `.csv` / `.png`) — same number prefix, so every report is traceable to the script that made it.
+**Report outputs live in type-folders** inside the area dir: `md/`, `csv/`, `png/` — a script writes to whichever type(s) it emits. Reports are consolidated in these shared type-folders, NEVER in per-script `NN_reports/` folders.
 
-**Report outputs live in type-folders** inside the area dir: `md/`, `csv/`, `png/`. All three are possible, none is mandatory — a script writes to whichever type(s) it emits.
+**Reports vs DATA.** The type-folders hold REPORTS (readable analysis). Bulk DATA outputs (raw corpora, cached run payloads, per-item dumps) stay in their own location, never mixed into `md/`.
 
 **Example:**
 ```
 dev/retrieval/
-├── 01_retrieval_eval.py        # emits a report → numbered
-├── retriever.py                # no report → no number
+├── retrieval_eval.py           # emits a report
+├── retriever.py                # helper / library
 ├── md/
-│   └── 01_retrieval_eval_baseline.md
+│   └── retrieval_eval_baseline.md
 └── csv/
-    └── 01_retrieval_eval_sweep.csv
+    └── retrieval_eval_sweep.csv
 ```
 
 ## Rules
 
 1. **Area grouping** — top-level dev/ dirs correspond to areas, each named like its `process-docs/<area>/` folder (e.g., `indexing/`, `retrieval/`)
-2. **Number only report scripts** — a script that produces a report is numbered (`01_`, `02_`, …); a script that produces no report is not.
-3. **Report carries the script number** — output goes to `md/`/`csv/`/`png/`, and the file is prefixed with the producing script's number (`01_test.py` → `md/01_testresults.md`).
+2. **Reports in type-folders, descriptive names** — a report goes to `md/`/`csv/`/`png/` with a descriptive name traceable to its producing script; never a per-script `NN_reports/` folder. Dev scripts are not numbered.
+3. **Reports separate from data** — DATA outputs (raw corpora, cached payloads, per-item dumps) stay in their own location, never mixed into the report type-folders.
 4. **Dev is self-contained** — dev code does NOT import from `src/`. Dev mirrors prod interfaces but is independent. When a dev implementation is proven, it gets migrated to `src/` (lean, without report output).
 5. **cleanup/** — utility scripts without area mapping (data cleanup, migration). No area grouping needed.
 6. **Reports never go to console** — a report-producing script writes to `md/`/`csv/`/`png/`, never dumps results to the terminal. Console is limited to the output file path.
