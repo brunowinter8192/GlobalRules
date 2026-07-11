@@ -46,9 +46,10 @@ Applies EVERYWHERE a worker is dispatched or messaged — Phase 2 (waiting for t
 When in a PLAN/IMPLEMENT cycle, every response starts with a position indicator:
 
 - `📋 PLAN — Step 1: Session Scope`
-- `📋 PLAN — Step 2: Investigation`
-- `📋 PLAN — Step 3: Gap Analysis`
-- `📋 PLAN — Step 4: Deliverables & KPIs`
+- `📋 PLAN — Step 2: Process Investigation`
+- `📋 PLAN — Step 3: Code Investigation`
+- `📋 PLAN — Step 4: Gap Analysis`
+- `📋 PLAN — Step 5: Deliverables & KPIs`
 - `🔨 IMPLEMENT — Worker Phase 1 (Dispatch)` / `Worker Phase 2 (Evaluate)` / `Worker Phase 3 (Go)` / `Worker Phase 4 (Review)` / `Worker Phase 5 (Recap)` / `Worker Phase 6 (Merge)`
 
 Outside an active cycle (chat, casual response, status answer): no indicator needed.
@@ -65,47 +66,49 @@ Repeat what the user wants in your own words.
 
 🛑 STOP — Ask for remarks.
 
-### Step 2 — Prep Investigation (RAG → Source Identification → Source Read)
+### Step 2 — Process Investigation
 
-YOU build YOUR OWN mental model — NOT to be confused with Worker Phase 2 cross-model investigation. Two independent investigations are the whole point of the orchestration model: if YOU have no model, YOU cannot evaluate worker findings later.
+RAG the process layer: `search_hybrid` (then `read_document` on the important hits) on `<Project>-docs`, scoped to the process-history layer — never the code map. Prefer the narrowest scope: `--document 'process-docs/<area>/%'` for a known area, `--document 'process-docs/%'` for the whole layer.
 
-#### Stage 1 — RAG overview
+Goal: understand what happened on pure process level — the investigation trail, the decisions already made, the iteration history, what the task REALLY is. Nothing about code paths yet. Do NOT direct-read process-docs — you already have its content from search + read_document.
 
-Run RAG (`search_hybrid`, then `read_document` on the important hits) on `<Project>-docs` to build a rough mental model of the relevant process-docs and the code they describe — and on `<Project>-reference` when the task needs external sources (vendor docs, papers, third-party repos). RAG runs whether or not an issue exists for the topic. This overview is what Stage 2 builds on.
+**Present the process understanding to the user:**
+- What the task really is in process terms — the history that led here, the decisions taken, the open threads
+- Why it matters at the process level
 
-Do NOT direct-read process-docs or DOCS.md — you already have their content from search + read_document. The only thing you read directly is the source code, which is not indexed.
+🛑 STOP — Ask for remarks. This is the gate where the user, as process owner, steers before you go into code.
 
-#### Stage 2 — Source Identification (which files MUST be read)
+### Step 3 — Code Investigation
 
-From the RAG overview, extract every src/ (and 3rd-party-library) file the worker will touch, instrument, modify, or whose behavior the worker's task depends on. Add adjacent files where the worker's interpretation will live — e.g. if the worker will instrument `rate_limiter.py`, the engine modules that CALL `rate_limiter.backoff()` are also on the list, because the interpretation of "where backoff comes from" depends on them.
+Process understood — now the CODE that implements and enforces it, the consequence of the process. Here the user is meta-owner, not code-owner: this step is YOUR mental model of the mechanism, presented for the user to catch errors, not to redirect.
 
-**Heuristic:** if a worker's deliverable will interpret measurements from function F, file containing F is mandatory-read; files containing every caller of F are mandatory-read; files containing every state mutator of F's state are mandatory-read.
+RAG the code layer: `search_hybrid` on `<Project>-docs` scoped with `--exclude 'process-docs/%'` — the DOCS.md module map — to locate the relevant modules. The only thing you read directly (not via RAG) is the source code, which is not indexed.
 
-#### Stage 3 — Source Read (build the actual mental model)
+**Source Identification (which files MUST be read).** From the code-layer RAG, extract every module the worker will touch, instrument, modify, or whose behavior the task depends on — in ANY directory, not just `src/`: `src/`, `dev/`, 3rd-party libraries, wherever the relevant code lives. Add adjacent files where the worker's interpretation will live — e.g. if the worker will instrument `rate_limiter.py`, the modules that CALL `rate_limiter.backoff()` are also on the list, because the interpretation of "where backoff comes from" depends on them.
 
-Assemble the relevant files and read them. Not skim — READ. Every function, every state mutation, every code path the worker will touch. Mental-model contents that Step 3 verifies are BUILT HERE, not in Stage 1.
+**Heuristic:** if a worker's deliverable will interpret measurements from function F, the file containing F is mandatory-read; files containing every caller of F are mandatory-read; files containing every state mutator of F's state are mandatory-read.
 
-**Quote-Test before leaving Stage 3:** for every function the worker will instrument, modify, or whose behavior the worker will interpret — can you, without re-reading, recite its branches? If `acquire()` has two `await asyncio.sleep` branches, you must know both before scoping a probe that observes when `acquire()` blocks. If you cannot quote file:line on the actual mechanism, Stage 3 is not done.
+**Source Read (build the actual mental model).** Assemble the relevant files and read them. Not skim — READ. Every function, every state mutation, every code path the worker will touch. This is where the mental model that Step 4 verifies is actually BUILT.
 
-**Anti-pattern (the failure mode this stage prevents):**
+**Quote-Test before leaving Step 3:** for every function the worker will instrument, modify, or whose behavior the worker will interpret — can you, without re-reading, recite its branches? If `acquire()` has two `await asyncio.sleep` branches, you must know both before scoping a probe that observes when `acquire()` blocks. If you cannot quote file:line on the actual mechanism, Step 3 is not done.
+
+**Anti-pattern (the failure mode this step prevents):**
 - RAG returns a summary chunk + a worker is dispatched on its basis
 - Worker reads the source themselves, builds an interpretation, returns findings
 - YOU accept the interpretation without reading the source — the entire chain becomes inference-stacked-on-inference
 - The interpretation collapses under one factual challenge from the user, because YOU never had primary evidence to defend it
 - Hours of work wasted on a probe-design that missed half the mechanism
 
-**Present status quo to user after all three stages:**
-- Which files/components are affected — with file:line citations from Stage 3, not just RAG summary phrasing
-- Current state and why it matters
-- Reference Files identified (Stage 2 read-list, marked as read)
-- The actual code paths the worker's task touches (Stage 3 finding)
-- Relevant dev/ scripts
+**Present the code status quo to the user:**
+- Which modules/components are affected — with file:line citations from the read, not just RAG summary phrasing — across whatever directories they live in (`src/`, `dev/`, …)
+- The actual code paths the worker's task touches
+- The read-list, marked as read
 
 🛑 STOP — Ask for remarks.
 
-### Step 3 — Gap Analysis + Mental Model Check
+### Step 4 — Gap Analysis + Mental Model Check
 
-Purpose: re-think the mental model you built in Step 2 and honestly show where it still has gaps — and whether you can responsibly send a worker on it.
+Purpose: re-think the mental model you built in Steps 2-3 and honestly show where it still has gaps — and whether you can responsibly send a worker on it.
 
 **Honest gap flag.** Walk your mental model and name what is still unclear. Gap-closed means EVIDENCE (file:line, grep count, doc quote, log entry), not plausible extrapolation — "the code probably does Z" is NOT closed. For each open gap, the question is NOT "can a worker test his way to it" — almost anything is testable given enough iterations. The question is whether external resources would firm up the model and save the worker (and you) wasted iterations. If they would, flag it to the user — Opus can delegate procuring external resources to the user.
 
@@ -118,13 +121,13 @@ Purpose: re-think the mental model you built in Step 2 and honestly show where i
 3. **What are ALL the code paths the worker's task touches?** Have I READ each one in this session — not via RAG summary, not via DOCS.md? Can I recite function X's branches and state mutations without re-reading?
 4. **If a worker delivers "all done" with an INTERPRETATION of measured data, can I cross-check that interpretation against the source code that produced the data?** Are there alternative code paths that would produce the same measurement but support a different interpretation?
 
-If ANY is NO → flag it to the user transparently; don't silently grind. Being unclear after Step 3 is OK — say so. The aim is to understand the code surface well enough to EVALUATE worker output without re-doing the read at Phase 4 Review.
+If ANY is NO → flag it to the user transparently; don't silently grind. Being unclear after Step 4 is OK — say so. The aim is to understand the code surface well enough to EVALUATE worker output without re-doing the read at Phase 4 Review.
 
 🛑 STOP — Ask for remarks.
 
-### Step 4 — Deliverables & KPIs
+### Step 5 — Deliverables & KPIs
 
-Still planning: the mental model from Steps 2-3 is turned into concrete, measurable deliverables, and the plan is decomposed into sub-stages that each end in a deliverable.
+Still planning: the mental model from Steps 2-4 is turned into concrete, measurable deliverables, and the plan is decomposed into sub-stages that each end in a deliverable.
 
 Define task-level deliverables with measurable completion criteria. Each deliverable: WHAT is done, HOW to verify (test command, file exists, output matches). Code review does NOT count as verification.
 
@@ -169,7 +172,7 @@ Worktrees branch from the last COMMIT — uncommitted changes are NOT visible to
 The worker gets, in its prompt, the exact documentation it works on — which file to write, what to create. YOU decide the paths before dispatch; the worker never picks them.
 
 **YOU do:**
-1. **process-docs folder.** RAG-search `<Project>-docs` for an existing `process-docs/<area>/` folder on the topic. Whether to extend the theme with a new dated entry or start a new theme folder is YOUR judgment — it can't be hard-ruled. Reuse → use its exact slug; new → name it per project conventions. Entries are write-once — the worker writes a NEW entry, never edits an old one.
+1. **process-docs folder.** RAG-search `<Project>-docs` (`--document 'process-docs/%'`) for an existing `process-docs/<area>/` folder on the topic. Whether to extend the theme with a new dated entry or start a new theme folder is YOUR judgment — it can't be hard-ruled. Reuse → use its exact slug; new → name it per project conventions. Entries are write-once — the worker writes a NEW entry, never edits an old one.
 2. **DOCS.md files.** Identify which `DOCS.md` the src/ change touches (the module level that changed) — may span multiple, list ALL of them. DOCS.md is the maintained surface updated in the same commit as the code.
 3. **New vs extend.** Decide whether the task starts a new `process-docs/<area>/` theme or adds an entry to an existing one — your judgment.
 4. **Pass exact full paths in the prompt.** E.g. "Write the Phase A.1 narrative to `process-docs/<exact-slug>/A1_2026-06.md`; after the src/ change, update the module's `DOCS.md`." No placeholders, no "the worker decides".
@@ -324,7 +327,7 @@ After worker goes idle, review BEFORE merging.
 **Interpretation Cross-Check (MANDATORY when worker output contains an interpretation of measured data).** Investigation workers often deliver findings narratives that go beyond raw measurements — they interpret the data and propose a mechanism ("data X means mechanism Y"). Before accepting the interpretation:
 
 1. Identify each interpretation claim — a sentence of the form "this measurement means/proves/shows X" or "mechanism is Y".
-2. For each claim, locate the source code that produced the data being interpreted. This must be the actual code, in the current src/ tree, read in this session (Step 2 Stage 3 should already have covered it — if not, read it now BEFORE accepting the interpretation).
+2. For each claim, locate the source code that produced the data being interpreted. This must be the actual code, in the current source tree, read in this session (Step 3 should already have covered it — if not, read it now BEFORE accepting the interpretation).
 3. Ask: are there alternative code paths in the same function/module that would produce the same measurement but support a DIFFERENT interpretation? If yes, the worker's interpretation is one of several possible — not proven. Either accept it as one hypothesis among several, or send the worker back with a follow-up probe that discriminates between the candidates.
 4. **Reject the interpretation, accept the data.** If the worker's interpretation does not uniquely follow from the source code, the data they collected is still valid evidence — but the conclusion they drew is not yet supported. Phase 5/6 may still proceed (merge the probe artifacts), but the interpretation does NOT become the basis for the next worker's task.
 
