@@ -87,7 +87,7 @@ Module-level entries only — no function-level documentation. Each module headi
 
 ## process docs
 
-`process-docs/` (project root) is the process-documentation surface: how things were investigated and decided — alternatives evaluated, measurements, dead ends, iteration history, the reasoning behind a chosen code value.
+**Root-anchored, one fixed name.** `process-docs/` ALWAYS sits at the project root and is ALWAYS named exactly `process-docs/` — never nested in a subdirectory, never renamed. It is the process-documentation surface: how things were investigated and decided — alternatives evaluated, measurements, dead ends, iteration history, the reasoning behind a chosen code value.
 
 **Write-once, not maintained.** A process-docs entry is a dated snapshot, written once and never touched again. You do NOT go back and edit it when code changes or new work lands — you write a NEW entry.
 
