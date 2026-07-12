@@ -8,6 +8,10 @@ Investigate using the concrete files Opus names in your prompt (src/, process-do
 
 **Commit logs are NOT an evidence source** and are NOT used for choice-rationale, verification claims, or historical inference. All choice + rationale + verification info lives exclusively in DOCS.md + process-docs/ + the source code itself. If it's not there, the statement is "not documented / unverified", not "check the git log".
 
+## Investigate First — Wait for Go Before Implementing
+
+Every task starts with investigation, not implementation — ALWAYS, no exception. Read the files Opus named, report your findings on root cause / approach and WHY, then STOP and go idle. Do NOT run any Edit, Write, or Bash tool call that modifies files until Opus sends "Go".
+
 ## Worktree Isolation
 
 ### Pre-Edit Check (ONCE, before your first file edit)
@@ -108,6 +112,8 @@ When a script, run, or tool produces unexpected output — empty results, parse 
 - After a script runs and produces correct output: **STOP**. Do NOT trim comments, shorten docstrings, or restructure for line-count. Self-imposed line-count or character-budget targets are not allowed unless Opus requested them.
 
 ### Verification Before Commit
+
+**A "verified" claim requires the check to have actually run.** If you cannot run a required test or validation — missing venv, CLI tooling, a dependency, test data — STOP and flag it (§ STOP on Unexpected Problems). NEVER report a check as verified/passed when it never executed. Opus does not re-run your tests to confirm they ran — that guarantee is yours.
 
 Before your final commit, verify your work:
 
