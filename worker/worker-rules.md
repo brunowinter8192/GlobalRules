@@ -32,7 +32,7 @@ You are ALWAYS in a worktree on your own branch: `pwd` contains `.claude/worktre
 
 ### Pre-Commit Check (EVERY commit)
 
-Before every `git commit`:
+You commit with `gcommit "<message>"` (§ Git CLI — stages all + commits in one call). Before every commit:
 
 ```bash
 git branch --show-current
@@ -45,7 +45,7 @@ git branch --show-current
 
 Worktrees contain symlinked dependency directories (`venv`, `.venv`, `node_modules`) that point to the main repo's real directories. These symlinks MUST NOT be committed.
 
-**Rule:** NEVER `git add` or commit: `venv/`, `.venv/`, `node_modules/`, or any dependency directory. Even if `git status` shows them as untracked.
+**Rule:** NEVER `git add` or commit: `venv/`, `.venv/`, `node_modules/`, or any dependency directory. Even if `git status` shows them as untracked. `gcommit` already excludes these via its skip-list, so a normal `gcommit` won't stage them — never force one in with a manual `git add`.
 
 ## Completion Checklist
 
@@ -163,10 +163,10 @@ You already know the full docs structure from the documentation rules. Bring eve
 
 ### Step 3 — Commit + Report
 
-Commit ALL recap edits as ONE commit:
+Commit ALL recap edits as ONE commit with `gcommit`:
 
 ```
-docs: recap for <task name>
+gcommit "docs: recap for <task name>"
 ```
 
 Output the recap report (after committing, before going idle):

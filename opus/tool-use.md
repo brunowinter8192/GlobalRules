@@ -51,11 +51,9 @@ worker-cli spawn new-feature /tmp/prompt.md c sonnet
 
 When user asks to commit:
 
-1. **Check + Stage** — `git-check [repo_path]`
-2. **Commit** — `gc "<message>"` (if cwd inside repo) OR `git -C <repo> commit -am "<message>"` (explicit path)
-3. **Post-check** — `git -C <repo> status --short` → empty = proceed; non-empty → stage + commit again
-4. **Push** — first check: does `<repo>/.claude-plugin/plugin.json` exist?
-   - **YES (plugin repo):** `cd <repo> && plugin-publish` — does git push + cache-sync + version-bump. NEVER `git push` here.
+1. **Commit** — `gcommit "<message>" [repo_path]`: stages all changes + commits in ONE call, worktree-correct. Want visibility first? Run `git-check [repo_path]` — it stages + prints a full STAGED/UNSTAGED/UNTRACKED + hook-status report WITHOUT committing (review-only, optional).
+2. **Push** — does `<repo>/.claude-plugin/plugin.json` exist?
+   - **YES (plugin repo):** `cd <repo> && plugin-publish` — git push + cache-sync + version-bump. NEVER `git push` here.
    - **NO (regular repo):** `git -C <repo> push` (retry with `-u origin <branch>` on first push).
 
 ### Multi-Repo Commits

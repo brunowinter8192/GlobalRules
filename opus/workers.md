@@ -256,6 +256,6 @@ One run through, no stops.
 
 1. **Execute the Chat summary** — write the process-docs / DOCS files and do the issue hygiene (create / close / Source-Inventory update) exactly as named in #### Chat summary above.
 2. **Sync docs to RAG** — `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest). RAG sync runs ONLY here at recap — NEVER mid-session.
-3. **Git closing** — `git checkout main && git merge integration` → per repo: `git-check` → commit → push (or `plugin-publish` for plugin repos).
+3. **Git closing** — `git checkout main && git merge integration` → per repo: `gcommit "<message>"` → push (or `plugin-publish` for plugin repos).
 
 Done when commits are pushed.
