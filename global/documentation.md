@@ -26,7 +26,7 @@ Every section in DOCS.md and a process-docs entry is optional. When a point has 
 
 ### No Issue References
 
-`process-docs/**/*.md` and `**/DOCS.md` NEVER reference issues. The direction is one-way: issues point to docs, docs don't point back — not even a process-docs entry naming the issue that was part of the flow at the time.
+`process-docs/**/*.md` NEVER reference issues. The direction is one-way: issues point to docs, docs don't point back — not even a process-docs entry naming the issue that was part of the flow at the time.
 
 ### RAG Collection Layers
 
