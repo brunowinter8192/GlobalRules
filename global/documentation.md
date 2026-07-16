@@ -4,11 +4,11 @@
 
 ### Language (NON-NEGOTIABLE)
 
-ALL documentation files are written in ENGLISH — always, without exception. Applies to README.md, every DOCS.md, every `process-docs/**` file, dev/ reports, and code comments. The conversation language is irrelevant: when the user chat is in German, the artifacts are STILL English. RAG queries are English, so the docs they index are English too. No mixed-language files, no German headers, no German prose in any doc.
+**English, always.** ALL documentation files are written in ENGLISH, without exception. Applies to README.md, every DOCS.md, every `process-docs/**` file, dev/ reports, and code comments. The conversation language is irrelevant: when the user chat is in German, the artifacts are STILL English. RAG queries are English, so the docs they index are English too. No mixed-language files, no German headers, no German prose in any doc.
 
 ### Artifact Density
 
-Everything you read or produce as ARTIFACT — code, DOCS.md, skills/, rules/, process-docs/, code-comments — is consumed by an agent under a finite attention budget, not read at leisure by a human. Write the smallest set of high-signal tokens that fully conveys the behavior or information needed. (The chat-output prose rule is the opposite regime — user chat only, never artifacts.)
+**Written for an agent, not a leisurely human reader.** Everything you read or produce as ARTIFACT — code, DOCS.md, skills/, rules/, process-docs/, code-comments — is consumed by an agent under a finite attention budget, not read at leisure by a human. Write the smallest set of high-signal tokens that fully conveys the behavior or information needed. (The chat-output prose rule is the opposite regime — user chat only, never artifacts.)
 
 **Right altitude.** Calibrate between two failure modes. Too low: brittle over-specification — hardcoded edge-case logic, exhaustive if-else, every conceivable case enumerated; it rots and misleads. Too high: vague hand-waving that assumes shared context and gives no concrete signal. Specific enough to guide the exact behavior, flexible enough to stay robust.
 
@@ -22,15 +22,15 @@ Everything you read or produce as ARTIFACT — code, DOCS.md, skills/, rules/, p
 
 ### Sections Are Optional
 
-Every section in DOCS.md and a process-docs entry is optional. When a point has nothing to say, leave it out — never fill a field just because the template has it. The order and shape are the standard; a section with nothing to say is omitted, not padded.
+**Omit, don't pad.** Every section in DOCS.md and a process-docs entry is optional. When a point has nothing to say, leave it out — never fill a field just because the template has it. The order and shape are the standard; a section with nothing to say is omitted, not padded.
 
 ### No Issue References
 
-`process-docs/**/*.md` NEVER reference issues. The direction is one-way: issues point to docs, docs don't point back — not even a process-docs entry naming the issue that was part of the flow at the time.
+**Docs never point back at issues.** `process-docs/**/*.md` NEVER reference issues. The direction is one-way: issues point to docs, docs don't point back — not even a process-docs entry naming the issue that was part of the flow at the time.
 
 ### RAG Collection Layers
 
-Per project: **two** logical collections.
+**Two logical collections per project.**
 
 1. **docs** — all internal project documents: `DOCS.md`, `process-docs/**`
 2. **reference** — all external sources: vendor docs (e.g. Anthropic API docs), papers
@@ -44,11 +44,11 @@ Per project: **two** logical collections.
 
 ## docs
 
-The `DOCS.md` surface — the module map, and the ONLY continuously-maintained doc surface.
+**The module map.** The `DOCS.md` surface — the ONLY continuously-maintained doc surface.
 
 ### Placement
 
-DOCS.md lives at the level of the `.py` files it documents — in the directory holding the modules. One DOCS.md per module-bearing directory, documenting the modules at that level.
+**One DOCS.md per module directory.** It lives at the level of the `.py` files it documents — in the directory holding the modules, documenting the modules at that level.
 
 ### DOCS.md Format
 
@@ -83,7 +83,7 @@ Which module owns the state, who mutates, who reads.
 Module-specific landmines. Direct text. No rule-link references (rules are always invoked).
 ```
 
-Module-level entries only — no function-level documentation. Each module heading's `<LOC>` matches the file's actual `wc -l`.
+**Module-level only.** No function-level documentation. Each module heading's `<LOC>` matches the file's actual `wc -l`.
 
 ## process docs
 
