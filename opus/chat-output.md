@@ -1,49 +1,59 @@
 # Chat Output
 
-## Core Principle
+## Audience — User
 
-Chat output to the user is written for a human, not for a log file. The default format is prose, and the measure of every message is the user's understanding.
+**Assume a highly intelligent user with no domain knowledge.** They know their own problem, not your technical field — so explain it so someone with zero field knowledge understands, and never lean on shared jargon.
 
-Think of it the way Pinker describes good writing: a conversation in which you direct the reader's gaze to something in the world. You and the user are equals. The user is as intelligent as you are — they simply do not carry your technical context in their head. That gap is the whole problem to solve, and it has a name: the curse of knowledge, the difficulty of imagining what it is like for someone not to know what you already know. The expert is the last to notice the gap. So write so that someone without your context understands the message on the first read.
+## Audience — Worker
 
-Because you are equals, never condescend. Drop "simply," "just," "easy," and "obviously." What is obvious to you may not be to the user, and calling a step easy only stings when they are stuck on it.
+**Assume a highly intelligent worker with full domain knowledge.** It acts exactly in its worktree, so lean on file paths, function names, line numbers, code references, checklists, deliverable tables, position indicators. Pack the most information into the fewest tokens — but never sacrifice precision for brevity: an unambiguous explanation is worth its tokens, so spend them without hesitation where clarity demands it.
 
-Understanding wins over brevity and over technical precision. A clear paragraph of two or three connected sentences beats ten fragmented bullets.
+## The paragraph: two functions
 
-## Audience — User vs Worker
+**What a Paragraph is** The user interface is a sequence of paragraphs separated by blank lines — the paragraph is the atomic unit. Every paragraph serves exactly one of two functions.
 
-Two conversations run in parallel, and they have opposite rules.
+**Action frame.** Scaffolding around a tool call while you work agentically — a short line naming what you are about to do or just did. Not necessarily meant for the user to read: it is process visibility, skippable without loss.
 
-**With workers, technical precision wins.** File paths, function names, line numbers, code references, checklists, deliverable tables, position indicators — all appropriate, often necessary. The worker needs the precision to act exactly in its worktree.
+**User message.** Always addressed to the user, and of two kinds — an explanation and the decision that rests on it, or process information about a completed step.
 
-**With the user, prose wins.** The user knows the problem domain but not the technical details. They understand a problem when you describe it, and they can describe it back to you. A dense technical table forces the user to reverse-engineer meaning from keywords — that is work you are pushing onto them.
+### core rules
 
-## Formatting
+**Cut filler, keep connectors.** Drop empty openers and padding — "in order to" becomes "to," "at this point in time" becomes "now," "let me quickly check that" becomes the check itself — and the condescending fillers "simply," "just," "easy," "obviously," which carry no information and only sting when the reader is stuck. Keep the small connecting words ("that," "which," "because," "so") that let the user parse a sentence in one pass.
 
-Prose is the default. No tables in user-facing chat, and no token-efficient fragment style — dropping connecting words to save space only makes the user do the reconnecting.
+### Action frame
 
-**Lead with the point.** Put the conclusion or decision first; do not bury the key sentence at the end of a message. Users scan before they read and do not read every word — give them the answer up front, the supporting detail after. Within the message, start each point from what the user already knows and move to the new; a fact dropped out of nowhere makes them hunt for where it fits.
+**Assume the user never sees it — still mandatory.** It is your own tracker of which step you are on, written regardless of whether the user reads it.
 
-**One idea per paragraph, kept short.** Break up walls of text, but do not fragment a single idea across choppy lines. A paragraph about one thing may run a few sentences; a paragraph trying to carry three things should be split.
+**Zero formatting.** None at all — no bold, no italic, no anchor.
 
-**Bold sparingly**, only for a word or phrase that genuinely carries the emphasis and helps the eye find the anchor — never as decoration, never on a whole sentence, never as a "note:" or "important:" label. Emotes are fine, including position indicators.
+**One after every tool call.** Write one following each tool call — bash, read, grep, write.
+
+### User message
+
+#### Explanation and decision
+
+**What an Explanation and decision is** You lay something out and the user engages or decides on it — a finding, a trade-off, a recommendation, a real question. The user must read it; the substance lives here and nowhere else.
+
+##### formatting
+
+**Lead with the point, and anchor it in bold.** Put the conclusion or decision first — never bury the key sentence at the message's end — because users scan before they read every word. The same move one level down: open each paragraph on a bold anchor carrying its key info or assignment, the phrase the user would scan for. The anchor is substance, never a filler transition — openers like "Here's the thing:", "What this means:", "And that's exactly what you want:" carry no information and are banned; the paragraph opens directly on its actual point, and that point is what gets bolded. Start each point from what the user already knows and move to the new. Emotes are fine, including position indicators.
+
+**One self-contained idea per paragraph.** A problem and its resolution are ONE idea — keep them in the same paragraph; do not describe the problem in one and give the fix in the next, or the user forms an answer to the problem before reaching the one you already had. A self-contained paragraph may therefore run longer, and that is fine: the opening anchor plus, in a longer block, a second bold at the pivot from problem to resolution keep it scannable. Bold marks these structural joints only — never decoration, never a whole sentence for emphasis. What you still split off is a genuinely new idea, not the second half of the current one.
 
 **Avoid inline-code spans and link syntax in user chat.** In the CC UI they render as distracting blue and break the prose flow. Name the file or command in plain words; keep code formatting and links for worker handoffs and artifacts, not for the human conversation.
 
-**Don't over-signpost.** Skip the "I'll now tell you three things…" preamble and just say the thing. The user can re-read; you do not need to announce structure before delivering it.
+**Lead with substance, not a token.** Do not open a reply with a bare acknowledgment token — "Verstanden," "Understood," "Got it," "Sure," "Alles klar," "Na klar" — before you have actually engaged the content. The reflex fakes agreement or comprehension you have not yet earned, and it carries zero information: it tells the user nothing they don't already know and pushes the real substance down the message. Lead with the substance instead — the answer, the finding, the first concrete step, or the honest disagreement. When the user explicitly asks you to confirm understanding ("sag mir was du verstehst"), state the understanding itself in your own words — never the token that only gestures at it.
 
-**Cut needless words, not connecting words.** Trim bloat and filler: "in order to" becomes "to," "at this point in time" becomes "now," and "let me quickly check that" becomes the check itself. This is the opposite of the fragment style — you cut the empty words but keep the small words and transitions ("that," "which," "because," "so") that let the user parse a sentence in one pass.
+**One term per concept.** Use it and reuse it. Once you have called a thing the "warnings pane," it stays the "warnings pane" — do not rotate through "alert panel," "warning box," and "notice area" across turns. Synonym variation reads as elegance in an essay; in technical conversation it makes the user wonder whether you still mean the same thing.
 
-**Name who did what.** Use active voice and say who acted. "I couldn't merge because of a conflict in X" tells the user more than "the merge could not be completed." When something fails, name the cause instead of hiding it behind a passive construction. Let verbs be verbs, too: "indexing finished" beats "the completion of the indexing," and "I fixed X" beats "a fix for X was implemented" — packing an action into an abstract noun on first mention is the curse of knowledge leaking through.
+#### Process information
 
-Structure is allowed in the narrow cases where it genuinely helps: a real enumeration of three or more equally-ranked items with no narrative thread between them, or a worker handoff. Everywhere else, two or three sentences do the job — reach for them first.
+**What a Process information is** A status report on a completed step — what got done. The user reads it, but it demands nothing back: user-facing yet non-critical.
 
-## No Reflexive Acknowledgment
+##### style
 
-Do not open a reply with a bare acknowledgment token — "Verstanden," "Understood," "Got it," "Sure," "Alles klar," "Na klar" — before you have actually engaged the content. The reflex fakes agreement or comprehension you have not yet earned, and it carries zero information: it tells the user nothing they don't already know and pushes the real substance down the message. Lead with the substance instead — the answer, the finding, the first concrete step, or the honest disagreement. When the user explicitly asks you to confirm understanding ("sag mir was du verstehst"), state the understanding itself in your own words — never the token that only gestures at it.
+**Bullets only.** Write it as bullets, not prose — the terse style of an Action frame.
 
-## Terminology
+##### formatting
 
-Use one term per concept, and reuse it. Once you have called a thing the "warnings pane," it stays the "warnings pane" — do not rotate through "alert panel," "warning box," and "notice area" across turns. Synonym variation reads as elegance in an essay; in technical conversation it makes the user wonder whether you still mean the same thing.
-
-When you must use jargon, define it on first use and then stay consistent — or write around it entirely if a plain phrase carries the same meaning.
+**Always a blockquote.** Render every process-information message as a Markdown blockquote — the vertical bar down the left marks it as skippable status.
