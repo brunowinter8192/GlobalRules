@@ -1,10 +1,17 @@
 # Tool-Use — Orchestrator-Only
 
-These tools are YOURS as orchestrator — workers never spawn workers, never query RAG, never push/merge.
+## Bash
 
-## Worker CLI
+### Worker CLI
 
-Worker names are globally unique (registry-tracked). Project path is required only for `spawn`; other commands auto-resolve via the registry.
+**Worker names are globally unique, registry-tracked.**
+Project path is required only for `spawn`; other commands auto-resolve via the registry.
+
+**`worker-cli response` is the default for reading idle workers; `capture` is the fallback.**
+`response` gives clean assistant text from the session JSONL. `capture` is for when `response` misses context (rare — Phase-A partial-report situations); it returns the pane already cleaned and scoped to since the last prompt. Both print straight to context — never pipe them through `tail` / `head` / `sed`; a hook strips that anyway.
+
+**Session name pattern.**
+`worker-<basename(project_path)>-<name>`. Example: project `/Users/x/Monitor_CC` + worker `inject-fixes` → session `worker-Monitor_CC-inject-fixes`.
 
 | Operation | CLI |
 |---|---|
@@ -20,26 +27,9 @@ Worker names are globally unique (registry-tracked). Project path is required on
 | Create cross-project worktree | `worker-cli worktree <name> <target_repo> [branch]` |
 | Revive dead worker (resume CC session) | `worker-cli revive <name>` |
 
-`worker-cli response <name>` is the default for reading idle workers — clean assistant text from the session JSONL. `worker-cli capture <name>` is the fallback when `response` misses context (rare — Phase-A partial-report situations); it returns the pane already cleaned and scoped to since the last prompt. Both print straight to context — never pipe them through `tail` / `head` / `sed`; a hook strips that anyway.
+### Git CLI — Push, Merge & Orchestration
 
-**Session name pattern:** `worker-<basename(project_path)>-<name>`. Example: project `/Users/x/Monitor_CC` + worker `inject-fixes` → session `worker-Monitor_CC-inject-fixes`.
-
-**Examples:**
-
-```bash
-worker-cli list
-worker-cli status inject-fixes
-worker-cli response inject-fixes        # clean last assistant turn (default)
-worker-cli capture inject-fixes         # clean pane since last prompt (fallback)
-worker-cli merge inject-fixes
-worker-cli kill inject-fixes   # only after status is idle/done
-worker-cli send inject-fixes "Go for step 2"
-worker-cli spawn new-feature /tmp/prompt.md c sonnet
-```
-
-## Git CLI — Push, Merge & Orchestration
-
-### Push
+#### Push
 
 | Operation | CLI | Notes |
 |---|---|---|
@@ -47,22 +37,46 @@ worker-cli spawn new-feature /tmp/prompt.md c sonnet
 | Push with upstream (NON-plugin repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For first push on new branch. |
 | Push (PLUGIN repo) — replaces `git push` | `cd <plugin-source-repo> && plugin-publish` | One-step: git push + cache-sync + version-bump. **Always use this for any repo with `.claude-plugin/plugin.json`.** Never plain `git push` on a plugin repo. |
 
-### Commit Flow
+#### Commit Flow
 
-When user asks to commit:
+When the user asks to commit:
 
-1. **Commit** — `gcommit "<message>" [repo_path]`: stages all changes + commits in ONE call, worktree-correct. Want visibility first? Run `git-check [repo_path]` — it stages + prints a full STAGED/UNSTAGED/UNTRACKED + hook-status report WITHOUT committing (review-only, optional).
+1. **Commit** — `gcommit "<message>" [repo_path]`, mechanics in § Git CLI (Commit with `gcommit`). Want visibility first? Run `git-check [repo_path]` — it stages + prints a full STAGED/UNSTAGED/UNTRACKED + hook-status report WITHOUT committing (review-only, optional).
 2. **Push** — does `<repo>/.claude-plugin/plugin.json` exist?
    - **YES (plugin repo):** `cd <repo> && plugin-publish` — git push + cache-sync + version-bump. NEVER `git push` here.
    - **NO (regular repo):** `git -C <repo> push` (retry with `-u origin <branch>` on first push).
 
-### Multi-Repo Commits
+#### Multi-Repo Commits
 
 When committing multiple repos (e.g., project + plugin source):
 - Run the full flow for each repo sequentially
 - Plugin repos: use `plugin-publish` instead of `git push` (handles cache + restart automatically)
 
-## RAG CLI
+### RAG CLI
+
+**RAG queries are ALWAYS written in English, regardless of conversation language.**
+Issue the search command directly — no prior `rag-cli server start` needed.
+
+**Indexed collections go through rag-cli; local source files through the Read tool.**
+Indexed collections live in `data/documents/<collection>/`.
+
+**`delete` removes three surfaces for the given scope: the matched chunks, their `indexed_files` manifest rows, and the on-disk source files under `data/documents/<collection>/`.**
+`--collection` is required → deletes the whole collection (dir + all chunks + all manifest rows). `--document` (optional) narrows to one document → removes that doc's chunks + manifest row + its `.md` and `.json` sidecar. `--document` without `--collection` errors.
+
+**`index` is the inverse of `delete` over the same scope: it chunks + embeds + stores `.md` files from `data/documents/<collection>/`.**
+`--collection` is required → indexes every `.md` in the collection dir; `--document` (optional) → just that one file. Skip-by-default via content hash (unchanged files are skipped); `--force` re-embeds everything. `--document` without `--collection` errors.
+
+**`search_hybrid` finds the hit; `read_document` pulls the context around it.**
+`read_document <coll> <doc> <chunk> --before N --after M` returns that chunk plus its neighbors, where the useful detail usually sits.
+
+**Every chunk you build on gets expanded with `read_document` first.**
+The moment a chunk becomes the basis for a concrete action — writing an artifact like a rule or process-docs entry, but equally any action you take on the strength of it ("with knowledge X I do action Y") — expand it before you act; don't build on the bare search hit. A single chunk is a pointer, not the full context: what you need is often in the neighbors the search didn't return — the caveat sitting one chunk away that you'd otherwise miss.
+
+**Current state comes from CODE, not RAG.**
+The `<Project>-docs` collection indexes `process-docs/**` (write-once history) + `DOCS.md` (module map) — process-docs carries SUPERSEDED values that misread as current. So a "what IS the state of X" question is answered by reading the source code, not by a docs query. Use `<Project>-docs` when you want the reasoning / iteration history / why-it-was-decided; use the code (Read/grep) when you want the live value. DOCS.md is the one docs surface that tracks current code shape.
+
+**Miss handling.**
+On 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / bash `grep`. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
 
 | Operation | Command |
 |---|---|
@@ -73,27 +87,13 @@ When committing multiple repos (e.g., project + plugin source):
 | Delete | `rag-cli delete --collection <name> [--document <doc>]` |
 | Index | `rag-cli index --collection <name> [--document <doc>]` |
 
-### Rules
+### show — open a file for the user
 
-- RAG queries are ALWAYS written in English, regardless of conversation language.
-- Issue the search command directly — no prior `rag-cli server start` needed.
-- Indexed collections in `data/documents/<collection>/` → rag-cli. Local source files → Read tool, not rag-cli.
-- `delete` removes three surfaces for the given scope: the matched chunks, their `indexed_files` manifest rows, and the on-disk source files under `data/documents/<collection>/`. `--collection` is required → deletes the whole collection (dir + all chunks + all manifest rows). `--document` (optional) narrows to one document → removes that doc's chunks + manifest row + its `.md` and `.json` sidecar. `--document` without `--collection` errors.
-- `index` is the inverse of `delete` over the same scope: it chunks + embeds + stores `.md` files from `data/documents/<collection>/`. `--collection` is required → indexes every `.md` in the collection dir; `--document` (optional) → just that one file. Skip-by-default via content hash (unchanged files are skipped); `--force` re-embeds everything. `--document` without `--collection` errors.
+**Open a file in the user's default macOS app so the USER can see it.**
+Use it when the user asks to be shown a file: "öffne mir den Report" / "bring mir die py-Datei her und öffne sie" / "show me X" / "open the screenshot". The trigger is intent ("show ME"), not file type.
 
-### Search & expand
-
-`search_hybrid` finds the hit; **`read_document <coll> <doc> <chunk> --before N --after M`** pulls that chunk plus the chunks around it, where the useful detail usually sits.
-
-**Every chunk you build on gets expanded with `read_document` first.** The moment a chunk becomes the basis for an artifact — a rule, a process-docs entry, anything you write — expand it before you use it; don't draft from the bare search hit. A single chunk is a pointer, not the full context: what you need is often in the neighbors the search didn't return — the caveat sitting one chunk away that you'd otherwise miss.
-
-**Current state comes from CODE, not RAG.** The `<Project>-docs` collection indexes `process-docs/**` (write-once history) + `DOCS.md` (module map) — process-docs carries SUPERSEDED values that misread as current. So a "what IS the state of X" question is answered by reading the source code, not by a docs query. Use `<Project>-docs` when you want the reasoning / iteration history / why-it-was-decided; use the code (Read/grep) when you want the live value. DOCS.md is the one docs surface that tracks current code shape.
-
-**Miss handling:** on 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / bash `grep`. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
-
-## show — open a file for the user
-
-Open one or more files in the user's default macOS app so the **user** can see them. Use when the user asks to be shown a file: "öffne mir den Report" / "bring mir die py-Datei her und öffne sie" / "show me X" / "open the screenshot". The trigger is intent ("show ME"), not file type.
+**Use `show` only when the user wants to LOOK at a file.**
+For Claude-internal inspection (analysis, code review, grep) use the Read / Bash tools. Never use `show` for content Claude itself needs to consume.
 
 | Operation | Command |
 |---|---|
@@ -101,5 +101,3 @@ Open one or more files in the user's default macOS app so the **user** can see t
 | Open multiple files | `show <p1> <p2> ...` |
 | Relative path | `show ./report.md` |
 | Home path | `show ~/Desktop/foo.png` |
-
-- **Use `show` only when the user wants to LOOK at a file.** For Claude-internal inspection (analysis, code review, grep) use the Read / Bash tools. Never use `show` for content Claude itself needs to consume.
