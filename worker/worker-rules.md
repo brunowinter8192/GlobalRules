@@ -1,65 +1,30 @@
 # Worker Rules — Worktree Isolation & Report
 
-These rules apply to every session you run. Run the Pre-Edit Check to determine your mode.
+These rules apply to every session you run.
 
-## Code Investigation — concrete files only
+## Code Investigation — Files Only, No External Access
 
-Investigate using the concrete files Opus names in your prompt (src/, process-docs/, DOCS.md, dev/). Read those files directly. NEVER run `rag-cli` or any external research (gh-cli, web) — RAG and external lookups are Opus's job; Opus passes the relevant findings and file paths into your prompt. If you need a file that isn't named, ask — do not go searching collections.
+**Your domain is the code, the DOCS.md, and the process-docs — read all of it, directly.**
+Files on disk are your only source: read `src/`, `DOCS.md`, `process-docs/`, `dev/` directly, as much as you need. NEVER use RAG (`rag-cli`) or any external source (gh-cli, web, papers, repos) — pulling external knowledge in is Opus's job; Opus distills the relevant findings into your prompt.
 
-**Commit logs are NOT an evidence source** and are NOT used for choice-rationale, verification claims, or historical inference. All choice + rationale + verification info lives exclusively in DOCS.md + process-docs/ + the source code itself. If it's not there, the statement is "not documented / unverified", not "check the git log".
+**The files Opus names are your entry point, not a fence.**
+If you think you need more, read further files beyond Opus's list — explicitly allowed, not a restriction. You stop and ask Opus only when you need something that is NOT on disk (an external resource).
+
+**Commit logs are NOT an evidence source.**
+They are NOT used for choice-rationale, verification claims, or historical inference. All choice + rationale + verification info lives exclusively in DOCS.md + process-docs/ + the source code itself. If it's not there, the statement is "not documented / unverified", not "check the git log".
 
 ## Investigate First — Wait for Go Before Implementing
 
 Every task starts with investigation, not implementation — ALWAYS, no exception. Read the files Opus named, report your findings on root cause / approach and WHY, then STOP and go idle. Do NOT run any Edit, Write, or Bash tool call that modifies files until Opus sends "Go".
 
-## Worktree Isolation
+## Worktree — Opus Specifies It
 
-### Pre-Edit Check (ONCE, before your first file edit)
-
-```bash
-pwd
-git branch --show-current
-```
-
-You are ALWAYS in a worktree on your own branch: `pwd` contains `.claude/worktrees/<your_name>` and the branch is NOT `main`. If either isn't true → something is wrong, stop and report. The isolation rules below always apply.
-
-### Rules
-
-1. ALL file reads and edits MUST use paths under your worktree directory.
-2. NEVER use absolute paths to the main repo (the parent of `.claude/worktrees/`).
-3. NEVER checkout, switch to, or commit on `main`.
-4. Commit only to YOUR branch.
-
-### Pre-Commit Check (EVERY commit)
-
-You commit with `gcommit "<message>"` (§ Git CLI — stages all + commits in one call). Before every commit:
-
-```bash
-git branch --show-current
-```
-
-- Expected: your branch name
-- If it shows `main` or anything unexpected: **DO NOT COMMIT.** Something is wrong — stop and report.
-
-### Never Commit Dependency Directories
-
-Worktrees contain symlinked dependency directories (`venv`, `.venv`, `node_modules`) that point to the main repo's real directories. These symlinks MUST NOT be committed.
-
-**Rule:** NEVER `git add` or commit: `venv/`, `.venv/`, `node_modules/`, or any dependency directory. Even if `git status` shows them as untracked. `gcommit` already excludes these via its skip-list, so a normal `gcommit` won't stage them — never force one in with a manual `git add`.
+**Opus names the exact worktree to work in, in your prompt — start straight away, no setup, no checks.**
+For cross-project work the worktree can differ from where you were spawned; Opus states it explicitly. Make ALL your edits exclusively inside that worktree — edit nothing outside it. Commit with a plain `gcommit "<message>"` on your current branch (§ Git).
 
 ## Completion Checklist
 
-Your worker prompt includes a **Completion Checklist** section — task-specific verification items defined by Opus.
-
-### How It Works
-
-1. Opus defines checklist items in your prompt (e.g., "List all subcommands found in cli.py", "Confirm no absolute paths")
-2. You complete the task
-3. Opus reads your output to verify
-
-### Output Format
-
-Print the checklist as your final output (after committing, before going idle):
+Your prompt includes a Completion Checklist — task-specific verification items defined by Opus. Print it as your final output (after committing, before going idle):
 
 ```
 COMPLETION CHECKLIST:
@@ -70,39 +35,40 @@ COMPLETION CHECKLIST:
 
 Be concrete: file paths, counts, specific values — not "done" or "verified".
 
-## STOP on Unexpected Problems
+## Don't Debug-Loop — Stop at the Threshold, Report to Opus
 
-When a script, run, or tool produces unexpected output — empty results, parse failure, unexpected URL, wrong status code, timeout, anything outside the expected happy path:
+An unexpected result is normal — handling it is the work, not a reason to stop. You stop at the threshold where continuing would mean looping or leaving the task. Two tripwires; either one → stop and report:
 
-1. **STOP immediately** — do not attempt autonomous workarounds, diagnosis scripts, or "fix" attempts.
-2. **Capture the evidence** — log lines, raw response, page title, error traceback, concrete data (not summary).
-3. **Report in chat** with structured output:
-   ```
-   STOP: <Problem description>
-   Expected: <what should have happened>
-   Actual: <what happened, with concrete data>
-   Hypothesis: <one hypothesis for root cause>
-   Suggested next step: <debug script / config change / upstream research / abort>
-   ```
-4. **Go idle and wait for Go.**
+- **The blocker survived a retry.**
+  You already tried once to get past this exact obstacle and it's still there → stop before a third attempt. No debug → fix → retry loop.
+- **Getting past it would mean leaving the task.**
+  A diagnosis script, a code change on your own hypothesis, a workaround Opus did not sanction → stop before you do it.
 
-**Do NOT:**
-- Write debug scripts autonomously
-- Modify the main script based on your own diagnosis
-- Restart the run after a "fix" you decided yourself
-- Iterate debug → fix → retry cycles without reporting
+Normal iteration does NOT trip this — fixing your own bug and re-running, handling an edge you were briefed on. The trigger is the loop or the off-task step, not the surprise itself. (Worker form of § Stop after 2 failed tool calls: your counterpart to "ask the user" is "report to Opus and go idle".)
 
-**Scope:** Applies to task execution failures. For planned verification blocked by external causes (CAPTCHA hang, server 503, test data missing) → report PARTIAL with the reason instead of STOP.
+At the threshold, report in chat and go idle:
 
-**Exception:** The Completion Checklist step "spot-check one query by hand" is explicit verification, not debugging. Debug = you hit something you didn't expect. Spot-check = you validate what you built.
+```
+STOP: <what blocked you>
+Expected: <what should have happened>
+Actual: <what happened, with concrete evidence — log lines, raw response, traceback, not a summary>
+Hypothesis: <one hypothesis for the cause>
+Suggested next step: <debug script / config change / upstream research / abort>
+```
+
+**Not every stop is a failure.**
+Planned verification blocked by an external cause (CAPTCHA, 503, missing test data) → report PARTIAL with the reason, not a STOP. A prompted spot-check ("verify one query by hand") is verification, not debugging.
 
 ## Implementation Rules
 
 ### Execution
 
-1. **Read reference files** mentioned in the prompt — existing modules show the exact pattern to follow.
-2. **Execute the task** as specified in the prompt. No scope creep, no "improvements" beyond what was asked.
-3. **Follow existing patterns exactly** — match import style, section structure, comment style, function naming from reference files.
+1. **Read reference files mentioned in the prompt.**
+   Existing modules show the exact pattern to follow.
+2. **Execute the task as specified in the prompt.**
+   No scope creep, no "improvements" beyond what was asked.
+3. **Follow existing patterns exactly.**
+   Match import style, section structure, comment style, function naming from reference files.
 
 ### Code Quality
 
@@ -113,15 +79,21 @@ When a script, run, or tool produces unexpected output — empty results, parse 
 
 ### Verification Before Commit
 
-**A "verified" claim requires the check to have actually run.** If you cannot run a required test or validation — missing venv, CLI tooling, a dependency, test data — STOP and flag it (§ STOP on Unexpected Problems). NEVER report a check as verified/passed when it never executed. Opus does not re-run your tests to confirm they ran — that guarantee is yours.
+**A "verified" claim requires the check to have actually run.**
+If you cannot run a required test or validation — missing venv, CLI tooling, a dependency, test data — STOP and flag it (§ STOP on Unexpected Problems). NEVER report a check as verified/passed when it never executed. Opus does not re-run your tests to confirm they ran — that guarantee is yours.
 
 Before your final commit, verify your work:
 
-1. **File exists and is syntactically valid:** `python -c "import ast; ast.parse(open('path').read())"`
-2. **Imports resolve:** check that all imported modules/functions exist in the codebase
-3. **Library method calls exist:** For external library classes, verify methods you call actually exist: `python -c "from lib import Class; print([m for m in dir(Class()) if not m.startswith('_')])"`. Do NOT trust training data for method names.
-4. **Pattern compliance:** compare your file structure against the reference file — same sections, same style
-5. **Edge cases:** if the prompt mentions specific data formats (URNs, URLs, timestamps), verify your parsing handles them
+1. **File exists and is syntactically valid.**
+   `python -c "import ast; ast.parse(open('path').read())"`
+2. **Imports resolve.**
+   Check that all imported modules/functions exist in the codebase.
+3. **Library method calls exist.**
+   For external library classes, verify methods you call actually exist: `python -c "from lib import Class; print([m for m in dir(Class()) if not m.startswith('_')])"`. Do NOT trust training data for method names.
+4. **Pattern compliance.**
+   Compare your file structure against the reference file — same sections, same style.
+5. **Edge cases.**
+   If the prompt mentions specific data formats (URNs, URLs, timestamps), verify your parsing handles them.
 
 ### What NOT to Do
 
@@ -144,7 +116,8 @@ A prompt that asks for an architectural alternative — library swap, engine rew
 
 When Opus sends `recap` or `mach recap` after task completion: STOP all other work and execute the recap pass below. Recap produces ONE additional commit on your branch with all drift-correction edits.
 
-**Scope:** YOUR task. Files you touched during your task (and any follow-up tasks Opus dispatched), the docs that describe them, the investigation/discussion trail with Opus. NOT session-wide concerns (issues, RAG sync, other workers' changes, rule files in `~/.claude/shared-rules/` — those are Opus's responsibility).
+**Scope — YOUR task.**
+Files you touched during your task (and any follow-up tasks Opus dispatched), the docs that describe them, the investigation/discussion trail with Opus. NOT session-wide concerns (issues, RAG sync, other workers' changes, rule files in `~/.claude/shared-rules/` — those are Opus's responsibility).
 
 ### Step 1 — Self-Audit
 
@@ -158,8 +131,10 @@ This is your touched-file inventory for the recap.
 
 You already know the full docs structure from the documentation rules. Bring every place you touched in sync with what you did:
 
-- **DOCS.md** for every `src/` AND `dev/` file you touched — module shape matching the file as you left it. This is the ONE surface that must track current code shape; update it in the same commit. CREATE one only when you added a new module to a package that had none and now has multiple modules.
-- **process-docs/<area>/** — a NEW write-once entry for the investigation/discussion trail with Opus, when it was substantial. Never edit an existing entry; add a dated one. No present-tense "current" claims (the code is the current state).
+- **DOCS.md for every `src/` AND `dev/` file you touched.**
+  Module shape matching the file as you left it. This is the ONE surface that must track current code shape; update it in the same commit. CREATE one only when you added a new module to a package that had none and now has multiple modules.
+- **process-docs/<area>/ — a NEW write-once entry for the investigation/discussion trail with Opus, when substantial.**
+  Never edit an existing entry; add a dated one. No present-tense "current" claims (the code is the current state).
 
 ### Step 3 — Commit + Report
 

@@ -37,7 +37,7 @@ Don't say "I'll do X next turn" for a call that no dependency forced into a late
 **Read/Write/Edit may be sequenced in one response when ordering demands it (e.g. Read→Edit).**
 Only the Bash block travels alone.
 
-### Git CLI
+### Git
 
 **Commit with `gcommit "<message>" [repo_path]` — it stages all changes and commits in ONE call, on the current branch.**
 It stages tracked mods plus untracked (minus a secrets skip-list) and commits on the current branch of wherever you are — a worktree's branch when in one, the repo's own branch when working directly in it, never the parent repo. `repo_path` defaults to cwd. Push is separate and orchestrator-only.
@@ -87,4 +87,5 @@ Read the file in this conversation before editing, or the call fails.
 **Writes a file to the local filesystem, overwriting if one exists.**
 Create a new file or fully replace one you've already Read — overwriting an unread file fails, and for partial changes you use Edit.
 
-- **prefer Edit** for existing files — Write resends the full content every time
+- **Prefer Edit for existing files.**
+  Write resends the full content every time.

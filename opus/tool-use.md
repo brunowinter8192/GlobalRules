@@ -27,9 +27,10 @@ Project path is required only for `spawn`; other commands auto-resolve via the r
 | Create cross-project worktree | `worker-cli worktree <name> <target_repo> [branch]` |
 | Revive dead worker (resume CC session) | `worker-cli revive <name>` |
 
-### Git CLI — Push, Merge & Orchestration
+### Git
 
-#### Push
+**Preview staged state before committing with `git-check [repo_path]`.**
+Stages + prints a full STAGED/UNSTAGED/UNTRACKED + hook-status report WITHOUT committing — review-only, optional.
 
 | Operation | CLI | Notes |
 |---|---|---|
@@ -37,28 +38,10 @@ Project path is required only for `spawn`; other commands auto-resolve via the r
 | Push with upstream (NON-plugin repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For first push on new branch. |
 | Push (PLUGIN repo) — replaces `git push` | `cd <plugin-source-repo> && plugin-publish` | One-step: git push + cache-sync + version-bump. **Always use this for any repo with `.claude-plugin/plugin.json`.** Never plain `git push` on a plugin repo. |
 
-#### Commit Flow
-
-When the user asks to commit:
-
-1. **Commit** — `gcommit "<message>" [repo_path]`, mechanics in § Git CLI (Commit with `gcommit`). Want visibility first? Run `git-check [repo_path]` — it stages + prints a full STAGED/UNSTAGED/UNTRACKED + hook-status report WITHOUT committing (review-only, optional).
-2. **Push** — does `<repo>/.claude-plugin/plugin.json` exist?
-   - **YES (plugin repo):** `cd <repo> && plugin-publish` — git push + cache-sync + version-bump. NEVER `git push` here.
-   - **NO (regular repo):** `git -C <repo> push` (retry with `-u origin <branch>` on first push).
-
-#### Multi-Repo Commits
-
-When committing multiple repos (e.g., project + plugin source):
-- Run the full flow for each repo sequentially
-- Plugin repos: use `plugin-publish` instead of `git push` (handles cache + restart automatically)
-
 ### RAG CLI
 
 **RAG queries are ALWAYS written in English, regardless of conversation language.**
 Issue the search command directly — no prior `rag-cli server start` needed.
-
-**Indexed collections go through rag-cli; local source files through the Read tool.**
-Indexed collections live in `data/documents/<collection>/`.
 
 **`delete` removes three surfaces for the given scope: the matched chunks, their `indexed_files` manifest rows, and the on-disk source files under `data/documents/<collection>/`.**
 `--collection` is required → deletes the whole collection (dir + all chunks + all manifest rows). `--document` (optional) narrows to one document → removes that doc's chunks + manifest row + its `.md` and `.json` sidecar. `--document` without `--collection` errors.
@@ -72,9 +55,6 @@ Indexed collections live in `data/documents/<collection>/`.
 **Every chunk you build on gets expanded with `read_document` first.**
 The moment a chunk becomes the basis for a concrete action — writing an artifact like a rule or process-docs entry, but equally any action you take on the strength of it ("with knowledge X I do action Y") — expand it before you act; don't build on the bare search hit. A single chunk is a pointer, not the full context: what you need is often in the neighbors the search didn't return — the caveat sitting one chunk away that you'd otherwise miss.
 
-**Current state comes from CODE, not RAG.**
-The `<Project>-docs` collection indexes `process-docs/**` (write-once history) + `DOCS.md` (module map) — process-docs carries SUPERSEDED values that misread as current. So a "what IS the state of X" question is answered by reading the source code, not by a docs query. Use `<Project>-docs` when you want the reasoning / iteration history / why-it-was-decided; use the code (Read/grep) when you want the live value. DOCS.md is the one docs surface that tracks current code shape.
-
 **Miss handling.**
 On 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / bash `grep`. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
 
@@ -87,6 +67,80 @@ On 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / 
 | Delete | `rag-cli delete --collection <name> [--document <doc>]` |
 | Index | `rag-cli index --collection <name> [--document <doc>]` |
 
+### GitHub Issues (gh-cli) — Cross-Session Context
+
+**Derive `<owner>` and `<repo>` from the git remote; never hardcode.**
+`git remote get-url origin` returns `github.com:<owner>/<repo>.git` — pull both from there.
+
+**Default = open only.**
+`gh-cli list_issues` shows OPEN issues by default; closed appear only with `--state closed` (or `--state all`). Pull requests are filtered out.
+
+**Finding the number.**
+`gh-cli list_issues <owner> <repo>` lists open issues one per line (`#N [OPEN] title`); match by title and pass the stable `<number>`.
+
+#### What an Issue IS
+
+An Issue is a **lean entry-point**: topic + sources that reference it. Content lives elsewhere:
+
+- source code — the current architectural state (read the code; there is no doc mirror)
+- `process-docs/<area>/` — process history: investigation, measurements, iteration, the reasoning behind chosen code values (write-once entries)
+- `<package>/DOCS.md` — module map
+- RAG `<Project>-reference` collection — external sources (vendor docs, papers, GitHub, Reddit, repos)
+
+Resume mechanism: RAG-search on `<Project>-docs` (DOCS/CLAUDE/process-docs) + reading the code, `<Project>-reference` (external sources).
+
+Issues are created at exactly two points: when the user asks mid-session, or at Recap for whatever is still open at session end. There is no autonomous mid-session issue-keeping between those.
+
+#### Issue Format
+
+The issue body carries the entry-point. Title = the feature/bug/task name; body:
+
+```
+What it is:
+[2-3 sentences — goal + scope. No iteration history. No decision rationale.]
+
+Sources referencing this topic:
+- code: <key src/ paths if any>
+- DOCS: <DOCS.md paths if any>
+- process-docs: <subfolder or file paths if any>
+- <Project>-reference: <document names if any>
+
+Resume: RAG search "<query>" on <Project>-docs
+```
+
+Source paths relative to project root. The Source-Inventory is a snapshot at the moment of writing — Recap is responsible for keeping it current.
+
+#### Resume Pattern
+
+When picking up an open issue in a new session:
+
+1. Read the issue: `gh-cli get_issue <owner> <repo> <number>` — the body carries the Source-Inventory (no comments to read)
+2. RAG search for context:
+   - `<Project>-docs` — current state + discussion trail / iteration history
+   - `<Project>-reference` — external sources (vendor docs, papers, repos)
+
+The issue does not contain narrative. The sources do.
+
+#### Issue-Close
+
+`gh-cli update_issue <owner> <repo> <number> --state closed` — that's it.
+
+Close proactively: when the issue's code is merged AND live-verify shows the new behavior works as intended, close it in the same flow — don't wait for the user to ask.
+
+No verification of prosa-state at close (Recap is responsible for persistence). The process-docs prosa is the journey summary — nothing is posted to the issue.
+
+If an issue defines a specific verification test that has not been run yet → issue stays open, run the test, then close.
+
+| Operation | CLI |
+|---|---|
+| List open issues | `gh-cli list_issues <owner> <repo>` (state=open is the default) |
+| List closed issues | `gh-cli list_issues <owner> <repo> --state closed` |
+| Read issue body | `gh-cli get_issue <owner> <repo> <number>` — body = text AFTER the `---` separator in the output |
+| Create issue | `gh-cli create_issue <owner> <repo> "<title>" --body "<desc>" [--labels a,b]` |
+| Update issue body (Source-Inventory) | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"` (full-replace) |
+| Close issue | `gh-cli update_issue <owner> <repo> <number> --state closed` |
+| Reopen issue | `gh-cli update_issue <owner> <repo> <number> --state open` |
+
 ### show — open a file for the user
 
 **Open a file in the user's default macOS app so the USER can see it.**
@@ -94,6 +148,9 @@ Use it when the user asks to be shown a file: "öffne mir den Report" / "bring m
 
 **Use `show` only when the user wants to LOOK at a file.**
 For Claude-internal inspection (analysis, code review, grep) use the Read / Bash tools. Never use `show` for content Claude itself needs to consume.
+
+**A file already opened with `show` stays open — don't re-`show` it after each edit.**
+One `show` at first display holds for the whole session; the open app picks up later edits in place, so re-running it per edit is redundant.
 
 | Operation | Command |
 |---|---|

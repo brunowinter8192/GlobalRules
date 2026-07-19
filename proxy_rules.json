@@ -11,13 +11,11 @@
         "opus/communication.md",
         "opus/chat-output.md",
         "opus/tool-use.md",
-        "opus/gh-issues.md",
         "opus/workers.md"
       ]
     },
     "worker": {
       "files": [
-        "worker/code-organization.md",
         "worker/code-standards.md",
         "worker/dev-convention.md",
         "worker/verification.md",

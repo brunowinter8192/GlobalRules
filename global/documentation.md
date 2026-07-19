@@ -41,8 +41,10 @@ Every section in DOCS.md and a process-docs entry is optional. When a point has 
 
 **Two logical collections per project.**
 
-1. **docs** — all internal project documents: `DOCS.md`, `process-docs/**`
-2. **reference** — all external sources: vendor docs (e.g. Anthropic API docs), papers
+1. **docs**
+   all internal project documents: `DOCS.md`, `process-docs/**`
+2. **reference**
+   all external sources: vendor docs (e.g. Anthropic API docs), papers
 
 **Canonical naming:**
 
