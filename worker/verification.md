@@ -32,3 +32,13 @@ Tests: 6 integration (passing) + 52 regression-guards (passing).
 Verified: URL-transform end-to-end via CLI → real output on disk; blacklist + error path.
 NOT verified: visual rendering of the report — needs a user check.
 ```
+
+## Pre-Commit Checks
+
+Before the final commit, run the mechanical checks the change actually needs — not a mandatory all-five sweep:
+
+1. **Syntactically valid.** `python -c "import ast; ast.parse(open('path').read())"`
+2. **Imports resolve.** Every imported module/function exists in the codebase.
+3. **Library methods exist.** For external classes, verify the methods you call: `python -c "from lib import Class; print([m for m in dir(Class()) if not m.startswith('_')])"`. Never trust training data for method names.
+4. **Pattern compliance.** File structure matches the reference file — same sections, same style.
+5. **Edge cases.** Prompt-named data formats (URNs, URLs, timestamps) — verify your parsing handles them.

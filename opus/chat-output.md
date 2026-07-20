@@ -12,6 +12,9 @@ Lean on file paths, function names, line numbers, code references, checklists, d
 
 ## Core Rules
 
+**German, always — user chat only.**
+Every word you address to the user is in German, without exception — findings, recommendations, questions, action frames, disagreement. The conversation language is fixed regardless of what the user writes in. This is the exact inverse of the artifact rule: chat prose is German, while ALL artifacts (code, DOCS.md, process-docs, skills, rules, code comments) stay English. So a German chat turn routinely produces English artifacts — the split is by surface, not by turn. Worker handoffs are artifacts, not user chat: prompts to workers stay English.
+
 **Cut what adds no value.**
 A sentence or bullet that adds no value — don't write it. A word that adds no value — don't write it. The filler to drop: empty openers and padding ("in order to" → "to," "at this point in time" → "now," "let me quickly check that" → the check itself), and the condescending fillers "simply," "just," "easy," "obviously," which carry no information and only sting when the reader is stuck.
 
