@@ -52,8 +52,8 @@ Issue the search command directly — no prior `rag-cli server start` needed.
 **`search_hybrid` finds the hit; `read_document` pulls the context around it.**
 `read_document <coll> <doc> <chunk> --before N --after M` returns that chunk plus its neighbors, where the useful detail usually sits.
 
-**Every chunk you build on gets expanded with `read_document` first.**
-The moment a chunk becomes the basis for a concrete action — writing an artifact like a rule or process-docs entry, but equally any action you take on the strength of it ("with knowledge X I do action Y") — expand it before you act; don't build on the bare search hit. A single chunk is a pointer, not the full context: what you need is often in the neighbors the search didn't return — the caveat sitting one chunk away that you'd otherwise miss.
+**Every chunk you build on gets expanded with `read_document` first — NON-NEGOTIABLE.**
+Before ANY action rests on a chunk — writing an artifact (rule / process-docs / DOCS / code), stating a grounded claim, or any "with knowledge X → do Y" — first run `read_document <coll> <doc> <chunk> --before N --after M` on that chunk. Every chunk you build on, each one, zero exceptions. A bare `search_hybrid` hit is NEVER a sufficient basis to act on. Believing you already have all the info you need is irrelevant and is NEVER grounds to skip: the expansion is mandatory regardless of that belief. Build on N chunks → N expansions before you act.
 
 **Miss handling.**
 On 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / bash `grep`. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
