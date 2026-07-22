@@ -23,9 +23,7 @@
       ]
     },
     "projects": {},
-    "exclude_projects": [
-      "wise2627"
-    ]
+    "exclude_projects": []
   },
   "tool_injection": {
     "exclude_projects": [
