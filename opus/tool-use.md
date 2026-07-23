@@ -49,11 +49,11 @@ Issue the search command directly — no prior `rag-cli server start` needed.
 **`index` is the inverse of `delete` over the same scope: it chunks + embeds + stores `.md` files from `data/documents/<collection>/`.**
 `--collection` is required → indexes every `.md` in the collection dir; `--document` (optional) → just that one file. Skip-by-default via content hash (unchanged files are skipped); `--force` re-embeds everything. `--document` without `--collection` errors.
 
-**`search_hybrid` finds the hit; `read_document` pulls the context around it.**
+**`search` finds the hit; `read_document` pulls the context around it.**
 `read_document <coll> <doc> <chunk> --before N --after M` returns that chunk plus its neighbors, where the useful detail usually sits.
 
 **Every chunk you build on gets expanded with `read_document` first — NON-NEGOTIABLE.**
-Before ANY action rests on a chunk — writing an artifact (rule / process-docs / DOCS / code), stating a grounded claim, or any "with knowledge X → do Y" — first run `read_document <coll> <doc> <chunk> --before N --after M` on that chunk. Every chunk you build on, each one, zero exceptions. A bare `search_hybrid` hit is NEVER a sufficient basis to act on. Believing you already have all the info you need is irrelevant and is NEVER grounds to skip: the expansion is mandatory regardless of that belief. Build on N chunks → N expansions before you act.
+Before ANY action rests on a chunk — writing an artifact (rule / process-docs / DOCS / code), stating a grounded claim, or any "with knowledge X → do Y" — first run `read_document <coll> <doc> <chunk> --before N --after M` on that chunk. Every chunk you build on, each one, zero exceptions. A bare `search` hit is NEVER a sufficient basis to act on. Believing you already have all the info you need is irrelevant and is NEVER grounds to skip: the expansion is mandatory regardless of that belief. Build on N chunks → N expansions before you act.
 
 **Miss handling.**
 On 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / bash `grep`. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
@@ -62,7 +62,7 @@ On 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / 
 |---|---|
 | List collections | `rag-cli list_collections [--filter PATTERN]` |
 | List documents | `rag-cli list_documents <collection> [--document PATTERN] [--exclude PATTERN] [--filter PATTERN]` |
-| Search hybrid | `rag-cli search_hybrid <query> <collection> [--document PATTERN] [--exclude PATTERN]` |
+| Search | `rag-cli search <query> <collection> [--document PATTERN] [--exclude PATTERN]` |
 | Read context | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
 | Delete | `rag-cli delete --collection <name> [--document <doc>]` |
 | Index | `rag-cli index --collection <name> [--document <doc>]` |

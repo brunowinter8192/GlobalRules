@@ -107,7 +107,7 @@ Repeat what the user wants in your own words.
 
 ### Step 2 — Process Investigation
 
-RAG the process layer: `search_hybrid` (then `read_document` on the important hits) on `<Project>-docs`, scoped to the process-history layer — never the code map. Prefer the narrowest scope: `--document 'process-docs/<area>/%'` for a known area, `--document 'process-docs/%'` for the whole layer.
+RAG the process layer: `search` (then `read_document` on the important hits) on `<Project>-docs`, scoped to the process-history layer — never the code map. Prefer the narrowest scope: `--document 'process-docs/<area>/%'` for a known area, `--document 'process-docs/%'` for the whole layer.
 
 Goal: understand what happened on pure process level — the investigation trail, the decisions already made, the iteration history, what the task REALLY is. Nothing about code paths yet. Do NOT direct-read process-docs — you already have its content from search + read_document.
 
@@ -120,7 +120,7 @@ Goal: understand what happened on pure process level — the investigation trail
 ### Step 3 — Code Investigation & Gap Analysis
 
 **Stage 1 — Read the code.**
-RAG the code layer: `search_hybrid` on `<Project>-docs` scoped with `--exclude 'process-docs/%'` — the DOCS.md module map — to locate the relevant modules. The only thing you read directly (not via RAG) is the source code, which is not indexed.
+RAG the code layer: `search` on `<Project>-docs` scoped with `--exclude 'process-docs/%'` — the DOCS.md module map — to locate the relevant modules. The only thing you read directly (not via RAG) is the source code, which is not indexed.
 
 Read every file the worker will touch. After reading, think about whether you need further files to understand the plan the worker will hand you — if so, read those too. Which files that is, is YOUR call.
 
