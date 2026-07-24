@@ -113,6 +113,28 @@ An entry must never assert present-tense current/production state ("X is the pro
 **Structured, not a chaotic dump.**
 Entries are dense and organized — English, dated, thematic. Organize by theme in `process-docs/<area>/` subfolders; file naming inside is free (date-based, purpose-based, both OK). **Every area is ONE folder** — how many entries live inside is secondary. No loose top-level `.md`: even a one-off goes into its area folder.
 
+**Area = work strand with its own driving question.**
+An area is a line of work that runs across sessions and accumulates entries — its own question under investigation, its own measurements. The area name is the stable pointer used by issues (`Area: <area>`), `process-docs/<area>/`, and `dev/<area>/` — same name on all surfaces.
+
+**New area vs existing area.**
+Judge the work against the area it refers to ("the reference area" = the existing area whose entries it builds on).
+
+NEW area — ANY one suffices:
+
+- Is the reference area a foundation for OTHER work too — a shared base, not the private predecessor of this one follow-up?
+- Does the work draw on OTHER areas besides the reference area?
+- Does the work depend on NO existing area at all?
+
+EXISTING area (continue it) — ALL three must hold:
+
+- Does the work depend on an existing area's entries?
+- Is that area's foundation essentially the foundation of THIS continuation and no other?
+- Does the work draw on this ONE area alone?
+
+Methods and answers within an area may change completely — a pivot to a new approach CONTINUES the area. A question that one entry settles is an entry inside an area, never its own area.
+
+An area is never a maintained list (backlog, inventory) — that is what issues are for; every entry in an area folder stays a write-once dated snapshot.
+
 **No cross-references to other process-docs.**
 A process-docs entry MUST NOT reference another process-docs entry. Thematic grouping is carried by the FOLDER the entry lives in; related process history is found by RAG over `process-docs` + browsing the folder, never by a hardcoded path to another entry. Anything else may be referenced — `dev/` reports, `src/` files/symbols, `DOCS.md`, external sources.
 

@@ -115,6 +115,9 @@ Goal: understand what happened on pure process level — the investigation trail
 - What the task really is in process terms — the history that led here, the decisions taken, the open threads
 - Why it matters at the process level
 
+**Area assessment (MANDATORY, part of this step's output).**
+State explicitly which `process-docs/<area>/` this session's entries will be written to — existing area or new area, decided per § Documentation Hierarchy (new area vs existing area). This is a user gate: the user can intervene here. Once past the gate, the area is FIXED for the session; if mid-session it turns out entries should go to a DIFFERENT area, flag it to the user — never switch silently.
+
 🛑 STOP — Ask for remarks.
 
 ### Step 3 — Code Investigation & Gap Analysis
@@ -268,9 +271,7 @@ Concern separation: everything a worker produced is already in its own milestone
 
 #### Issues Evaluation
 
-Only issues touched this session are in scope — leave the rest untouched. For each touched issue decide CLOSE (work done + verified) or UPDATE its Source-Inventory. CREATE a new issue only for a standalone task that surfaced this session and stays open.
-
-Source-Inventory updates live in the issue BODY (read via `get_issue`, splice in new source paths, full-replace via `update_issue --body`) — there are no comments.
+Only issues touched this session are in scope — leave the rest untouched. For each touched issue decide CLOSE (work done + verified) or keep open. CREATE a new issue only for a standalone task that surfaced this session and stays open. Issue bodies are maintenance-free (area pointer, no file paths) — update a body only if the issue's area changed (rare; full-replace via `update_issue --body`).
 
 **EMPTY PLATE — capture every un-executed Open Item before closing.**
 Every Open Item from the original plan not executed → capture it before closing. Usually a process-docs entry; an Issue only when it's a standalone task in its own right.
@@ -278,9 +279,9 @@ Every Open Item from the original plan not executed → capture it before closin
 #### Chat summary
 
 - **Issues.**
-  Which issues we touched this session, which get newly created, which get closed, which get a Source-Inventory update.
+  Which issues we touched this session, which get newly created, which get closed.
 - **Doc files.**
-  Which doc files (process-docs / DOCS) get written or edited in the IMPROVE phase, and which doc-file paths get added to or removed from which issue's Source-Inventory.
+  Which doc files (process-docs / DOCS) get written or edited in the IMPROVE phase.
 
 🛑 STOP — Ask for remarks.
 
@@ -289,7 +290,7 @@ Every Open Item from the original plan not executed → capture it before closin
 One run through, no stops.
 
 1. **Execute the Chat summary.**
-   Write the process-docs / DOCS files and do the issue hygiene (create / close / Source-Inventory update) exactly as named in § Chat Summary.
+   Write the process-docs / DOCS files and do the issue hygiene (create / close) exactly as named in § Chat Summary.
 2. **Sync docs to RAG.**
    `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest). RAG sync runs ONLY here at recap — NEVER mid-session.
 3. **Git closing.**

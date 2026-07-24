@@ -99,25 +99,22 @@ The issue body carries the entry-point. Title = the feature/bug/task name; body:
 What it is:
 [2-3 sentences — goal + scope. No iteration history. No decision rationale.]
 
-Sources referencing this topic:
-- code: <key src/ paths if any>
-- DOCS: <DOCS.md paths if any>
-- process-docs: <subfolder or file paths if any>
-- <Project>-reference: <document names if any>
+Area: <area>  (→ process-docs/<area>/, dev/<area>/)
 
-Resume: RAG search "<query>" on <Project>-docs
+Resume: RAG search "<query>" on <Project>-docs --document 'process-docs/<area>/%'
 ```
 
-Source paths relative to project root. The Source-Inventory is a snapshot at the moment of writing — Recap is responsible for keeping it current.
+No file paths in the body — the AREA is the stable pointer. Everything under `process-docs/<area>/` and `dev/<area>/` is found via RAG + folder browsing; code is read directly; DOCS.md and reference documents are found by searching their collections. The body is maintenance-free: written once, touched again only if the issue's area changes (rare).
 
 #### Resume Pattern
 
 When picking up an open issue in a new session:
 
-1. Read the issue: `gh-cli get_issue <owner> <repo> <number>` — the body carries the Source-Inventory (no comments to read)
-2. RAG search for context:
-   - `<Project>-docs` — current state + discussion trail / iteration history
+1. Read the issue: `gh-cli get_issue <owner> <repo> <number>` — the body carries the area (no comments to read)
+2. RAG search for context, scoped by the area:
+   - `<Project>-docs` with `--document 'process-docs/<area>/%'` — process history; widen to the whole collection for the code map
    - `<Project>-reference` — external sources (vendor docs, papers, repos)
+3. Browse `process-docs/<area>/` and `dev/<area>/` folder listings for entries RAG missed
 
 The issue does not contain narrative. The sources do.
 
@@ -137,7 +134,7 @@ If an issue defines a specific verification test that has not been run yet → i
 | List closed issues | `gh-cli list_issues <owner> <repo> --state closed` |
 | Read issue body | `gh-cli get_issue <owner> <repo> <number>` — body = text AFTER the `---` separator in the output |
 | Create issue | `gh-cli create_issue <owner> <repo> "<title>" --body "<desc>" [--labels a,b]` |
-| Update issue body (Source-Inventory) | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"` (full-replace) |
+| Update issue body (area change only) | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"` (full-replace) |
 | Close issue | `gh-cli update_issue <owner> <repo> <number> --state closed` |
 | Reopen issue | `gh-cli update_issue <owner> <repo> <number> --state open` |
 
