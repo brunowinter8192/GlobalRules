@@ -111,7 +111,7 @@ A process-docs entry is a dated snapshot, written once and never touched again. 
 An entry must never assert present-tense current/production state ("X is the production value"). Frame everything as of its date: "as of 2026-06, the sweep showed …". A value measured in an entry is a historical record, not a live figure.
 
 **Structured, not a chaotic dump.**
-Entries are dense and organized — English, dated, thematic. Organize by theme in `process-docs/<area>/` subfolders; file naming inside is free (date-based, purpose-based, both OK). **Every area is ONE folder** — how many entries live inside is secondary. No loose top-level `.md`: even a one-off goes into its area folder.
+Entries are dense and organized — English, dated, thematic. Organize by theme in `process-docs/<area>/` subfolders; file naming inside is free (date-based, purpose-based, both OK). **Entry granularity = one session:** each session writes its own NEW `.md` into its area — a follow-up session never appends to or extends a prior session's file. **Every area is ONE folder** — how many entries live inside is secondary. No loose top-level `.md`: even a one-off goes into its area folder.
 
 **Area = work strand with its own driving question.**
 An area is a line of work that runs across sessions and accumulates entries — its own question under investigation, its own measurements. The area name is the stable pointer used by issues (`Area: <area>`), `process-docs/<area>/`, and `dev/<area>/` — same name on all surfaces.
