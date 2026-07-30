@@ -5,7 +5,7 @@
 ### Worker CLI
 
 **Worker names are globally unique, registry-tracked.**
-Project path is required only for `spawn`; other commands auto-resolve via the registry.
+Project path is required only for `spawn`; other commands auto-resolve via the registry — to the SPAWN project. Cross-project worker → append `<project_path>` explicitly — § Worker Project Scope (Cross-project: append the target repo to EVERY later command).
 
 **`worker-cli response` is the default for reading idle workers; `capture` is the fallback.**
 `response` gives clean assistant text from the session JSONL. `capture` is for when `response` misses context (rare — Phase-A partial-report situations); it returns the pane already cleaned and scoped to since the last prompt. Both print straight to context — never pipe them through `tail` / `head` / `sed`; a hook strips that anyway.
@@ -17,12 +17,12 @@ Project path is required only for `spawn`; other commands auto-resolve via the r
 |---|---|
 | List active workers (project) | `worker-cli list <project_path>` |
 | List active workers (all) | `worker-cli list` |
-| Check worker status | `worker-cli status <name>` |
-| Clean output since last prompt | `worker-cli capture <name>` (`--raw` → raw pane to file) |
-| Clean last N assistant turns (JSONL) | `worker-cli response <name> [N]` |
+| Check worker status | `worker-cli status <name> [project_path]` |
+| Clean output since last prompt | `worker-cli capture <name> [project_path]` (`--raw` → raw pane to file) |
+| Clean last N assistant turns (JSONL) | `worker-cli response <name> [N] [project_path]` |
 | Send message to running worker | `worker-cli send <name> <message>` |
-| Merge worker branch | `worker-cli merge <name>` |
-| Kill worker (+ registered cross-project worktrees) | `worker-cli kill <name>` |
+| Merge worker branch | `worker-cli merge <name> [project_path]` |
+| Kill worker (+ registered cross-project worktrees) | `worker-cli kill <name> [project_path]` |
 | Spawn worker in worktree | `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` |
 | Create cross-project worktree | `worker-cli worktree <name> <target_repo> [branch]` |
 | Revive dead worker (resume CC session) | `worker-cli revive <name>` |

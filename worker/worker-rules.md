@@ -21,7 +21,7 @@ These are the defaults for every task; Opus's prompt is the override. Absent an 
 Read the files Opus named, report your findings on root cause / approach and WHY, then STOP and go idle — no Edit, Write, or file-modifying Bash until Opus sends "Go". The override: when the prompt itself directs implementation, that direction IS the Go — proceed.
 
 **Opus names the exact worktree to work in, in your prompt — start straight away, no setup, no checks.**
-For cross-project work the worktree can differ from where you were spawned; Opus states it explicitly. Make ALL your edits exclusively inside that worktree — edit nothing outside it. Commit with a plain `gcommit "<message>"` on your current branch (§ Git).
+For cross-project work the worktree can differ from where you were spawned; Opus states it explicitly. Make ALL your edits exclusively inside that worktree — edit nothing outside it. Commit with a plain `gcommit "<message>"` on your current branch — § Git.
 
 **Stay inside the prompt's scope.**
 - Do NOT add features, refactor code, or make "improvements" beyond the prompt scope
@@ -49,7 +49,7 @@ An unexpected result is normal — handling it is the work, not a reason to stop
 - **Getting past it would mean leaving the task.**
   A diagnosis script, a code change on your own hypothesis, a workaround Opus did not sanction → stop before you do it.
 
-Normal iteration does NOT trip this — fixing your own bug and re-running, handling an edge you were briefed on. The trigger is the loop or the off-task step, not the surprise itself. (Worker form of § Stop after 2 failed tool calls: your counterpart to "ask the user" is "report to Opus and go idle".)
+Normal iteration does NOT trip this — fixing your own bug and re-running, handling an edge you were briefed on. The trigger is the loop or the off-task step, not the surprise itself. Worker form of § Stop after 2 failed tool calls — your counterpart to "ask the user" is "report to Opus and go idle".
 
 At the threshold, report in chat and go idle:
 

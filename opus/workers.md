@@ -39,6 +39,13 @@ Hits an unanticipated external need mid-task → it STOPS and asks; YOU flag it 
 **Cross-project work uses two worktrees.**
 WHERE the worker works is decoupled from where it spawned. For work in another project, after spawning, create the target-project worktree with `worker-cli worktree <name> <target_project>` (creates + registers `.claude/worktrees/<name>` in the target on branch `<name>`, echoes the path) and have the worker do its work there. So: spawned in the current project's worktree, working in the target project's worktree — the two are separate. `worker-cli kill <name>` cleans both the spawn-side and the registered cross-project worktree + branch.
 
+**Cross-project: append the target repo to EVERY later command.**
+`merge`, `kill`, `status`, `capture`, `response` take `[project_path]` as their LAST argument; without it they resolve to the SPAWN project.
+```bash
+git -C <target_repo>/.claude/worktrees/<name> diff integration
+worker-cli merge <name> <target_repo>
+```
+
 ### Worker Lifecycle & Reuse
 
 **One worker at a time; reuse it across its thematic area.**
@@ -61,8 +68,11 @@ Kill when the worker is dead (`limit reached`), a worktree filesystem conflict f
 
 Applies EVERYWHERE a worker is dispatched or messaged:
 
-1. Worker `working` → set a 10min timer: `Bash(command="sleep 600 && echo done", run_in_background=true)`. This is the sole, final action of the turn — STOP, no `worker-cli status` check in the same turn.
-2. The timer wakes you in a NEW turn → run `worker-cli status`. `working` → set a new 10min timer (sole + final action, STOP). `idle` → `worker-cli response`, proceed to the next step.
+1. Worker `working` → set a 55min timer: `Bash(command="sleep 3300 && echo done", run_in_background=true)`. This is the sole, final action of the turn — STOP, no `worker-cli status` check in the same turn.
+2. The timer wakes you in a NEW turn → run `worker-cli status`. `working` → set a new 55min timer (sole + final action, STOP). `idle` → `worker-cli response`, proceed to the next step.
+
+**The timer is a ceiling, not a wait.**
+It is not expected to run out — the menubar aborts it as soon as every worker of the project is idle, which is the normal wake-up path. The 55min value only caps how long a wake-up can be delayed if that abort never fires.
 
 ### While Workers Run
 
@@ -178,7 +188,7 @@ The prompt describes WHAT, the worker figures out HOW. Every prompt must match e
 
 Then spawn:
 1. Write prompt to `/tmp/spawn-worker-<project>-<name>.md`
-2. `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` — worktree is the default; omit `--no-worktree` (§ Worker Project Scope)
+2. `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` — worktree is the default; omit `--no-worktree` — § Worker Project Scope (Spawn is fixed: every worker spawns into a worktree in the CURRENT project)
 3. IMMEDIATELY set a background timer — form per the Timer Loop above.
 
 ### Step 2 — Evaluate
@@ -251,10 +261,10 @@ Worker commits ONE recap commit (`docs: recap for <task>`), reports touched file
 **Glue work first — copy out what lives only in the worktree.**
 Anything living only in the worktree — gitignored files, extracted configs — is lost when the merge deletes the worktree. Copy it out before merging.
 
-`worker-cli merge <name>` merges the branch into current branch (`integration`). Worker stays alive.
+`worker-cli merge <name> [project_path]` merges the branch into current branch (`integration`). Worker stays alive. Cross-project worker → `project_path` is MANDATORY — § Worker Project Scope (Cross-project: append the target repo to EVERY later command).
 
 **Post-Merge Verification (MANDATORY):**
-- If merge says "Already up to date" → STOP. Worker did NOT commit. Investigate via `worker-cli capture`.
+- If merge says "Already up to date" → STOP. Cross-project worker → re-run with `project_path`. Otherwise the worker did NOT commit → investigate via `worker-cli capture`.
 - Run `git diff ORIG_HEAD --name-only` — check expected files are modified. `ORIG_HEAD` = the pre-merge tip, so this shows ALL of the worker's commits, not just the last one (`HEAD~1` would miss earlier commits on a multi-commit branch).
 - If no changes: `worker-cli send` with commit instructions
 

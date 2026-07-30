@@ -135,8 +135,8 @@ Methods and answers within an area may change completely — a pivot to a new ap
 
 An area is never a maintained list (backlog, inventory) — that is what issues are for; every entry in an area folder stays a write-once dated snapshot.
 
-**No cross-references to other process-docs.**
-A process-docs entry MUST NOT reference another process-docs entry. Thematic grouping is carried by the FOLDER the entry lives in; related process history is found by RAG over `process-docs` + browsing the folder, never by a hardcoded path to another entry. Anything else may be referenced — `dev/` reports, `src/` files/symbols, `DOCS.md`, external sources.
+**Cross-references point at AREAS, never at single entries.**
+A process-docs entry MUST NOT reference another process-docs `.md` file by path — a specific entry is found by RAG over `process-docs` + browsing the folder. Referencing another AREA (`process-docs/<area>/`) IS allowed and wanted. The issue's `Area:` names the PRIMARY area only. Anything else may be referenced — `dev/` reports, `src/` files/symbols, `DOCS.md`, external sources.
 
 **Evidence stays inline.**
 State a measurement's key result in the prose itself — the number, the dataset/sample size, the finding — so the entry stands on its own; a `dev/` report path may back it, but the entry must be readable without following the link.
