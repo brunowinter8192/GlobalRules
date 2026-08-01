@@ -1,4 +1,4 @@
-q# Workers
+# Workers
 
 ## Core Rules
 
