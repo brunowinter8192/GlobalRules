@@ -9,7 +9,6 @@
     "opus": {
       "files": [
         "opus/communication.md",
-        "opus/chat-output.md",
         "opus/tool-use.md",
         "opus/workers.md"
       ]
