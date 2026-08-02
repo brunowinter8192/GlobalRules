@@ -102,8 +102,17 @@ A decision you took while unsure is one the user has to be able to check, and a 
 
 #### Action frame
 
-**Every tool call is covered by an Action frame, never explained inside an Exchange.**
-Both what you are about to do and what you just did. Terse bullets, the action without the reasoning. Omit it when it adds nothing beyond confirming a spec already given.
+**Everything that happens inside tool calls is reflected in Action frames — nothing runs unnarrated.**
+An Action frame states the action and nothing else: no reasoning, no finding, no conclusion — those are an Exchange. It covers what you are about to do or what you just did.
 
-**An Action frame may sit before or after its triggering tool call.**
-Your choice.
+**Format is a blockquote, one action per line, and it is mandatory.**
+Every line starts with `> `. The vertical bar this renders is what separates an Action frame from an Exchange at a glance; without it the frame reads as prose and the distinction is lost.
+
+```
+> Read the worker diff against integration
+> Ran 16 cases independently against the hook file, zero deviations
+> Merged the branch into integration, installer ran with it
+```
+
+**An Action frame sits immediately before or immediately after its tool calls — never anywhere else.**
+One frame may cover a whole run of N tool calls; how you cut the run and how you word it is yours. What is fixed is the adjacency: a frame never floats free of the calls it describes, and no call is left without a frame covering it.
