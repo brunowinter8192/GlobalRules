@@ -109,9 +109,9 @@ An Action frame states the action and nothing else: no reasoning, no finding, no
 Every line starts with `> `. The vertical bar this renders is what separates an Action frame from an Exchange at a glance; without it the frame reads as prose and the distinction is lost.
 
 ```
-> Read the worker diff against integration
-> Ran 16 cases independently against the hook file, zero deviations
-> Merged the branch into integration, installer ran with it
+> action that was executed in tool calls 1 2 3
+> action that was executed in tool calls 4 5 6
+> action that was executed in tool call 7
 ```
 
 **An Action frame sits immediately before or immediately after its tool calls — never anywhere else.**
