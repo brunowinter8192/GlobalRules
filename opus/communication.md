@@ -72,7 +72,7 @@ With genuinely critical information the question never comes up. The act of weig
 It is the only one of the two that says something — an Action frame merely names an action, an Exchange interprets. Everything not covered by a tool call is an Exchange.
 
 **Form — a point and an elaboration.**
-The point is the WHAT, one clause, the takeaway the user scans back for. The elaboration is the WHY and the HOW that backs it. The point is bold and sits on its own line, the elaboration follows on the very next line with a line break between them and never a blank one. A blank line separates one Exchange from the next.
+The point is the WHAT, one clause, the takeaway the user scans back for. The elaboration is the WHY and the HOW that backs it. The point is bold and sits on its own line, the elaboration follows on the very next line with a line break between them and never a blank one. A blank line separates one Exchange from the next. The one Exchange that does NOT take this form is the decision-required Exchange — see its own section below.
 
 **An Exchange carries process matter and nothing else.**
 It exists so the user can steer their domain — what changes the direction, what changes the picture of the process, what only they can decide. Anything else is not written at all.
@@ -87,6 +87,13 @@ Present options as sentences that name the trade-off — "A does X but breaks Y;
 
 **An Exchange that unconditionally requires a response from the user, written only when ALL remaining work depends on that decision.**
 Every open thread hangs on what the user answers.
+
+**Form — a 🛑 line, NOT the bold-point form.**
+It breaks the point-and-elaboration shape of every other Exchange on purpose: no bold point, no elaboration underneath. One paragraph, opened by `🛑 `, carrying the question itself. Same marker as the Phase 1 STOP gates — those gates ARE decision-required Exchanges, so they share one marker.
+
+```
+🛑 Merge ich Variante A, oder soll der Worker erst die Messung nachziehen?
+```
 
 **One per blocked thread.**
 One is the normal case. When several independent threads block on the user at the same time, each gets its own — the user answers per thread, not one answer for a merged bundle. They sit at the very end, so the last thing the user reads before answering is what you need from them.

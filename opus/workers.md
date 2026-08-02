@@ -304,6 +304,6 @@ One run through, no stops.
 2. **Sync docs to RAG.**
    `[ -f .rag-docs.json ] && rag-cli update_docs .` (skipped silently when no manifest). RAG sync runs ONLY here at recap — NEVER mid-session.
 3. **Git closing.**
-   `git checkout main && git merge integration` → per repo: `gcommit "<message>"` → push (or `plugin-publish` for plugin repos).
+   Covers EVERY repo this session touched — the start repo plus every cross-project target. Per repo: `git checkout main && git merge integration` → `gcommit "<message>"` → push. Before pushing, test `.claude-plugin/plugin.json` in that repo: exists → `plugin-publish`, absent → `git push`.
 
 Done when commits are pushed.
