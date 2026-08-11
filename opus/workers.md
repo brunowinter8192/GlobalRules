@@ -272,7 +272,7 @@ Anything living only in the worktree — gitignored files, extracted configs —
 
 ## Session Recap
 
-Decoupled from the worker cycle — runs at the very END of the session, on explicit user trigger ("wir machen session recap"). It is NOT part of the worker cycle; the user decides when it happens.
+Decoupled from the worker cycle — runs at the very END of the session, on explicit user trigger ("wir machen session recap"). It is NOT part of the worker cycle; the user decides when it happens. NEVER ask for or propose it ("machen wir Session-Recap?" is banned) — an ongoing session is the default state, not something needing resolution; the trigger is the user's alone.
 
 **Scope — YOUR Session Recap covers ONLY files YOU touched directly.**
 Concern separation: everything a worker produced is already in its own milestone recap.

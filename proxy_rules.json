@@ -27,9 +27,14 @@
   "tool_injection": {
     "exclude_projects": []
   },
+  "model_params": {
+    "claude-fable-5": {"thinking": {"type": "adaptive", "display": "omitted"}, "effort": "high", "max_tokens": 64000},
+    "claude-opus-5": {"thinking": {"type": "adaptive", "display": "omitted"}, "effort": "high", "max_tokens": 64000},
+    "claude-sonnet-5": {"thinking": {"type": "adaptive", "display": "omitted"}, "effort": "high", "max_tokens": 64000}
+  },
   "model_override": {
     "enabled": true,
-    "model": "claude-opus-5",
+    "model": "claude-fable-5",
     "thinking": {
       "type": "adaptive",
       "display": "omitted"
