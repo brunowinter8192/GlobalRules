@@ -64,20 +64,20 @@ Kill when the worker is dead (`limit reached`), a worktree filesystem conflict f
 3. Spawn the successor; its prompt = files + milestone + where to pick up (from the pane + YOUR plan). If the pane shows it only planned, it gets the original milestone prompt.
 4. Cross-model check (Step 2) the successor's first response against where the dead worker left off.
 
-### Timer Loop — After Every Worker Send
+### Wake-up Loop — After Every Worker Send
 
 Applies EVERYWHERE a worker is dispatched or messaged:
 
-1. Worker `working` → set a 55min timer: `Bash(command="sleep 3300 && echo done", run_in_background=true)`. This is the sole, final action of the turn — STOP, no `worker-cli status` check in the same turn.
-2. The timer wakes you in a NEW turn → run `worker-cli status`. `working` → set a new 55min timer (sole + final action, STOP). `idle` → `worker-cli response`, proceed to the next step.
+1. Worker `working` → arm the wake-up: `Bash(command="worker-cli wait", run_in_background=true)`. It wakes you when the workers of the project are done. This is the sole, final action of the turn — STOP, no `worker-cli status` check in the same turn.
+2. The wake-up notice arrives in a NEW turn → run `worker-cli status`. `working` → arm a new `worker-cli wait` (sole + final action, STOP). `idle` → `worker-cli response`, proceed to the next step.
 
-**The timer is a ceiling, not a wait.**
-It is not expected to run out — the menubar aborts it as soon as every worker of the project is idle, which is the normal wake-up path. The 55min value only caps how long a wake-up can be delayed if that abort never fires.
+**`worker-cli wait` manages itself — never kill it, never poll it, never reason about it.**
+It exits on its own when all workers of the project are stably idle, or at its built-in ceiling. A stray or duplicate `wait` is harmless — its late notice is ignorable noise, never something to fix.
 
 ### While Workers Run
 
 **Default is to go idle, not to poll.**
-Workers take 2-10 minutes. After spawning, pick up independent work only when there is genuinely something concrete to do (rule edits, planning, exploration); if there is not, just go idle. The Timer Loop wakes you to check status — never poll it repeatedly.
+Workers take 2-10 minutes. After spawning, pick up independent work only when there is genuinely something concrete to do (rule edits, planning, exploration); if there is not, just go idle. The Wake-up Loop rouses you to check status — never poll it repeatedly.
 
 - While a worker is `working`, only call `worker-cli status` — it's cheap. Don't read output mid-work.
 - When idle, read with `worker-cli response`. Use `worker-cli capture` ONLY for a dead / forcefully-stopped worker — it reads the tmux pane directly, since `response` needs a live session.
@@ -189,7 +189,7 @@ The prompt describes WHAT, the worker figures out HOW. Every prompt must match e
 Then spawn:
 1. Write prompt to `/tmp/spawn-worker-<project>-<name>.md`
 2. `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` — worktree is the default; omit `--no-worktree` — § Worker Project Scope (Spawn is fixed: every worker spawns into a worktree in the CURRENT project)
-3. IMMEDIATELY set a background timer — form per the Timer Loop above.
+3. IMMEDIATELY arm the wake-up — form per the Wake-up Loop above.
 
 ### Step 2 — Evaluate
 
