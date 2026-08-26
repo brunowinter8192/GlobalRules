@@ -7,20 +7,20 @@
 **Worker names are globally unique.**
 - A registry tracks every worker name.
 - Only `spawn` requires the project path.
-- All other commands resolve the worker via the registry, to the project it was spawned in.
+   - All other commands resolve the worker via the registry, to the project it was spawned in.
 - For a cross-project worker, append `<project_path>` explicitly to every later command.
-- Details sit in the Worker Project Scope section of workers.md.
+   - Details sit in the Worker Project Scope section of workers.md.
 
 **`worker-cli response` is the default for reading idle workers.**
 - `response` returns clean assistant text from the session JSONL.
 - `capture` is the fallback for the rare case that `response` misses context.
-- `capture` returns the tmux pane, already cleaned and scoped to since the last prompt.
+   - `capture` returns the tmux pane, already cleaned and scoped to since the last prompt.
 - Both print straight to context.
-- Never pipe them through `tail`, `head`, or `sed`, because a hook strips that anyway.
+   - Never pipe them through `tail`, `head`, or `sed`, because a hook strips that anyway.
 
 **Session name pattern.**
 - The pattern is `worker-<basename(project_path)>-<name>`.
-- Project `/Users/x/Monitor_CC` with worker `inject-fixes` gives session `worker-Monitor_CC-inject-fixes`.
+   - Project `/Users/x/Monitor_CC` with worker `inject-fixes` gives session `worker-Monitor_CC-inject-fixes`.
 
 | Operation | CLI |
 |---|---|
@@ -39,7 +39,7 @@
 ### Git
 
 **Preview staged state before committing with `git-check [repo_path]`.**
-- The command stages and prints a report of staged, unstaged, and untracked files plus hook status.
+- The command stages everything and reports staged, unstaged, untracked files, and hook status.
 - It does not commit.
 - Using it is optional review.
 
@@ -60,7 +60,7 @@
 - It also removes the on-disk source files under `data/documents/<collection>/`.
 - `--collection` is required, and alone it deletes the whole collection.
 - `--document` optionally narrows the deletion to one document.
-- That removes the document's chunks, its manifest row, and its `.md` and `.json` files.
+   - That removes the document's chunks, its manifest row, and its `.md` and `.json` files.
 - `--document` without `--collection` errors.
 
 **`index` is the inverse of `delete` over the same scope.**
@@ -68,24 +68,23 @@
 - `--collection` is required, and alone it indexes every `.md` in the collection directory.
 - `--document` optionally indexes just that one file.
 - Unchanged files are skipped by default, detected via content hash.
-- `--force` re-embeds everything.
+   - `--force` re-embeds everything.
 - `--document` without `--collection` errors.
 
 **`search` finds the hit and `read_document` pulls the context around it.**
 - `read_document <coll> <doc> <chunk> --before N --after M` returns the chunk plus its neighbors.
-- The useful detail usually sits in those neighbors.
+   - The useful detail usually sits in those neighbors.
 
 **Every chunk you build on gets expanded with `read_document` first.**
 - Building on a chunk means writing an artifact from it, stating a claim from it, or acting on it.
 - Before any of that, run `read_document` with `--before` and `--after` on that chunk.
-- This applies to every such chunk, with zero exceptions.
 - A bare `search` hit is never a sufficient basis to act on.
 - Believing you already have all the information is never grounds to skip the expansion.
 - Building on N chunks means N expansions before you act.
 
 **Miss handling.**
 - On a result with zero chunks, reformulate the query at least twice before falling back.
-- The fallback is a direct Read or a bash grep.
+   - The fallback is a direct Read or a bash grep.
 - On a partial hit, run `read_document` around the hit's chunk index instead of re-querying.
 
 | Operation | Command |
@@ -101,17 +100,17 @@
 
 **Derive `<owner>` and `<repo>` from the git remote.**
 - `git remote get-url origin` returns `github.com:<owner>/<repo>.git`.
-- Pull both values from there.
+   - Pull both values from there.
 - Hardcoding them is not allowed.
 
 **Open issues are the default listing.**
 - `gh-cli list_issues` shows open issues by default.
-- Closed issues appear only with `--state closed` or `--state all`.
+   - Closed issues appear only with `--state closed` or `--state all`.
 - Pull requests are filtered out.
 
 **Finding the number.**
 - `gh-cli list_issues <owner> <repo>` lists open issues one per line as `#N [OPEN] title`.
-- Match by title and pass the stable issue number.
+   - Match by title and pass the stable issue number.
 
 #### What an Issue IS
 
@@ -121,7 +120,7 @@
 - `process-docs/<area>/` carries the process history, meaning investigations, measurements, and reasoning.
 - `<package>/DOCS.md` carries the module map.
 - The RAG `<Project>-reference` collection carries external sources like vendor docs and papers.
-- Resuming works via RAG search on both collections plus reading the code.
+- Resuming works via RAG search on the docs and reference collections plus reading the code.
 
 **Issues are created at exactly two points.**
 - The first point is when the user asks mid-session.
@@ -145,7 +144,8 @@ Resume: RAG search "<query>" on <Project>-docs --document 'process-docs/<area>/%
 - Everything under `process-docs/<area>/` and `dev/<area>/` is found via RAG plus folder browsing.
 - Code is read directly.
 - DOCS.md and reference documents are found by searching their collections.
-- The body is written once and touched again only if the issue's area changes, which is rare.
+- The body is written once.
+   - A rewrite happens only when the issue's area changes, which is rare.
 
 #### Resume Pattern
 
@@ -160,9 +160,9 @@ Resume: RAG search "<query>" on <Project>-docs --document 'process-docs/<area>/%
 
 **Close with `gh-cli update_issue <owner> <repo> <number> --state closed`.**
 - Close proactively when the issue's code is merged and a live check shows the behavior works.
-- Do that in the same flow instead of waiting for the user to ask.
+   - Do that in the same flow instead of waiting for the user to ask.
 - Nothing is posted to the issue at close, because process-docs carries the summary.
-- If the issue defines a verification test that has not run yet, run the test first and then close.
+- If the issue defines a verification test, run the test before closing.
 
 | Operation | CLI |
 |---|---|
@@ -182,12 +182,11 @@ Resume: RAG search "<query>" on <Project>-docs --document 'process-docs/<area>/%
 
 **Use `show` only when the user wants to LOOK at a file.**
 - For your own inspection like analysis, code review, or grep, use Read or Bash.
-- Never use `show` for content you yourself need to consume.
 
 **A file already opened with `show` stays open.**
 - One `show` at first display holds for the whole session.
 - The open app picks up later edits in place.
-- Re-running `show` after each edit is therefore redundant.
+   - Re-running `show` after each edit is therefore redundant.
 
 | Operation | Command |
 |---|---|

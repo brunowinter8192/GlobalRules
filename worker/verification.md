@@ -4,8 +4,8 @@
 - A pure-function assert is not proof that the production path works.
 - A passing probe on a copy is not proof that the real code works.
 - On every task, state explicitly how you tested and up to which point it is verified.
-- State what you conclude from it.
-- That transparency matters more than hitting any prescribed test shape.
+   - State what you conclude from it.
+   - That transparency matters more than hitting any prescribed test shape.
 
 ## Verification Levels
 
@@ -22,7 +22,7 @@
 **If you only imported and called the function, say so plainly.**
 - The honest phrasing is "verified at integration level, NOT at the entry-point".
 - The honest boundary is the deliverable.
-- A green checkmark that overstates it is not.
+   - A green checkmark that overstates it is not.
 
 ## Report Honestly
 
@@ -32,10 +32,10 @@
 
 **Separate regression guards from integration tests.**
 - In the checklist, split pure-function asserts from tests with real calls and real output.
-- A bare "X/X passing" is not allowed.
+   - A bare "X/X passing" is not allowed.
 
 **PARTIAL is a legitimate status.**
-- It applies when planned verification is blocked by an unrelated cause like a CAPTCHA, a 503, or missing data.
+- It applies when an unrelated cause, like a CAPTCHA or missing data, blocks planned verification.
 - Report precisely what ran, what did not, and why.
 - Never inflate PARTIAL into "verified" with a weaker substitute that does not test the contract.
 - Opus picks the PARTIAL up and decides the next step.

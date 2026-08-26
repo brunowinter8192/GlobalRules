@@ -21,8 +21,8 @@
 **The deciding question is whether the script is useful to another agent with zero context.**
 - If yes, it belongs in dev/.
 - If no, it belongs in the worktree or /tmp/.
-- dev/ exists to hand a zero-context agent which tests ran, when, how, and with what result.
-- The timeframe is irrelevant for that.
+- dev/ hands a zero-context agent which tests ran, when, how, and with what result.
+   - The timeframe is irrelevant for that.
 
 | Example | Verdict |
 |---|---|
@@ -33,6 +33,6 @@
 
 **One-shot scripts live in the worktree or /tmp/ and are never staged.**
 - Build forensics and one-shot assertions in the worktree or under /tmp/.
-- Explicitly do not stage them on merge.
-- When a one-shot assertion becomes a permanent regression guard, fold the case into an existing test file in dev/.
-- A new file per fix is not allowed.
+   - Explicitly do not stage them on merge.
+- A one-shot assertion that becomes a regression guard folds into an existing dev/ test file.
+   - A new file per fix is not allowed.
