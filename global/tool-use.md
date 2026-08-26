@@ -5,21 +5,25 @@
 ### Stop after 2 failed tool calls
 
 **Stop immediately when two tool calls in a row fail or miss the goal.**
-Blind retries burn context and rarely converge, so a third attempt is banned until the user weighs in.
-
-- clearly explain the problem to the user
-- ask "how should I solve this?" or "where can I find X?"
-- no further trial and error without user input
+- Blind retries fill the context window and rarely reach the goal.
+- A third attempt is therefore banned until the user weighs in.
+- Clearly explain the problem to the user.
+- Ask how to solve it or where to find the missing piece.
+- Further trial and error without user input is not allowed.
 
 ## Bash
 
-**Bash never writes repo files — use Write/Edit for any file that lives in the repo (`.py`, `.sh`, `.md`, configs).**
-The only bash-written files are throwaways under `/tmp/`; a shell-argument heredoc for a one-shot command (commit body, curl payload) is fine, since it produces no persistent file.
+**Bash never writes repo files.**
+- Use Write or Edit for any file that lives in the repo.
+- That covers `.py`, `.sh`, `.md`, and config files.
+- Bash may only write throwaway files, and those live under `/tmp/`.
+- A shell-argument heredoc for a one-shot command is fine, because it produces no persistent file.
 
-### Context window hygiene — verbose output to file, not context
+### Verbose output
 
-**Route verbose output to a file, keep only the signal in context.**
-Noisy command output goes to a `/tmp` file; then grep or tail just the signal back into context.
+**Route verbose output to a file.**
+- Noisy command output goes to a `/tmp` file.
+- Then grep or tail only the relevant lines back into context.
 
 ```bash
 ./venv/bin/python dev/crawling_suite/03_test.py > /tmp/03_test_output.md 2>&1
@@ -29,63 +33,81 @@ tail -20 /tmp/03_test_output.md
 ### Chaining Bash calls
 
 **Chain everything you can into ONE Bash block per response.**
-The only reason to split across turns is when the follow-up call needs you to INTERPRET an earlier call's output to decide what to run next; data-dependency alone is not a reason.
+- Splitting across turns is justified only when you must interpret earlier output first.
+- Needing an earlier call's output as input is not by itself a reason to split.
 
 **Never verbally defer what could have chained into the current block.**
-Don't say "I'll do X next turn" for a call that no dependency forced into a later turn.
+- A call that no dependency forces into a later turn runs now.
+- Announcing it for the next turn instead is not allowed.
 
-**Read/Write/Edit may be sequenced in one response when ordering demands it (e.g. Read→Edit).**
-Only the Bash block travels alone.
+**Read/Write/Edit may be sequenced in one response when ordering demands it.**
+- A Read followed by an Edit is the typical case.
+- The one-block limit applies to Bash only.
 
 ### Git
 
-**Commit with `gcommit "<message>" [repo_path]` — it stages all changes and commits in ONE call, on the current branch.**
-It stages tracked mods plus untracked (minus a secrets skip-list) and commits on the current branch of wherever you are — a worktree's branch when in one, the repo's own branch when working directly in it, never the parent repo. `repo_path` defaults to cwd. Push is separate and orchestrator-only.
+**Commit with `gcommit "<message>" [repo_path]`.**
+- The call stages all changes and commits them in one step, on the current branch.
+- Staging covers tracked modifications plus untracked files, minus a skip-list of secret files.
+- In a worktree it commits on the worktree's branch.
+- Working directly in a repo, it commits on that repo's branch.
+- The parent repo is never the commit target from a worktree.
+- `repo_path` defaults to the current working directory.
+- Push is separate and done only by the orchestrator.
 
 #### Commit Message
 
 **Single-line, type-prefixed, one concern per commit.**
-Prefix with `feat` / `fix` / `refactor` / `docs` / `chore`.
-
-- max 72 chars
-- pick the dominant concern if mixed
-- no Co-Author footer for routine commits
+- Prefix with `feat`, `fix`, `refactor`, `docs`, or `chore`.
+- The message stays under 72 characters.
+- If concerns mix, pick the dominant one.
+- Routine commits carry no Co-Author footer.
 
 ## Read
 
-**Reads a file in `cat -n` format (`line_number\tcontent`).**
-Use `offset`+`limit` for larger files, `pages` for PDFs (REQUIRED on PDFs >10 pages, max 20/request — omitting fails the call). Reads images (PNG/JPG) and `.ipynb` notebooks.
+**Reads a file in `cat -n` format.**
+- Each output line shows the line number, a tab, and the content.
+- Use `offset` plus `limit` for larger files.
+- PDFs over 10 pages require the `pages` parameter.
+- The maximum is 20 pages per request, and omitting `pages` fails the call.
+- The tool also reads PNG and JPG images and `.ipynb` notebooks.
 
-**A nonexistent path fails with `File does not exist…`.**
-Verify with `ls` when reconstructing a path from memory — common typos: `.claire/` (should be `.claude/`), `..claude/` (double-dot, never valid).
+**A nonexistent path fails with "File does not exist".**
+- Verify with `ls` when reconstructing a path from memory.
+- Common typos are `.claire/` and the double-dot `..claude/`, both invalid.
 
 ### Grep for patterns, Read for meaning
 
-**Grep only for a fixed, unambiguous pattern; Read when the target is meaning.**
-Grep fits a symbol, import, path, literal string, exact token — typically code. When the target is semantic — whether a topic is covered, a claim is made, an idea is present — READ the file (offset/limit for large ones), never grep, because prose says the same thing many ways: grepping `haus` returns nothing when the file says `villa`, a false negative.
+**Grep serves fixed patterns and Read serves meaning.**
+- Grep fits a symbol, an import, a path, a literal string, or an exact token.
+- Those targets are typically code.
+- When the target is semantic, read the file instead of grepping.
+- Semantic means questions like whether a topic is covered or a claim is made.
+- Prose says the same thing many ways, so grep misses valid content there.
+- Grepping `haus` returns nothing when the file says `villa`.
 
-### `<persisted-output>` blocks: ALWAYS Read the full file — never grep, never preview
+### `<persisted-output>` blocks
 
-**A `<persisted-output>` block (`Full output saved to: <path>`) is always Read in full, never grepped or previewed.**
-One Read call on the path — never grep it, never head/tail/cat-filter it, never offset/limit-chunk it, never settle for the `Preview (first NKB)` content.
-
-**Workflow:**
-1. extract the absolute path from `Full output saved to: <path>`
-2. Read the ENTIRE file in ONE Read call; if it exceeds 2000 lines, raise `limit=N` to cover it
+**A `<persisted-output>` block is always Read in full.**
+- The block names its file as `Full output saved to: <path>`.
+- Extract that absolute path and Read the entire file in one call.
+- If the file exceeds 2000 lines, raise `limit=N` to cover it.
+- Grep, head, tail, and partial reads via offset are not acceptable substitutes.
+- The `Preview (first NKB)` content is not a substitute either.
 
 ## Edit
 
 **Performs exact string replacement in a file.**
-Read the file in this conversation before editing, or the call fails.
-
-- one Read per file per session suffices — later Edits reuse the read-state
-- `old_string` must match the file exactly, including indentation, and be unique — strip the Read line prefix (number + tab) before matching
-- `replace_all: true` replaces every occurrence instead
+- Read the file in this conversation before editing, or the call fails.
+- One Read per file per session suffices, because the file counts as read for later Edits.
+- `old_string` must match the file exactly, including indentation, and must be unique.
+- Strip the Read line prefix of number and tab before matching.
+- With `replace_all` set to true, every occurrence is replaced instead.
 
 ## Write
 
 **Writes a file to the local filesystem, overwriting if one exists.**
-Create a new file or fully replace one you've already Read — overwriting an unread file fails, and for partial changes you use Edit.
-
-- **Prefer Edit for existing files.**
-  Write resends the full content every time.
+- Use it to create a new file or fully replace one you already Read.
+- Overwriting an unread file fails.
+- For partial changes, use Edit instead.
+- Prefer Edit for existing files, because Write resends the full content every time.

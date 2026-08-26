@@ -1,32 +1,38 @@
 # dev/ Directory Convention
 
-Development scripts for testing, debugging, and experimentation.
+**dev/ holds development scripts for testing, debugging, and experimentation.**
 
-## Purpose — Analysis Only, Not Debug-Script Dumping
+## Purpose — Analysis Only
 
-Three activities, kept separate:
+**Three activities stay separate.**
 
 | Activity | Handling |
 |---|---|
-| **Live-verification of a source fix** | Build the fix in the worktree; Opus or user restarts the app, triggers the scenario, observes. Standard loop — no script. |
-| **Forensics on existing data** | Can't be triggered live without touching the environment. Load the real data source (JSONL, log), call the function with a real entry, measure. Script in worktree or `/tmp/`, throwaway — gone once root cause is clear. |
-| **Assertion across many data points after a fix** | Invariant over N entries, infeasible by hand. Permanent regression-guard value → fold the case into an EXISTING `dev/` test file. One-fix value only → worktree or `/tmp/`, gone on merge. |
+| Live-verification of a source fix | Build the fix in the worktree. Opus or the user restarts the app, triggers the scenario, and observes. This is the standard loop and needs no script. |
+| Forensics on existing data | The scenario cannot be triggered live without touching the environment. Load the real data source, call the function with a real entry, and measure. The script lives in the worktree or /tmp/ and is gone once the root cause is clear. |
+| Assertion across many data points after a fix | An invariant over N entries is infeasible by hand. With permanent regression value, fold the case into an existing dev/ test file. With one-fix value, the script lives in the worktree or /tmp/ and is gone on merge. |
 
-What earns a place in `dev/` vs what does not:
+**Permanent value decides what earns a place in dev/.**
 
-| Permanent value → `dev/` | One-shot value → worktree / `/tmp/` |
+| Permanent value, so dev/ | One-shot value, so worktree or /tmp/ |
 |---|---|
-| Benchmarks, evals, investigation modules for a documented problem, growing unit-test / assertion suites | Session forensics scripts, one-shot fix verifiers (no regression value) |
+| Benchmarks, evals, investigation modules for a documented problem, and growing assertion suites | Session forensics scripts and one-shot fix verifiers without regression value |
 
-**Rule of thumb — useful to another agent with zero context?**
-Yes → `dev/`. No → worktree or `/tmp/`. dev/ exists to hand a zero-context agent which tests ran, when, how, and with what result — the timeframe is irrelevant.
+**The deciding question is whether the script is useful to another agent with zero context.**
+- If yes, it belongs in dev/.
+- If no, it belongs in the worktree or /tmp/.
+- dev/ exists to hand a zero-context agent which tests ran, when, how, and with what result.
+- The timeframe is irrelevant for that.
 
 | Example | Verdict |
 |---|---|
-| `dev/retrieval/run_smoke.py` | permanent analysis tool ✅ |
-| `dev/retrieval/test_assertions.py` | growing assertion library, new cases per fix ✅ |
-| `dev/feature_debug/` | investigation module for documented problem ✅ |
-| `verify_fix_works.py` | one-shot → worktree or `/tmp/` ❌ |
+| `dev/retrieval/run_smoke.py` | Permanent analysis tool, so dev/. |
+| `dev/retrieval/test_assertions.py` | Growing assertion library with new cases per fix, so dev/. |
+| `dev/feature_debug/` | Investigation module for a documented problem, so dev/. |
+| `verify_fix_works.py` | One-shot, so worktree or /tmp/. |
 
-**Consequence — one-shot scripts live in the worktree or `/tmp/`, never staged.**
-When forensics or one-shot assertion is needed, you build the script in the worktree (not staged on merge — explicitly do not stage) or under `/tmp/`. When a one-shot assertion becomes a permanent regression guard, the test case is folded into an EXISTING `test_*.py` in `dev/` — no new file per fix.
+**One-shot scripts live in the worktree or /tmp/ and are never staged.**
+- Build forensics and one-shot assertions in the worktree or under /tmp/.
+- Explicitly do not stage them on merge.
+- When a one-shot assertion becomes a permanent regression guard, fold the case into an existing test file in dev/.
+- A new file per fix is not allowed.

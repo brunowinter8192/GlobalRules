@@ -4,21 +4,30 @@
 
 ### Worker CLI
 
-**Worker names are globally unique, registry-tracked.**
-Project path is required only for `spawn`; other commands auto-resolve via the registry — to the SPAWN project. Cross-project worker → append `<project_path>` explicitly — § Worker Project Scope (Cross-project: append the target repo to EVERY later command).
+**Worker names are globally unique.**
+- A registry tracks every worker name.
+- Only `spawn` requires the project path.
+- All other commands resolve the worker via the registry, to the project it was spawned in.
+- For a cross-project worker, append `<project_path>` explicitly to every later command.
+- Details sit in the Worker Project Scope section of workers.md.
 
-**`worker-cli response` is the default for reading idle workers; `capture` is the fallback.**
-`response` gives clean assistant text from the session JSONL. `capture` is for when `response` misses context (rare — Phase-A partial-report situations); it returns the pane already cleaned and scoped to since the last prompt. Both print straight to context — never pipe them through `tail` / `head` / `sed`; a hook strips that anyway.
+**`worker-cli response` is the default for reading idle workers.**
+- `response` returns clean assistant text from the session JSONL.
+- `capture` is the fallback for the rare case that `response` misses context.
+- `capture` returns the tmux pane, already cleaned and scoped to since the last prompt.
+- Both print straight to context.
+- Never pipe them through `tail`, `head`, or `sed`, because a hook strips that anyway.
 
 **Session name pattern.**
-`worker-<basename(project_path)>-<name>`. Example: project `/Users/x/Monitor_CC` + worker `inject-fixes` → session `worker-Monitor_CC-inject-fixes`.
+- The pattern is `worker-<basename(project_path)>-<name>`.
+- Project `/Users/x/Monitor_CC` with worker `inject-fixes` gives session `worker-Monitor_CC-inject-fixes`.
 
 | Operation | CLI |
 |---|---|
 | List active workers (project) | `worker-cli list <project_path>` |
 | List active workers (all) | `worker-cli list` |
 | Check worker status | `worker-cli status <name> [project_path]` |
-| Clean output since last prompt | `worker-cli capture <name> [project_path]` (`--raw` → raw pane to file) |
+| Clean output since last prompt | `worker-cli capture <name> [project_path]`. With `--raw` it writes the raw pane to a file. |
 | Clean last N assistant turns (JSONL) | `worker-cli response <name> [N] [project_path]` |
 | Send message to running worker | `worker-cli send <name> <message>` |
 | Merge worker branch | `worker-cli merge <name> [project_path]` |
@@ -30,33 +39,54 @@ Project path is required only for `spawn`; other commands auto-resolve via the r
 ### Git
 
 **Preview staged state before committing with `git-check [repo_path]`.**
-Stages + prints a full STAGED/UNSTAGED/UNTRACKED + hook-status report WITHOUT committing — review-only, optional.
+- The command stages and prints a report of staged, unstaged, and untracked files plus hook status.
+- It does not commit.
+- Using it is optional review.
 
 | Operation | CLI | Notes |
 |---|---|---|
-| Push (NON-plugin repo) | `git -C <repo_path> push` | Falls back to `-u origin <branch>` if no upstream. **Use `plugin-publish` if `.claude-plugin/plugin.json` exists.** |
-| Push with upstream (NON-plugin repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For first push on new branch. |
-| Push (PLUGIN repo) — replaces `git push` | `cd <plugin-source-repo> && plugin-publish` | One-step: git push + cache-sync + version-bump. **Always use this for any repo with `.claude-plugin/plugin.json`.** Never plain `git push` on a plugin repo. |
+| Push (NON-plugin repo) | `git -C <repo_path> push` | Falls back to `-u origin <branch>` if no upstream exists. Use `plugin-publish` instead if `.claude-plugin/plugin.json` exists. |
+| Push with upstream (NON-plugin repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For the first push on a new branch. |
+| Push (PLUGIN repo) | `cd <plugin-source-repo> && plugin-publish` | One step that pushes, syncs the plugin cache, and bumps the version. Always use this for any repo with `.claude-plugin/plugin.json`. A plain `git push` on a plugin repo is not allowed. |
 
 ### RAG CLI
 
 **RAG queries are ALWAYS written in English, regardless of conversation language.**
-Issue the search command directly — no prior `rag-cli server start` needed.
+- Issue the search command directly.
+- No prior `rag-cli server start` is needed.
 
-**`delete` removes three surfaces for the given scope: the matched chunks, their `indexed_files` manifest rows, and the on-disk source files under `data/documents/<collection>/`.**
-`--collection` is required → deletes the whole collection (dir + all chunks + all manifest rows). `--document` (optional) narrows to one document → removes that doc's chunks + manifest row + its `.md` and `.json` sidecar. `--document` without `--collection` errors.
+**`delete` removes everything the scope covers.**
+- It removes the matched chunks and their rows in the `indexed_files` manifest.
+- It also removes the on-disk source files under `data/documents/<collection>/`.
+- `--collection` is required, and alone it deletes the whole collection.
+- `--document` optionally narrows the deletion to one document.
+- That removes the document's chunks, its manifest row, and its `.md` and `.json` files.
+- `--document` without `--collection` errors.
 
-**`index` is the inverse of `delete` over the same scope: it chunks + embeds + stores `.md` files from `data/documents/<collection>/`.**
-`--collection` is required → indexes every `.md` in the collection dir; `--document` (optional) → just that one file. Skip-by-default via content hash (unchanged files are skipped); `--force` re-embeds everything. `--document` without `--collection` errors.
+**`index` is the inverse of `delete` over the same scope.**
+- It chunks, embeds, and stores `.md` files from `data/documents/<collection>/`.
+- `--collection` is required, and alone it indexes every `.md` in the collection directory.
+- `--document` optionally indexes just that one file.
+- Unchanged files are skipped by default, detected via content hash.
+- `--force` re-embeds everything.
+- `--document` without `--collection` errors.
 
-**`search` finds the hit; `read_document` pulls the context around it.**
-`read_document <coll> <doc> <chunk> --before N --after M` returns that chunk plus its neighbors, where the useful detail usually sits.
+**`search` finds the hit and `read_document` pulls the context around it.**
+- `read_document <coll> <doc> <chunk> --before N --after M` returns the chunk plus its neighbors.
+- The useful detail usually sits in those neighbors.
 
-**Every chunk you build on gets expanded with `read_document` first — NON-NEGOTIABLE.**
-Before ANY action rests on a chunk — writing an artifact (rule / process-docs / DOCS / code), stating a grounded claim, or any "with knowledge X → do Y" — first run `read_document <coll> <doc> <chunk> --before N --after M` on that chunk. Every chunk you build on, each one, zero exceptions. A bare `search` hit is NEVER a sufficient basis to act on. Believing you already have all the info you need is irrelevant and is NEVER grounds to skip: the expansion is mandatory regardless of that belief. Build on N chunks → N expansions before you act.
+**Every chunk you build on gets expanded with `read_document` first.**
+- Building on a chunk means writing an artifact from it, stating a claim from it, or acting on it.
+- Before any of that, run `read_document` with `--before` and `--after` on that chunk.
+- This applies to every such chunk, with zero exceptions.
+- A bare `search` hit is never a sufficient basis to act on.
+- Believing you already have all the information is never grounds to skip the expansion.
+- Building on N chunks means N expansions before you act.
 
 **Miss handling.**
-On 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / bash `grep`. Partial hit short of answer: `read_document` with `--before N --after M` on the hit's `chunk_index`, not re-query.
+- On a result with zero chunks, reformulate the query at least twice before falling back.
+- The fallback is a direct Read or a bash grep.
+- On a partial hit, run `read_document` around the hit's chunk index instead of re-querying.
 
 | Operation | Command |
 |---|---|
@@ -69,31 +99,38 @@ On 0-chunk result, reformulate ≥ 2 phrasings before fallback to direct Read / 
 
 ### GitHub Issues (gh-cli) — Cross-Session Context
 
-**Derive `<owner>` and `<repo>` from the git remote; never hardcode.**
-`git remote get-url origin` returns `github.com:<owner>/<repo>.git` — pull both from there.
+**Derive `<owner>` and `<repo>` from the git remote.**
+- `git remote get-url origin` returns `github.com:<owner>/<repo>.git`.
+- Pull both values from there.
+- Hardcoding them is not allowed.
 
-**Default = open only.**
-`gh-cli list_issues` shows OPEN issues by default; closed appear only with `--state closed` (or `--state all`). Pull requests are filtered out.
+**Open issues are the default listing.**
+- `gh-cli list_issues` shows open issues by default.
+- Closed issues appear only with `--state closed` or `--state all`.
+- Pull requests are filtered out.
 
 **Finding the number.**
-`gh-cli list_issues <owner> <repo>` lists open issues one per line (`#N [OPEN] title`); match by title and pass the stable `<number>`.
+- `gh-cli list_issues <owner> <repo>` lists open issues one per line as `#N [OPEN] title`.
+- Match by title and pass the stable issue number.
 
 #### What an Issue IS
 
-An Issue is a **lean entry-point**: topic + sources that reference it. Content lives elsewhere:
+**An issue is a lean entry point into a topic.**
+- The body names the topic and where its content lives, because the content itself lives elsewhere.
+- Source code carries the current architectural state, so read the code.
+- `process-docs/<area>/` carries the process history, meaning investigations, measurements, and reasoning.
+- `<package>/DOCS.md` carries the module map.
+- The RAG `<Project>-reference` collection carries external sources like vendor docs and papers.
+- Resuming works via RAG search on both collections plus reading the code.
 
-- source code — the current architectural state (read the code; there is no doc mirror)
-- `process-docs/<area>/` — process history: investigation, measurements, iteration, the reasoning behind chosen code values (write-once entries)
-- `<package>/DOCS.md` — module map
-- RAG `<Project>-reference` collection — external sources (vendor docs, papers, GitHub, Reddit, repos)
-
-Resume mechanism: RAG-search on `<Project>-docs` (DOCS/CLAUDE/process-docs) + reading the code, `<Project>-reference` (external sources).
-
-Issues are created at exactly two points: when the user asks mid-session, or at Recap for whatever is still open at session end. There is no autonomous mid-session issue-keeping between those.
+**Issues are created at exactly two points.**
+- The first point is when the user asks mid-session.
+- The second point is Recap, for whatever is still open at session end.
+- Between those there is no autonomous issue-keeping.
 
 #### Issue Format
 
-The issue body carries the entry-point. Title = the feature/bug/task name; body:
+The issue body carries the entry point. Title = the feature/bug/task name; body:
 
 ```
 What it is:
@@ -104,50 +141,53 @@ Area: <area>  (→ process-docs/<area>/, dev/<area>/)
 Resume: RAG search "<query>" on <Project>-docs --document 'process-docs/<area>/%'
 ```
 
-No file paths in the body — the AREA is the stable pointer. Everything under `process-docs/<area>/` and `dev/<area>/` is found via RAG + folder browsing; code is read directly; DOCS.md and reference documents are found by searching their collections. The body is maintenance-free: written once, touched again only if the issue's area changes (rare).
+**The body carries no file paths, because the area name leads to everything else.**
+- Everything under `process-docs/<area>/` and `dev/<area>/` is found via RAG plus folder browsing.
+- Code is read directly.
+- DOCS.md and reference documents are found by searching their collections.
+- The body is written once and touched again only if the issue's area changes, which is rare.
 
 #### Resume Pattern
 
-When picking up an open issue in a new session:
+**Picking up an open issue in a new session follows three steps.**
+1. Read the issue via `gh-cli get_issue <owner> <repo> <number>`, because the body carries the area.
+2. RAG-search `<Project>-docs` scoped with `--document 'process-docs/<area>/%'`, and `<Project>-reference` for external sources.
+3. Browse the `process-docs/<area>/` and `dev/<area>/` folder listings for entries RAG missed.
 
-1. Read the issue: `gh-cli get_issue <owner> <repo> <number>` — the body carries the area (no comments to read)
-2. RAG search for context, scoped by the area:
-   - `<Project>-docs` with `--document 'process-docs/<area>/%'` — process history; widen to the whole collection for the code map
-   - `<Project>-reference` — external sources (vendor docs, papers, repos)
-3. Browse `process-docs/<area>/` and `dev/<area>/` folder listings for entries RAG missed
-
-The issue does not contain narrative. The sources do.
+- The issue does not contain narrative, because the sources do.
 
 #### Issue-Close
 
-`gh-cli update_issue <owner> <repo> <number> --state closed` — that's it.
-
-Close proactively: when the issue's code is merged AND live-verify shows the new behavior works as intended, close it in the same flow — don't wait for the user to ask.
-
-No verification of prosa-state at close (Recap is responsible for persistence). The process-docs prosa is the journey summary — nothing is posted to the issue.
-
-If an issue defines a specific verification test that has not been run yet → issue stays open, run the test, then close.
+**Close with `gh-cli update_issue <owner> <repo> <number> --state closed`.**
+- Close proactively when the issue's code is merged and a live check shows the behavior works.
+- Do that in the same flow instead of waiting for the user to ask.
+- Nothing is posted to the issue at close, because process-docs carries the summary.
+- If the issue defines a verification test that has not run yet, run the test first and then close.
 
 | Operation | CLI |
 |---|---|
-| List open issues | `gh-cli list_issues <owner> <repo>` (state=open is the default) |
+| List open issues | `gh-cli list_issues <owner> <repo>`. Open is the default state. |
 | List closed issues | `gh-cli list_issues <owner> <repo> --state closed` |
-| Read issue body | `gh-cli get_issue <owner> <repo> <number>` — body = text AFTER the `---` separator in the output |
+| Read issue body | `gh-cli get_issue <owner> <repo> <number>`. The body is the text after the `---` separator in the output. |
 | Create issue | `gh-cli create_issue <owner> <repo> "<title>" --body "<desc>" [--labels a,b]` |
-| Update issue body (area change only) | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"` (full-replace) |
+| Update issue body (area change only) | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"`. The call replaces the full body. |
 | Close issue | `gh-cli update_issue <owner> <repo> <number> --state closed` |
 | Reopen issue | `gh-cli update_issue <owner> <repo> <number> --state open` |
 
 ### show — open a file for the user
 
 **Open a file in the user's default macOS app so the USER can see it.**
-Use it when the user asks to be shown a file: "öffne mir den Report" / "bring mir die py-Datei her und öffne sie" / "show me X" / "open the screenshot". The trigger is intent ("show ME"), not file type.
+- Use it when the user asks to be shown a file, like "öffne mir den Report" or "show me X".
+- The trigger is the user's intent to look at it, and never the file type.
 
 **Use `show` only when the user wants to LOOK at a file.**
-For Claude-internal inspection (analysis, code review, grep) use the Read / Bash tools. Never use `show` for content Claude itself needs to consume.
+- For your own inspection like analysis, code review, or grep, use Read or Bash.
+- Never use `show` for content you yourself need to consume.
 
-**A file already opened with `show` stays open — don't re-`show` it after each edit.**
-One `show` at first display holds for the whole session; the open app picks up later edits in place, so re-running it per edit is redundant.
+**A file already opened with `show` stays open.**
+- One `show` at first display holds for the whole session.
+- The open app picks up later edits in place.
+- Re-running `show` after each edit is therefore redundant.
 
 | Operation | Command |
 |---|---|

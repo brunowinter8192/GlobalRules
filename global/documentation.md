@@ -5,46 +5,61 @@
 ### Language (NON-NEGOTIABLE)
 
 **English, always.**
-ALL documentation files are written in ENGLISH, without exception. Applies to README.md, every DOCS.md, every `process-docs/**` file, dev/ reports, and code comments. The conversation language is irrelevant: when the user chat is in German, the artifacts are STILL English. RAG queries are English, so the docs they index are English too. No mixed-language files, no German headers, no German prose in any doc.
+- Every documentation file is written in English, without exception.
+- Documentation files include README.md, DOCS.md, process-docs entries, dev/ reports, and code comments.
+- For these files the conversation language is irrelevant, because a German chat still produces English artifacts.
+- English is also the language of RAG queries, so the docs they index must match it.
+- A file that mixes languages is therefore not allowed.
 
 ### Artifact Density
 
 **Written for an agent, not a leisurely human reader.**
-Everything you read or produce as ARTIFACT — code, DOCS.md, skills/, rules/, process-docs/, code-comments — is consumed by an agent under a finite attention budget, not read at leisure by a human. Write the smallest set of high-signal tokens that fully conveys the behavior or information needed. (The chat-output prose rule is the opposite regime — user chat only, never artifacts.)
+- An artifact is anything you read or produce outside the chat.
+- Artifacts include code, DOCS.md, skills, process-docs, and code comments.
+- Missing from that list are rules, because they follow the chat writing form.
 
-**Right altitude.**
-Calibrate between two failure modes. Too low: brittle over-specification — hardcoded edge-case logic, exhaustive if-else, every conceivable case enumerated; it rots and misleads. Too high: vague hand-waving that assumes shared context and gives no concrete signal. Specific enough to guide the exact behavior, flexible enough to stay robust.
-
-**Minimal ≠ short.**
-Give the full information the reader needs to act correctly, then cut everything that is not that. Trim redundancy, restatement, and filler — never trim substance to hit a length.
+**Specific enough to guide, flexible enough to last.**
+- Calibrate between two failure modes.
+- 1. Over-detail, spelling out every conceivable case with hardcoded edge-case logic.
+- Detail at that level ages badly and misleads once the code changes.
+- 2. Vagueness that assumes shared context.
+- Vagueness tells the reader nothing concrete.
 
 **Structure over prose.**
-Sectioned with headers; a table where multiple dimensions compare; keywords over full sentences; `file:line` and code symbols over explanatory paragraphs. No rhetorical filler ("furthermore", "as we can see", "importantly", "it's worth noting"). Where a paragraph IS needed, it is dense — no repetition, no opening sentence that says nothing.
+- Section a document with headers.
+- Below the headers, use a table where multiple dimensions compare.
+- In table cells and text alike, prefer keywords over full sentences, and file:line references over explanatory paragraphs.
 
-**Canonical examples, not laundry lists.**
-A few diverse, canonical examples that portray the expected behavior beat an exhaustive dump of edge cases — examples are pictures worth a thousand words. An example earns its place only when it shows HOW to decide, not THAT a case exists.
+**A few good examples beat an exhaustive list.**
+- A few diverse examples show the expected behavior better than a dump of edge cases.
+- An example earns its place only when it shows HOW to decide.
+- Showing only that a case exists earns no place, so such an example gets cut.
 
 **Unambiguous naming.**
-Make implicit context explicit; name so the reader cannot mis-resolve — `user_id`, not `user`.
+- Make implicit context explicit.
+- Explicit context means names the reader cannot mis-resolve.
+- A name like `user_id` resolves cleanly where `user` does not.
 
 ### Sections Are Optional
 
 **Omit, don't pad.**
-Every section in DOCS.md and a process-docs entry is optional. When a point has nothing to say, leave it out — never fill a field just because the template has it. The order and shape are the standard; a section with nothing to say is omitted, not padded.
+- Every section in DOCS.md and a process-docs entry is optional.
+- An optional section with nothing to say is left out.
+- Leaving it out beats filling a field just because the template has it.
+- The template's order and shape are the standard, and an empty section is omitted rather than padded.
 
 ### No Issue References
 
 **Docs never point back at issues.**
-`process-docs/**/*.md` NEVER reference issues. The direction is one-way: issues point to docs, docs don't point back — not even a process-docs entry naming the issue that was part of the flow at the time.
+- Files under process-docs never reference issues.
+- Issues point at docs, and the direction stays one-way.
+- One-way means even the issue that drove the work stays unnamed in the entry.
 
 ### RAG Collection Layers
 
-**Two logical collections per project.**
-
-1. **docs**
-   all internal project documents: `DOCS.md`, `process-docs/**`
-2. **reference**
-   all external sources: vendor docs (e.g. Anthropic API docs), papers
+**Two collections per project.**
+- The docs collection holds all internal project documents, meaning DOCS.md and process-docs.
+- Next to the docs collection, the reference collection holds all external sources, such as vendor docs and papers.
 
 **Canonical naming:**
 
@@ -55,13 +70,15 @@ Every section in DOCS.md and a process-docs entry is optional. When a point has 
 
 ## docs
 
-**The module map.**
-The `DOCS.md` surface — the ONLY continuously-maintained doc surface.
+**DOCS.md is the module map.**
+- A DOCS.md describes the modules of its directory.
+- The description is the only documentation that gets continuously updated.
 
 ### Placement
 
 **One DOCS.md per module directory.**
-It lives at the level of the `.py` files it documents — in the directory holding the modules, documenting the modules at that level.
+- The file lives at the level of the `.py` modules it documents.
+- At that level it sits in the directory holding those modules.
 
 ### DOCS.md Format
 
@@ -97,31 +114,48 @@ Module-specific landmines. Direct text. No rule-link references (rules are alway
 ```
 
 **Module-level only.**
-No function-level documentation. Each module heading's `<LOC>` matches the file's actual `wc -l`.
+- Function-level documentation does not belong in DOCS.md.
+- In DOCS.md each module heading's LOC value matches the file's actual `wc -l`.
 
 ## process docs
 
-**Root-anchored, one fixed name.**
-`process-docs/` ALWAYS sits at the project root and is ALWAYS named exactly `process-docs/` — never nested in a subdirectory, never renamed. It is the process-documentation surface: how things were investigated and decided — alternatives evaluated, measurements, dead ends, iteration history, the reasoning behind a chosen code value.
+**Always at the project root, always named process-docs.**
+- The process-docs folder always sits at the project root.
+- At the root it carries the exact name `process-docs/`.
+- The name never changes, and the folder never moves into a subdirectory.
+- What the folder records is how things were investigated and decided.
+- Investigations and decisions cover evaluated alternatives, measurements, dead ends, iteration history, and the reasoning behind chosen values.
 
 **Write-once, not maintained.**
-A process-docs entry is a dated snapshot, written once and never touched again. You do NOT go back and edit it when code changes or new work lands — you write a NEW entry.
+- A process-docs entry is a dated snapshot, written once and never touched again.
+- Touching it again is replaced by writing a new entry when code changes or new work lands.
+- The new entry leaves the old one untouched.
 
 **No present-tense "current" claims.**
-An entry must never assert present-tense current/production state ("X is the production value"). Frame everything as of its date: "as of 2026-06, the sweep showed …". A value measured in an entry is a historical record, not a live figure.
+- An entry never asserts present-tense production state, like "X is the production value".
+- Production state gets framed as of its date instead, like "as of 2026-06, the sweep showed X".
+- A dated value is a historical record rather than a live figure.
 
 **Structured, not a chaotic dump.**
-Entries are dense and organized — English, dated, thematic. Organize by theme in `process-docs/<area>/` subfolders; file naming inside is free (date-based, purpose-based, both OK). **Entry granularity = one session:** each session writes its own NEW `.md` into its area — a follow-up session never appends to or extends a prior session's file. **Every area is ONE folder** — how many entries live inside is secondary. No loose top-level `.md`: even a one-off goes into its area folder.
+- Entries are dense, organized, English, dated, and thematic.
+- The theme decides the folder, so entries organize into `process-docs/<area>/` subfolders.
+- Inside a subfolder, file naming is free, so date-based and purpose-based names both work.
+- Files are added one per session, so each session writes its own new `.md` into its area.
+- A prior session's file is never extended by a follow-up session.
+- Follow-ups and one-offs alike stay inside their area folder, because a loose top-level `.md` is not allowed.
 
-**Area = work strand with its own driving question.**
-An area is a line of work that runs across sessions and accumulates entries — its own question under investigation, its own measurements. The area name is the stable pointer used by issues (`Area: <area>`), `process-docs/<area>/`, and `dev/<area>/` — same name on all surfaces.
+**An area is a line of work with its own question.**
+- An area runs across sessions and accumulates entries.
+- The accumulating entries work on the area's own question and its own measurements.
+- The area's name is used identically by issues, `process-docs/<area>/`, and `dev/<area>/`.
 
 **New area vs existing area.**
-Judge the work against the area it refers to ("the reference area" = the existing area whose entries it builds on).
+- Judge the work against the area it refers to.
+- The referred area is called the reference area, meaning the existing area whose entries the work builds on.
 
 NEW area — ANY one suffices:
 
-- Is the reference area a foundation for OTHER work too — a shared base, not the private predecessor of this one follow-up?
+- Is the reference area a foundation for OTHER work too, meaning a shared base rather than the private predecessor of this one follow-up?
 - Does the work draw on OTHER areas besides the reference area?
 - Does the work depend on NO existing area at all?
 
@@ -131,17 +165,33 @@ EXISTING area (continue it) — ALL three must hold:
 - Is that area's foundation essentially the foundation of THIS continuation and no other?
 - Does the work draw on this ONE area alone?
 
-Methods and answers within an area may change completely — a pivot to a new approach CONTINUES the area. A question that one entry settles is an entry inside an area, never its own area.
-
-An area is never a maintained list (backlog, inventory) — that is what issues are for; every entry in an area folder stays a write-once dated snapshot.
+- Methods and answers within an area may change completely.
+- A complete change of approach continues the area, because a pivot is not a new question.
+- A question that one entry settles is an entry inside an area rather than its own area.
+- An area is also never a maintained list like a backlog, because lists belong in issues.
+- Entries in an area folder stay write-once dated snapshots.
 
 **Cross-references point at AREAS, never at single entries.**
-A process-docs entry MUST NOT reference another process-docs `.md` file by path — a specific entry is found by RAG over `process-docs` + browsing the folder. Referencing another AREA (`process-docs/<area>/`) IS allowed and wanted. The issue's `Area:` names the PRIMARY area only. Anything else may be referenced — `dev/` reports, `src/` files/symbols, `DOCS.md`, external sources.
+- A process-docs entry must not reference another process-docs file by path.
+- A specific file is found via RAG over process-docs plus browsing the folder.
+- The folder of another area, `process-docs/<area>/`, may be referenced, and that is wanted.
+- The referenced area in an issue's `Area:` field is the primary area only.
+- Beyond areas, anything may be referenced, such as dev/ reports, src/ symbols, DOCS.md, or external sources.
 
 **Evidence stays inline.**
-State a measurement's key result in the prose itself — the number, the dataset/sample size, the finding — so the entry stands on its own; a `dev/` report path may back it, but the entry must be readable without following the link.
+- State a measurement's key result in the prose itself.
+- The key result means the number, the dataset size, and the finding.
+- With the finding inline, the entry stands on its own without following any link.
+- A link to a dev/ report may back the claim, but it stays optional reading.
 
 ## dev reports
 
 **Report outputs in dev/.**
-A dev script that produces a report writes it to a `md/`, `csv/`, or `png/` folder (by output type) inside `dev/<area>/`, never the console. The report file carries a DESCRIPTIVE name that traces to its producing script. DATA outputs (raw corpora, cached run payloads) go into their own type-named folder (e.g. `jsonl/`) under `dev/<area>/`, kept separate from the report folders and never mixed into `md/`. Organize dev work by theme in `dev/<area>/` — the same area name used in `process-docs/<area>/` where the two align.
+- A dev script that produces a report writes it into `dev/<area>/`.
+- Writing to the console instead is not allowed.
+- Inside `dev/<area>/` the report goes to `md/`, `csv/`, or `png/`, chosen by output type.
+- The report file carries a descriptive name that traces to its producing script.
+- Scripts also produce data outputs like raw corpora, and those go into their own type-named folder, for example `jsonl/`.
+- Data folders stay separate from report folders and never mix into `md/`.
+- Reports and data organize by theme in `dev/<area>/`.
+- The area name matches `process-docs/<area>/` where the two align.

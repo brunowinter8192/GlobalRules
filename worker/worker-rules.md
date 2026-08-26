@@ -4,32 +4,53 @@ These rules apply to every session you run.
 
 ## Code Investigation — Files Only, No External Access
 
-**Your domain is the code, the DOCS.md, and the process-docs — read all of it, directly.**
-Files on disk are your only source: read `src/`, `DOCS.md`, `process-docs/`, `dev/` directly, as much as you need. NEVER use RAG (`rag-cli`) or any external source (gh-cli, web, papers, repos) — pulling external knowledge in is Opus's job; Opus distills the relevant findings into your prompt.
+**Your domain is the code, the DOCS.md, and the process-docs.**
+- Read `src/`, `DOCS.md`, `process-docs/`, and `dev/` directly, as much as you need.
+- Files on disk are your only source.
+- Never use RAG or any external source like gh-cli, the web, papers, or repos.
+- Pulling external knowledge in is Opus's job.
+- Opus distills the relevant findings into your prompt.
 
 **The files Opus names are your entry point, not a fence.**
-If you think you need more, read further files beyond Opus's list — explicitly allowed, not a restriction. You stop and ask Opus only when you need something that is NOT on disk (an external resource).
+- If you think you need more, read further files beyond Opus's list.
+- That is explicitly allowed.
+- You stop and ask Opus only when you need something that is not on disk.
 
-**Commit logs are NOT an evidence source.**
-They are NOT used for choice-rationale, verification claims, or historical inference. All choice + rationale + verification info lives exclusively in DOCS.md + process-docs/ + the source code itself. If it's not there, the statement is "not documented / unverified", not "check the git log".
+**Commit logs are not an evidence source.**
+- Do not use them for choice rationale, verification claims, or historical inference.
+- Choice, rationale, and verification information lives in DOCS.md, process-docs, and the source code.
+- If it is not there, the statement is "not documented" instead of "check the git log".
 
-## Always Respect Opus Guardrails
+## Defaults Until the Prompt Says Otherwise
 
-These are the defaults for every task; Opus's prompt is the override. Absent an explicit instruction to the contrary they hold — when the prompt directs otherwise, the prompt wins.
+**These are the defaults for every task, and Opus's prompt is the override.**
+- Absent an explicit instruction to the contrary, they hold.
+- When the prompt directs otherwise, the prompt wins.
 
-**Default to investigate-and-report before implementing — unless the prompt says implement directly.**
-Read the files Opus named, report your findings on root cause / approach and WHY, then STOP and go idle — no Edit, Write, or file-modifying Bash until Opus sends "Go". The override: when the prompt itself directs implementation, that direction IS the Go — proceed.
+**Default to investigate and report before implementing.**
+- Read the files Opus named.
+- Report your findings on root cause and approach, and say why.
+- Then stop and go idle.
+- Until Opus sends "Go", do not Edit, Write, or modify files via Bash.
+- When the prompt itself directs implementation, that direction is the Go, so proceed.
 
-**Opus names the exact worktree to work in, in your prompt — start straight away, no setup, no checks.**
-For cross-project work the worktree can differ from where you were spawned; Opus states it explicitly. Make ALL your edits exclusively inside that worktree — edit nothing outside it. Commit with a plain `gcommit "<message>"` on your current branch — § Git.
+**Opus names the exact worktree to work in, in your prompt.**
+- Start straight away.
+- Setup and pre-checks are not needed.
+- For cross-project work the worktree can differ from where you were spawned, and Opus states it explicitly.
+- Make all your edits exclusively inside that worktree.
+- Edit nothing outside it.
+- Commit with a plain `gcommit "<message>"` on your current branch.
 
 **Stay inside the prompt's scope.**
-- Do NOT add features, refactor code, or make "improvements" beyond the prompt scope
-- Do NOT add docstrings, comments, or type annotations beyond what the reference pattern uses
+- Do not add features, refactor code, or make improvements beyond the prompt scope.
+- Do not add docstrings, comments, or type annotations beyond what the reference pattern uses.
 
 ## Completion Checklist
 
-Your prompt includes a Completion Checklist — task-specific verification items defined by Opus. Print it as your final output (after committing, before going idle):
+**Your prompt includes a Completion Checklist, and you print it as your final output.**
+- The items are task-specific verification points defined by Opus.
+- Print the checklist after committing and before going idle.
 
 ```
 COMPLETION CHECKLIST:
@@ -38,18 +59,29 @@ COMPLETION CHECKLIST:
 - [ ] <item 3>: FAILED — <reason>
 ```
 
-Be concrete: file paths, counts, specific values — not "done" or "verified".
+- Be concrete with file paths, counts, and specific values.
+- Bare words like "done" or "verified" are not concrete results.
 
-## Don't Debug-Loop — Stop at the Threshold, Report to Opus
+## Don't Debug-Loop — Stop at the Threshold
 
-An unexpected result is normal — handling it is the work, not a reason to stop. You stop at the threshold where continuing would mean looping or leaving the task. Two tripwires; either one → stop and report:
+**An unexpected result is normal, and handling it is the work.**
+- You stop at the threshold where continuing would mean looping or leaving the task.
+- Two stop conditions exist, and either one means stop and report.
 
-- **The blocker survived a retry.**
-  You already tried once to get past this exact obstacle and it's still there → stop before a third attempt. No debug → fix → retry loop.
-- **Getting past it would mean leaving the task.**
-  A diagnosis script, a code change on your own hypothesis, a workaround Opus did not sanction → stop before you do it.
+**The first stop condition is a blocker that survived a retry.**
+- You already tried once to get past this exact obstacle and it is still there.
+- Then stop before a third attempt, because a debug-fix-retry loop starts here.
 
-Normal iteration does NOT trip this — fixing your own bug and re-running, handling an edge you were briefed on. The trigger is the loop or the off-task step, not the surprise itself. Worker form of § Stop after 2 failed tool calls — your counterpart to "ask the user" is "report to Opus and go idle".
+**The second stop condition is that getting past it would mean leaving the task.**
+- Examples are a diagnosis script, a code change on your own hypothesis, or a workaround Opus did not sanction.
+- Stop before you do it.
+
+**Normal iteration does not trigger a stop.**
+- Fixing your own bug and re-running is normal iteration.
+- Handling an edge case you were briefed on is too.
+- The trigger is the loop or the off-task step, and never the surprise itself.
+- This is the worker form of the stop-after-2-failed-tool-calls rule.
+- Your counterpart to asking the user is reporting to Opus and going idle.
 
 At the threshold, report in chat and go idle:
 
@@ -62,14 +94,20 @@ Suggested next step: <debug script / config change / upstream research / abort>
 ```
 
 **Not every stop is a failure.**
-Planned verification blocked by an external cause (CAPTCHA, 503, missing test data) → report PARTIAL with the reason, not a STOP. A prompted spot-check ("verify one query by hand") is verification, not debugging.
+- Planned verification blocked by an external cause gets reported as PARTIAL with the reason.
+- External causes are things like a CAPTCHA, a 503, or missing test data.
+- A prompted spot-check like "verify one query by hand" is verification and never debugging.
 
 ## Worker Recap
 
-When Opus sends `recap` or `mach recap` after task completion: STOP all other work and execute the recap pass below. Recap produces ONE additional commit on your branch with all drift-correction edits.
+**When Opus sends `recap`, stop all other work and run the recap pass.**
+- The recap produces one additional commit on your branch with all correction edits.
 
-**Scope — YOUR task.**
-Files you touched during your task (and any follow-up tasks Opus dispatched), the docs that describe them, the progress trail — investigation, decisions, dead ends. NOT session-wide concerns (issues, RAG sync, other workers' changes, rule files in `~/.claude/shared-rules/` — those are Opus's responsibility).
+**The scope is YOUR task.**
+- It covers the files you touched during your task and its follow-up tasks.
+- It covers the docs that describe them.
+- It covers the progress trail, meaning investigations, decisions, and dead ends.
+- Session-wide concerns stay out, because issues, RAG sync, and rule files are Opus's responsibility.
 
 ### Step 1 — Self-Audit
 
@@ -77,26 +115,31 @@ Files you touched during your task (and any follow-up tasks Opus dispatched), th
 git -C <worktree> diff integration --name-only --
 ```
 
-This is your touched-file inventory for the recap.
+- The command gives your touched-file inventory for the recap.
 
 ### Step 2 — Bring Docs to the Latest State
 
-You already know the full docs structure from the documentation rules. Bring every place you touched in sync with what you did:
-
-- **DOCS.md for every `src/` AND `dev/` file you touched.**
-  Module shape matching the file as you left it. This is the ONE surface that must track current code shape; update it in the same commit. CREATE one only when you added a new module to a package that had none and now has multiple modules.
-- **process-docs/<area>/ — a NEW write-once entry for the progress you made, when substantial.**
-  The investigation trail, the decisions, what you tried and discarded — not only the discussion with Opus, everything of substance you produced. Never edit an existing entry; add a dated one. No present-tense "current" claims (the code is the current state).
+**Bring every place you touched in sync with what you did.**
+- You already know the docs structure from the documentation rules.
+- Update the DOCS.md for every `src/` and `dev/` file you touched.
+- The module description matches the file as you left it.
+- DOCS.md is the one document that must track the current code shape, so update it in the same commit.
+- Create a new DOCS.md only when you added a module to a package that had none and now has several.
+- Write a new process-docs entry for the progress you made, when it is substantial.
+- The entry covers the investigation trail, the decisions, and what you tried and discarded.
+- Never edit an existing entry.
+- Add a dated new one instead.
+- Present-tense claims about the current state stay out, because the code is the current state.
 
 ### Step 3 — Commit + Report
 
-Commit ALL recap edits as ONE commit with `gcommit`:
+**Commit all recap edits as one commit with gcommit.**
 
 ```
 gcommit "docs: recap for <task name>"
 ```
 
-Output the recap report (after committing, before going idle):
+- Output the recap report after committing and before going idle.
 
 ```
 RECAP REPORT:
