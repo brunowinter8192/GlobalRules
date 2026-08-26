@@ -157,6 +157,8 @@ worker-cli merge <name> <target_repo>
 - Run `search` on `<Project>-docs`, scoped to the process layer and never to the code map.
    - Prefer the narrowest scope, so `--document 'process-docs/<area>/%'` for a known area.
    - For the whole layer, use `--document 'process-docs/%'`.
+- Working on an issue, the area comes from the issue's `Area:` field, so scope to that area.
+   - Working greenfield without an issue, query across all areas instead.
 - Run `read_document` on the important hits.
 - The goal is understanding what happened on the pure process level.
    - That means the investigation trail, the decisions, the iteration history, and the real task.
@@ -168,11 +170,22 @@ worker-cli merge <name> <target_repo>
 - Say why it matters at the process level.
 
 **The area assessment is a mandatory part of this step's output.**
-- State explicitly which `process-docs/<area>/` this session's entries will go to.
-- The choice between existing and new area follows the Documentation Hierarchy rules.
 - This is a user gate, so the user can intervene here.
    - Past the gate, the area is fixed for the session.
    - If mid-session a different area seems right, flag it instead of switching silently.
+
+NEW area — ANY one suffices:
+
+- Does OTHER work build on that area too?
+   - A yes makes the area a shared base rather than a private predecessor.
+- Does the work draw on OTHER areas besides that one?
+- Does the work depend on NO existing area at all?
+
+EXISTING area (continue it) — ALL three must hold:
+
+- Does the work depend on that area's entries?
+- Is that area's foundation the foundation of THIS continuation and no other?
+- Does the work draw on this ONE area alone?
 
 🛑 STOP — Ask for remarks.
 

@@ -6,9 +6,9 @@
 
 **English, always.**
 - Every documentation file is written in English, without exception.
-   - Documentation files include README.md, DOCS.md, process-docs entries, dev/ reports, and code comments.
+   - Documentation files include DOCS.md, process-docs entries, dev/ reports, and code comments.
 - For these files the conversation language is irrelevant, because a German chat still produces English artifacts.
-- RAG queries are English, so the docs they search must be English too.
+- RAG queries are English, so the documentation files they search must be English too.
 - A file that mixes languages is therefore not allowed.
 
 ### Artifact Density
@@ -24,12 +24,6 @@
    - Detail at that level ages badly and misleads once the code changes.
 - The second failure mode is vagueness that assumes shared context.
    - Vagueness tells the reader nothing concrete.
-
-**Structure over prose.**
-- Section a document with headers.
-- Below the headers, use a table where multiple dimensions compare.
-- In table cells and text alike, prefer keywords over full sentences.
-- Prefer file:line references over explanatory paragraphs.
 
 **A few good examples beat an exhaustive list.**
 - A few diverse examples show the expected behavior better than a dump of edge cases.
@@ -78,8 +72,7 @@
 ### Placement
 
 **One DOCS.md per module directory.**
-- The file lives at the level of the `.py` modules it documents.
-- At that level it sits in the directory holding those modules.
+- The file lives in the directory holding the `.py` modules it documents.
 
 ### DOCS.md Format
 
@@ -131,7 +124,6 @@ Module-specific landmines. Direct text. No rule-link references (rules are alway
 **Write-once, not maintained.**
 - A process-docs entry is a dated snapshot, written once and never touched again.
    - New work gets a NEW entry instead of touching the old one.
-   - The new entry leaves the old one untouched.
 
 **No present-tense "current" claims.**
 - An entry never asserts present-tense production state, like "X is the production value".
@@ -142,43 +134,20 @@ Module-specific landmines. Direct text. No rule-link references (rules are alway
 - Entries are dense, organized, English, dated, and thematic.
 - The theme decides the folder, so entries organize into `process-docs/<area>/` subfolders.
    - Inside a subfolder, file naming is free, so date-based and purpose-based names both work.
-- Each session writes its own new `.md` into its area.
-   - A prior session's file is never extended by a follow-up session.
 - Follow-ups and one-offs alike stay inside their area folder.
    - A loose top-level `.md` is not allowed.
 
-**An area is a line of work with its own question.**
+**An area is a line of work.**
 - An area runs across sessions and accumulates entries.
-   - The accumulating entries work on the area's own question and its own measurements.
 - The area's name is used identically by issues, `process-docs/<area>/`, and `dev/<area>/`.
-
-**New area vs existing area.**
-- Judge the work against the existing area it builds on.
-
-NEW area — ANY one suffices:
-
-- Does OTHER work build on that area too?
-   - A yes makes the area a shared base rather than a private predecessor.
-- Does the work draw on OTHER areas besides that one?
-- Does the work depend on NO existing area at all?
-
-EXISTING area (continue it) — ALL three must hold:
-
-- Does the work depend on that area's entries?
-- Is that area's foundation the foundation of THIS continuation and no other?
-- Does the work draw on this ONE area alone?
 
 **Methods and answers within an area may change completely.**
 - A complete change of approach continues the area, because a pivot is not a new question.
 - A question settled by one entry stays an entry inside an area.
-- An area is never a maintained list like a backlog.
-   - Backlogs and other lists belong in issues.
 
 **Cross-references point at AREAS, never at single entries.**
 - A process-docs entry must not reference another process-docs file by path.
-   - A specific file is found via RAG over process-docs plus browsing the folder.
 - The folder of another area, `process-docs/<area>/`, may be referenced, and that is wanted.
-- The referenced area in an issue's `Area:` field is the primary area only.
 - Beyond areas, anything may be referenced, such as dev/ reports, src/ symbols, DOCS.md, or external sources.
 
 **Evidence stays inline.**
@@ -186,16 +155,3 @@ EXISTING area (continue it) — ALL three must hold:
    - The key result means the number, the dataset size, and the finding.
 - With the finding inline, the entry stands on its own without following any link.
 - A link to a dev/ report may back the claim, but it stays optional reading.
-
-## dev reports
-
-**Report outputs in dev/.**
-- A dev script writes its report into `dev/<area>/`.
-   - Writing to the console instead is not allowed.
-- Inside `dev/<area>/` the report goes to `md/`, `csv/`, or `png/`, chosen by output type.
-- The report file carries a descriptive name that traces to its producing script.
-- Scripts also produce data outputs like raw corpora.
-   - Data outputs go into their own type-named folder, for example `jsonl/`.
-   - Data folders stay separate from report folders and never mix into `md/`.
-- Reports and data organize by theme in `dev/<area>/`.
-   - A dev area and a process-docs area on the same theme share one name.
