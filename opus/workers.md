@@ -153,17 +153,26 @@ worker-cli merge <name> <target_repo>
 
 ### Step 2 — Process Investigation
 
-**Search the process history via RAG.**
-- Run `search` on `<Project>-docs`, scoped to the process layer and never to the code map.
-   - Prefer the narrowest scope, so `--document 'process-docs/<area>/%'` for a known area.
-   - For the whole layer, use `--document 'process-docs/%'`.
-- Working on an issue, the area comes from the issue's `Area:` field, so scope to that area.
-   - Working greenfield without an issue, query across all areas instead.
-- Run `read_document` on the important hits.
+**Search the process history via RAG, and with a known area that means TWO mandatory passes.**
+- Every pass runs `search` on `<Project>-docs`, scoped to the process layer and never to the code map.
+- With an issue, the area comes from the issue's `Area:` field, and that field splits the two passes.
+   - Pass 1 is the area pass, scoped with `--document 'process-docs/<area>/%'`.
+   - Pass 2 is the cross-area pass, scoped with `--document 'process-docs/%' --exclude 'process-docs/<area>/%'`.
+   - Both passes carry the SAME query, because the question is where ELSE the topic was worked.
+- The cross-area pass is not optional, and skipping it is not a judgment call.
+   - The area pass structurally cannot surface neighbouring work, however well it is phrased.
+   - A mechanism is routinely solved in one area and only inherited by the area you are in.
+- Greenfield without an issue, a single pass over `--document 'process-docs/%'` is the whole search.
 - The goal is understanding what happened on the pure process level.
    - That means the investigation trail, the decisions, the iteration history, and the real task.
    - Code paths play no role yet.
 - Do not direct-read process-docs, because search and read_document already gave you its content.
+
+**Every hit that carries your process understanding gets expanded with `read_document` first.**
+- A hit carries the understanding as soon as one sentence of your presentation rests on it.
+- Expanding only the hits you subjectively rank as important is not the standard.
+- A bare search snippet is never a sufficient basis for a statement to the user.
+- Carrying N hits into the presentation therefore means N expansions before you write it.
 
 **Present the process understanding to the user.**
 - Say what the task really is in process terms, with the history and the open threads.
@@ -217,6 +226,28 @@ EXISTING area (continue it) — ALL three must hold:
    - For communities like Reddit, judge whether the topic might be discussed there.
 - You will not know the exact repo or post, and that is fine.
    - The judgment is whether that kind of search would pay off.
+
+**Every gap is presented as one channel plus the points you want from it.**
+- The channel is exactly one of `gh`, `web`, or `reddit`, and never a domain or a URL.
+   - `gh` covers source code, patch sets, and issue threads.
+   - `web` covers official documentation and reference lists.
+   - `reddit` covers field experience that no documentation carries.
+- The points under a gap say WHAT you want out of that channel, not where it sits.
+- A gap only you or the user can answer names that person instead of a channel.
+
+**Template**
+
+```
+Gap 1 — <gap in one line> — gh
+- <what you want out of gh>
+- <what you want out of gh>
+
+Gap 2 — <gap in one line> — web
+- <what you want out of the web>
+
+Gap 3 — <gap in one line> — reddit
+- <what you want out of reddit>
+```
 
 🛑 STOP — Ask for remarks.
 
