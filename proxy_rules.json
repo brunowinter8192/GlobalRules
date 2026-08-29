@@ -3,6 +3,7 @@
     "global": {
       "files": [
         "global/documentation.md",
+        "global/testing.md",
         "global/tool-use.md"
       ]
     },
@@ -17,7 +18,6 @@
       "files": [
         "worker/code-standards.md",
         "worker/dev-convention.md",
-        "worker/verification.md",
         "worker/worker-rules.md"
       ]
     },
@@ -28,26 +28,9 @@
     "exclude_projects": []
   },
   "model_params": {
-    "claude-fable-5": {"thinking": {"type": "adaptive", "display": "omitted"}, "effort": "high", "max_tokens": 64000},
-    "claude-opus-5": {"thinking": {"type": "adaptive", "display": "omitted"}, "effort": "high", "max_tokens": 64000},
-    "claude-sonnet-5": {"thinking": {"type": "adaptive", "display": "omitted"}, "effort": "high", "max_tokens": 64000}
-  },
-  "model_override": {
-    "enabled": true,
-    "model": "claude-fable-5",
-    "thinking": {
-      "type": "adaptive",
-      "display": "omitted"
-    },
-    "effort": "high",
-    "max_tokens": 64000
-  },
-  "model_override_worker": {
-    "enabled": true,
-    "model": "claude-sonnett-5",
-    "thinking": {"type": "adaptive", "display": "omitted"},
-    "effort": "high",
-    "max_tokens": 64000
+    "claude-fable-5": {"thinking": {"type": "adaptive", "display": "summarized"}, "effort": "high", "max_tokens": 64000},
+    "claude-opus-5": {"thinking": {"type": "adaptive", "display": "summarized"}, "effort": "high", "max_tokens": 64000},
+    "claude-sonnet-5": {"thinking": {"type": "adaptive", "display": "summarized"}, "effort": "high", "max_tokens": 64000}
   },
   "pyright_diagnostics_strip": {
     "enabled": true

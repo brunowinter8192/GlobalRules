@@ -18,17 +18,6 @@
 - Bash may only write throwaway files, and those live under `/tmp/`.
    - A shell-argument heredoc is fine, because it produces no persistent file.
 
-### Verbose output
-
-**Route verbose output to a file.**
-- Noisy command output goes to a `/tmp` file.
-   - Then grep or tail only the relevant lines back into context.
-
-```bash
-./venv/bin/python dev/crawling_suite/03_test.py > /tmp/03_test_output.md 2>&1
-tail -20 /tmp/03_test_output.md
-```
-
 ### Chaining Bash calls
 
 **Chain everything you can into ONE Bash block per response.**

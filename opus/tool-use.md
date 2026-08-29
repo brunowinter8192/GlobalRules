@@ -129,23 +129,34 @@
 
 #### Issue Format
 
-The issue body carries the entry point. Title = the feature/bug/task name; body:
-
 ```
-What it is:
-[2-3 sentences — goal + scope. No iteration history. No decision rationale.]
+<Title: ONE word>
+
+Goal:
+- <end state>
+- <end state>
 
 Area: <area>  (→ process-docs/<area>/, dev/<area>/)
-
-Resume: RAG search "<query>" on <Project>-docs --document 'process-docs/<area>/%'
 ```
 
-**The body carries no file paths, because the area name leads to everything else.**
+**The title is ONE word, and it names the thing, never the action.**
+- `Wohnungsmängel`, `Bügeleisen` and `Hausarzt` are titles, while `Zahnarzt in Frankfurt finden und Kontrolle 2026` is not.
+- An action in the title ages the moment the action is done, and the thing stays the thing.
+- Where one word genuinely cannot name it, the title stays a noun and never becomes a verb.
+
+**The body carries the GOAL, meaning the end state, and nothing else.**
+- The end state is what makes closing the issue a yes-or-no question.
+- It is one bullet where the state is single, and several bullets where it genuinely has several parts.
+- A bullet is a state, not a step, so it says what will be true and never what gets done.
+- Everything that is not the end state stays out, meaning history, reasoning, status, next actions, and dates.
+   - Those age between sessions, and a body that ages is a body nobody trusts.
+
+**The body carries no file paths and no resume instruction, because the area name leads to everything else.**
 - Everything under `process-docs/<area>/` and `dev/<area>/` is found via RAG plus folder browsing.
 - Code is read directly.
 - DOCS.md and reference documents are found by searching their collections.
 - The body is written once.
-   - A rewrite happens only when the issue's area changes, which is rare.
+   - A rewrite happens only when the goal or the area changes.
 
 #### Resume Pattern
 

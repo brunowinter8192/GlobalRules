@@ -62,42 +62,6 @@ COMPLETION CHECKLIST:
 - Be concrete with file paths, counts, and specific values.
    - Bare words like "done" or "verified" are not concrete results.
 
-## Don't Debug-Loop — Stop at the Threshold
-
-**An unexpected result is normal, and handling it is the work.**
-- You stop at the threshold where continuing would mean looping or leaving the task.
-- Two stop conditions exist, and either one means stop and report.
-
-**The first stop condition is a blocker that survived a retry.**
-- You already tried once to get past this exact obstacle and it is still there.
-   - Then stop before a third attempt, because a debug-fix-retry loop starts here.
-
-**The second stop condition is that getting past it would mean leaving the task.**
-- Examples are a diagnosis script, a code change on your own hypothesis, or a workaround Opus did not sanction.
-- Stop before you do it.
-
-**Normal iteration does not trigger a stop.**
-- Fixing your own bug and re-running is normal iteration.
-   - Handling an edge case you were briefed on is too.
-- The trigger is the loop or the off-task step, and never the surprise itself.
-- This is the worker form of the stop-after-2-failed-tool-calls rule.
-   - Your counterpart to asking the user is reporting to Opus and going idle.
-
-At the threshold, report in chat and go idle:
-
-```
-STOP: <what blocked you>
-Expected: <what should have happened>
-Actual: <what happened, with concrete evidence — log lines, raw response, traceback, not a summary>
-Hypothesis: <one hypothesis for the cause>
-Suggested next step: <debug script / config change / upstream research / abort>
-```
-
-**Not every stop is a failure.**
-- Planned verification blocked by an external cause gets reported as PARTIAL with the reason.
-   - External causes are things like a CAPTCHA, a 503, or missing test data.
-- A prompted spot-check like "verify one query by hand" is verification and never debugging.
-
 ## Worker Recap
 
 **When Opus sends `recap`, stop all other work and run the recap pass.**

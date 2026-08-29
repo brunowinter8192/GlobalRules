@@ -117,6 +117,15 @@ worker-cli merge <name> <target_repo>
 - When the worker is idle, read with `worker-cli response`.
    - Use `worker-cli capture` only for a dead or force-stopped worker, because `response` needs a live session.
 
+### Reading Budget
+
+**Under 400 KB of material, the prompt orders full reading.**
+- Estimate the material in KB before writing the prompt, because file count says nothing.
+   - Twenty source files can be 40 KB, while a single log line can be 100 KB.
+- Under the threshold the prompt names the files and says to read every one completely.
+- It states that grep, sampling, head, and tail are not acceptable substitutes there.
+- The worker returns its judgement and what it read, never an aggregate count.
+
 ---
 
 ## Session Cycle
@@ -257,13 +266,8 @@ Gap 3 — <gap in one line> — reddit
 - First state the whole as one coherent picture, which may stay abstract.
 - Then decompose it into ordered milestones.
    - A milestone is a logically delimited unit, independently committable and verifiable, ending in a deliverable.
-   - Each deliverable states what is done and how to verify it.
-   - Verification looks like a test command or an output match.
-   - Code review does not count as verification.
-- For a visual or live feature the user is the verifier, as the last gate.
-   - That gate applies when self-verification by you is impossible.
 - Present in chat the overall picture and the milestone sequence.
-   - Per deliverable, present its verification and the affected file categories.
+   - Per deliverable, present the affected file categories.
 
 🛑 STOP — Ask for remarks.
 
@@ -346,13 +350,6 @@ Then spawn:
 **The review is non-skippable, even for ad-hoc or one-line merges.**
 - Before every `worker-cli merge`, ask yourself whether you ran and read the diff in this session.
    - If not, stop and run the diff first.
-
-**Sample-test rendered output for user-visible features, mandatory.**
-- The rule applies when the feature affects formatted output, like search results or reports.
-- Run one live sample and inspect the rendered text the user sees.
-   - Reading the parser code that produces it does not count as a sample test.
-- You run what you can.
-   - For a live or visual verify, the user is the final gate.
 
 **Interpretation cross-check when worker output interprets measured data, mandatory.**
 - Workers often go beyond raw measurements and propose a mechanism for an observation.
