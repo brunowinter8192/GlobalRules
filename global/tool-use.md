@@ -1,15 +1,5 @@
 # Tool-Use
 
-## Core Rules
-
-### Stop after 2 failed tool calls
-
-**Stop immediately when two tool calls in a row fail or miss the goal.**
-- Blind retries fill the context window and rarely reach the goal.
-   - A third attempt is therefore banned until the user weighs in.
-- Clearly explain the problem to the user.
-- Ask how to solve it or where to find the missing piece.
-
 ## Bash
 
 **Bash never writes repo files.**
