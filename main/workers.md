@@ -115,7 +115,6 @@ worker-cli merge <name> <target_repo>
 - While a worker is `working`, only call `worker-cli status`, because it is cheap.
    - Do not read output mid-work.
 - When the worker is idle, read with `worker-cli response`.
-   - Use `worker-cli capture` only for a dead or force-stopped worker, because `response` needs a live session.
 
 ### Reading Budget
 
@@ -313,7 +312,7 @@ Gap 3 — <gap in one line> — reddit
 | The task described abstractly, meaning the problem and the desired outcome. | Exact code to write. The worker figures out its own implementation. External reference code from outside the project is the one exception, and you provide it. |
 | The files and directories you found definitely relevant. They are a starting set and not a fence. Add any process-docs entries the worker should read for context. | Root cause hypotheses stated as facts. |
 | The worktree path as workspace, phrased like "Your worktree is `<project>/.claude/worktrees/<name>/`. Read, edit, test, and commit here." | Implementation details that constrain the worker's approach. |
-| The explicit negative scope, phrased like "Do NOT add features or improvements beyond the listed deliverables." | |
+| The explicit negative scope, phrased like "Do NOT add features or improvements beyond the listed deliverables." | A tool restriction stated wider than the hook enforces it. |
 | The task-specific Completion Checklist items, meaning the verification points the worker outputs when done. | |
 | The sentence "You are a WORKER." | |
 

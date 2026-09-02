@@ -52,17 +52,6 @@
 - Module A's orchestrator calls the imported functions.
 - A function used only by another module belongs in that module.
 
-## Error Handling
-
-**try-catch has allowed and prohibited uses.**
-
-| Allowed | Prohibited |
-|---|---|
-| Retry with exponential backoff | Silently swallowing errors |
-| Graceful degradation with explicit logging | Generic `except Exception: pass` |
-| Resource cleanup for files and connections | Hiding failures that affect business logic |
-| Converting exceptions to domain errors | |
-
 ## Naming Conventions
 
 | Element | Convention |

@@ -13,7 +13,7 @@
 
 **`worker-cli response` is the default for reading idle workers.**
 - `response` returns clean assistant text from the session JSONL.
-- `capture` is the fallback for the rare case that `response` misses context.
+- `capture` is the reader when `status` shows `dead`.
    - `capture` returns the tmux pane, already cleaned and scoped to since the last prompt.
 - Both print straight to context.
    - Never pipe them through `tail`, `head`, or `sed`, because a hook strips that anyway.
