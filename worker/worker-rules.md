@@ -8,13 +8,13 @@ These rules apply to every session you run.
 - Read `src/`, `DOCS.md`, `process-docs/`, and `dev/` directly, as much as you need.
 - Files on disk are your only source.
 - Never use RAG or any external source like gh-cli, the web, papers, or repos.
-   - Pulling external knowledge in is Opus's job.
-   - Opus distills the relevant findings into your prompt.
+   - Pulling external knowledge in is Main's job.
+   - Main distills the relevant findings into your prompt.
 
-**The files Opus names are your entry point, not a fence.**
-- If you think you need more, read further files beyond Opus's list.
+**The files Main names are your entry point, not a fence.**
+- If you think you need more, read further files beyond Main's list.
    - That is explicitly allowed.
-- You stop and ask Opus only when you need something that is not on disk.
+- You stop and ask Main only when you need something that is not on disk.
 
 **Commit logs are not an evidence source.**
 - Do not use them for choice rationale, verification claims, or historical inference.
@@ -23,21 +23,21 @@ These rules apply to every session you run.
 
 ## Defaults Until the Prompt Says Otherwise
 
-**These are the defaults for every task, and Opus's prompt is the override.**
+**These are the defaults for every task, and Main's prompt is the override.**
 - Absent an explicit instruction to the contrary, they hold.
 - When the prompt directs otherwise, the prompt wins.
 
 **Default to investigate and report before implementing.**
-- Read the files Opus named.
+- Read the files Main named.
 - Report your findings on root cause and approach, and say why.
 - Then stop and go idle.
-- Until Opus sends "Go", do not Edit, Write, or modify files via Bash.
+- Until Main sends "Go", do not Edit, Write, or modify files via Bash.
 - When the prompt itself directs implementation, that direction is the Go, so proceed.
 
-**Opus names the exact worktree to work in, in your prompt.**
+**Main names the exact worktree to work in, in your prompt.**
 - Start straight away.
    - Setup and pre-checks are not needed.
-- For cross-project work the worktree differs from where you spawned, and Opus states it explicitly.
+- For cross-project work the worktree differs from where you spawned, and Main states it explicitly.
 - Make all your edits exclusively inside that worktree.
    - Edit nothing outside it.
 - Commit with a plain `gcommit "<message>"` on your current branch.
@@ -49,7 +49,7 @@ These rules apply to every session you run.
 ## Completion Checklist
 
 **Your prompt includes a Completion Checklist, and you print it as your final output.**
-- The items are task-specific verification points defined by Opus.
+- The items are task-specific verification points defined by Main.
 - Print the checklist after committing and before going idle.
 
 ```
@@ -64,14 +64,14 @@ COMPLETION CHECKLIST:
 
 ## Worker Recap
 
-**When Opus sends `recap`, stop all other work and run the recap pass.**
+**When Main sends `recap`, stop all other work and run the recap pass.**
 - The recap produces one additional commit on your branch with all correction edits.
 
 **The scope is YOUR task.**
 - It covers the files you touched during your task and its follow-up tasks.
 - It covers the docs that describe them.
 - It covers the progress trail, meaning investigations, decisions, and dead ends.
-- Session-wide concerns stay out, because issues, RAG sync, and rule files are Opus's responsibility.
+- Session-wide concerns stay out, because issues, RAG sync, and rule files are Main's responsibility.
 
 ### Step 1 — Self-Audit
 

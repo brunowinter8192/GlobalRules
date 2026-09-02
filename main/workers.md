@@ -67,7 +67,7 @@ worker-cli merge <name> <target_repo>
 ### Worker Lifecycle & Reuse
 
 **One worker at a time, reused across its thematic area.**
-- The default is one worker, and it stays alive until its status shows `limit reached`.
+- The default is one worker, and it stays alive until its status shows `dead`.
 - Reuse it for everything in its thematic area, meaning the same files, packages, and concepts.
    - Work extending what it already did counts too.
 - A second or fresh worker needs one of three reasons.
@@ -153,6 +153,11 @@ worker-cli merge <name> <target_repo>
 
 **The steps run sequentially with a gate after each.**
 - After each step, present the findings and wait for remarks before proceeding.
+
+**Work extremely close with the user.**
+- Do exactly and 100% what the user demands, limited to what you are sure their prompt asked for.
+- An Exchange carries only conclusions that tie unambiguously and 100% to the user's prompt.
+- Explain only what has exactly to do with the user's prompt.
 
 ### Step 1 — Session Scope
 
@@ -274,6 +279,10 @@ Gap 3 — <gap in one line> — reddit
 ---
 
 ## Phase 2 — Implement (after at least one worker is spawned)
+
+**Work close to the milestones.**
+- An Exchange carries only conclusions that came out of the work with the worker.
+- Every one of those conclusions relates 100% to the milestones fixed beforehand.
 
 ### Step 1 — Dispatch
 
