@@ -38,20 +38,11 @@
 **A proposed defence carries a measured cost and a measured risk.**
 - A measured loss is never traded away for a hypothetical one.
 
-**A demand for proof names a finite, decidable body of evidence.**
-- The demand has a stopping condition.
-- Asking that a failure be shown impossible is not a valid demand.
-
 ## Fallback and Tripwire
 
 **A branch that produces alternative output by a second method is a fallback, and a fallback is eliminated.**
 
 **A branch that refuses to produce output and surfaces the failure is a tripwire, and a tripwire stays.**
-- A tripwire never guesses.
-
-**Completeness is a code property, so the safety check lives in a test, never at runtime.**
-- The invariant is asserted over a real corpus and kept as a regression.
-- Production runs one deterministic route.
 
 **A runtime fallback shipped after a passing proof distrusts the proof.**
 - At most a tripwire for genuinely novel input remains.

@@ -10,41 +10,28 @@
 
 **Docs and skills are yours to edit directly.**
 - You may directly edit skills and all documentation, meaning DOCS.md and process-docs.
-- Source code stays worker-only.
 
 ### Documentation Authorship
 
 **Who has the input writes it.**
 - process-docs and DOCS.md are not source code, so authorship follows where the content originates.
 - Content the worker has, like builds, measurements, or decisions, the worker writes in its recap.
-   - It holds the primary context for that.
 - Content the worker does not have, you write directly into process-docs.
-   - That covers chat discussion with the user, your own research, and alternatives weighed in conversation.
 
 ### External Knowledge
 
 **The worker only reads what YOU hand it, and it never searches.**
 - Its investigation is scoped to the concrete paths in its prompt.
 - rag-cli, gh-cli, the web, and external books or papers are all off-limits for the worker.
-- That independent read of the code is what makes the cross-model check work.
 
 **Hand-over form is free, and only on-disk versus external differs.**
 - A path in the prompt, a cloned repo, or a copied `.md` all work.
 - For anything already on disk, like process-docs, DOCS.md, or source, you just pass paths.
-- External material you procure and distill into the prompt yourself.
-   - That covers third-party repos, indexed Reddit posts, and vendor docs.
-   - External reference code is the one code exception, and you provide it cited.
-
-**The worker works a clear sequence and stops at any gap.**
-- When it hits an unanticipated external need mid-task, it stops and asks.
-   - You flag the need to the user, who procures the resource.
 
 ### Worker Project Scope
 
 **Every worker spawns into a worktree in the CURRENT project.**
 - The current project is `pwd` at session start.
-- There are no exceptions.
-- `--no-worktree` is not used.
 
 **Cross-project work uses two worktrees.**
 - Where the worker works is decoupled from where it spawned.
@@ -69,61 +56,40 @@ worker-cli merge <name> <target_repo>
 **One worker at a time, reused across its thematic area.**
 - The default is one worker, and it stays alive until its status shows `dead`.
 - Reuse it for everything in its thematic area, meaning the same files, packages, and concepts.
-   - Work extending what it already did counts too.
 - A second or fresh worker needs one of three reasons.
    - Those are an explicit user ask, a completely orthogonal new task, or a dead worker.
-- After a merge, the worker's branch tip is behind `integration`.
-   - So the follow-up send starts with an instruction to merge `integration` in its worktree.
 
 **Kill only when forced.**
 - The three reasons are a dead worker, a worktree filesystem conflict, or a user order.
-   - The session-end recap counts as a user order.
-- `worker-cli kill <name>` does the tmux kill, worktree removal, and branch deletion in one call.
 
 ### Worker Death Recovery
 
 **When a worker dies mid-task, YOU spawn a successor, because YOU hold the plan.**
 - A death mid-recap is different, because then you finish the recap yourself.
 - A dead worker committed nothing for the in-progress milestone.
-   - The tmux pane shows how far it got.
 
-1. Run `worker-cli capture <name>` first, and read the pane before killing, because kill removes pane and worktree.
-2. Merge completed but unmerged commits from the dead branch into `integration`, because the successor's fresh worktree only sees committed and merged state.
-3. Spawn the successor with a prompt of files, the milestone, and where to pick up. If the pane shows it only planned, it gets the original milestone prompt.
+1. Run `worker-cli capture <name>` first, and read the pane before killing.
+2. Merge completed but unmerged commits from the dead branch into `integration`.
+3. Spawn the successor with a prompt of files, the milestone, and where to pick up.
 4. Check the successor's first response against where the dead worker left off, as in Phase 2 Step 2.
 
 ### Wake-up Loop — After Every Worker Send
 
 **The loop applies everywhere a worker is dispatched or messaged.**
-1. When the worker is `working`, arm the wake-up with `Bash(command="worker-cli wait", run_in_background=true)`. It wakes you when the workers of the project are done. This is the sole, final action of the turn, so stop without a `worker-cli status` check in the same turn.
-2. The wake-up notice arrives in a new turn, so run `worker-cli status`. On `working`, arm a new `worker-cli wait` as the sole final action and stop. On `idle`, run `worker-cli response` and proceed.
+- When the worker is `working`, arm the wake-up with `Bash(command="worker-cli wait", run_in_background=true)`. It wakes you when the workers of the project are done. This is the sole, final action of the turn, so stop without a `worker-cli status` check in the same turn.
 
 **`worker-cli wait` manages itself.**
 - Do not kill it.
 - Do not poll it.
 - Do not reason about it.
-- It exits on its own when all workers are stably idle, or at its ceiling.
-- A stray or duplicate wait is harmless, because its late notice is ignorable noise.
 
-### While Workers Run
-
-**The default is to go idle instead of polling.**
-- Workers take 2 to 10 minutes.
-- After spawning, pick up independent work only when something concrete exists, like rule edits or planning.
-   - If nothing concrete exists, just go idle.
-   - The wake-up loop rouses you to check status.
-- While a worker is `working`, only call `worker-cli status`, because it is cheap.
-   - Do not read output mid-work.
-- When the worker is idle, read with `worker-cli response`.
-
-### Reading Budget
+### Reading Budget for Workers
 
 **Under 400 KB of material, the prompt orders full reading.**
-- Estimate the material in KB before writing the prompt, because file count says nothing.
-   - Twenty source files can be 40 KB, while a single log line can be 100 KB.
+- Estimate the material in KB before writing the prompt.
 - Under the threshold the prompt names the files and says to read every one completely.
 - It states that grep, sampling, head, and tail are not acceptable substitutes there.
-- The worker returns its judgement and what it read, never an aggregate count.
+- Make use of the power of the agent, so let it fully read as much as possible and avoid letting the worker do summaries.
 
 ---
 
@@ -406,19 +372,15 @@ Then spawn:
 **The session recap runs at the very end, only on the user's explicit trigger.**
 - It is decoupled from the worker cycle, and the user decides when it happens.
 - Never ask for it or propose it.
-   - An ongoing session is the default state and needs no resolution.
 
 **Your session recap covers ONLY files you touched directly.**
-- Everything a worker produced is already in its own milestone recap.
 
 ### Phase 1 — RECAP 🔍
 
 **The issues evaluation covers only issues touched this session.**
 - Leave the rest untouched.
 - For each touched issue, decide between closing and keeping it open.
-   - Closing requires the work done and verified.
 - Create a new issue only for a standalone task that surfaced this session and stays open.
-- Update an issue body only if the issue's area changed, which is rare.
 
 **Empty plate, capture every un-executed open item before closing.**
 - Every open item from the original plan that was not executed gets captured.
@@ -444,7 +406,5 @@ Then spawn:
 
 **One run through, without stops.**
 1. Execute the chat summary, so write the named doc files and do the issue hygiene exactly as presented.
-2. Sync docs to RAG with `[ -f .rag-docs.json ] && rag-cli update_docs .`. The command skips silently when no manifest exists. RAG sync runs only here and never mid-session.
+2. Sync docs to RAG with `[ -f .rag-docs.json ] && rag-cli update_docs .`.
 3. Close git for every repo this session touched, including cross-project targets. Per repo, run `git checkout main && git merge integration`, then `gcommit "<message>"`, then push. Before pushing, check for `.claude-plugin/plugin.json`. If it exists, use `plugin-publish`, and otherwise use `git push`.
-
-- Done when the commits are pushed.

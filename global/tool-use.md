@@ -2,25 +2,9 @@
 
 ## Bash
 
-**Bash never writes repo files.**
-- Use Write or Edit for any file that lives in the repo.
-   - That covers `.py`, `.sh`, `.md`, and config files.
-- Bash may only write throwaway files, and those live under `/tmp/`.
-   - A shell-argument heredoc is fine, because it produces no persistent file.
-
-### Chaining Bash calls
-
-**Chain everything you can into ONE Bash block per response.**
-- Splitting across turns is justified only when you must interpret earlier output first.
-   - Needing an earlier call's output as input is not by itself a reason to split.
-
 **Never verbally defer what could have chained into the current block.**
 - A call that no dependency forces into a later turn runs now.
 - Announcing it for the next turn instead is not allowed.
-
-**Read/Write/Edit may be sequenced in one response when ordering demands it.**
-- A Read followed by an Edit is the typical case.
-- The one-block limit applies to Bash only.
 
 ### Git
 
@@ -31,7 +15,6 @@
 - Working directly in a repo, it commits on that repo's branch.
 - The parent repo is never the commit target from a worktree.
 - `repo_path` defaults to the current working directory.
-- Push is separate and done only by the orchestrator.
 
 #### Commit Message
 
@@ -46,13 +29,7 @@
 **Reads a file in `cat -n` format.**
 - Each output line shows the line number, a tab, and the content.
 - Use `offset` plus `limit` for larger files.
-- PDFs over 10 pages require the `pages` parameter.
-   - The maximum is 20 pages per request, and omitting `pages` fails the call.
 - The tool also reads PNG and JPG images and `.ipynb` notebooks.
-
-**A nonexistent path fails with "File does not exist".**
-- Verify with `ls` when reconstructing a path from memory.
-- Common typos are `.claire/` and the double-dot `..claude/`, both invalid.
 
 ### Grep for patterns, Read for meaning
 
@@ -71,7 +48,6 @@
 - Extract that absolute path and Read the entire file in one call.
 - If the file exceeds 2000 lines, raise `limit=N` to cover it.
 - Grep, head, tail, and partial reads via offset are not acceptable substitutes.
-- The `Preview (first NKB)` content is not a substitute either.
 
 ## Edit
 

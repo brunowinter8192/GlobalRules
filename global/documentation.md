@@ -7,23 +7,16 @@
 **English, always.**
 - Every documentation file is written in English, without exception.
    - Documentation files include DOCS.md, process-docs entries, dev/ reports, and code comments.
-- For these files the conversation language is irrelevant, because a German chat still produces English artifacts.
-- RAG queries are English, so the documentation files they search must be English too.
-- A file that mixes languages is therefore not allowed.
 
 ### Artifact Density
 
 **Written for an agent, not a leisurely human reader.**
 - An artifact is anything you read or produce outside the chat.
    - Artifacts include code, DOCS.md, skills, process-docs, and code comments.
-   - Rules are missing from that list, because they follow the chat style.
 
 **Specific enough to guide, flexible enough to last.**
-- Calibrate between two failure modes.
-- The first failure mode is over-detail, spelling out every conceivable case.
-   - Detail at that level ages badly and misleads once the code changes.
-- The second failure mode is vagueness that assumes shared context.
-   - Vagueness tells the reader nothing concrete.
+- Write the concrete points a reader needs to act, so nothing rests on shared context.
+- Keep the detail at the level that survives the next code change.
 
 **A few good examples beat an exhaustive list.**
 - A few diverse examples show the expected behavior better than a dump of edge cases.
@@ -41,14 +34,12 @@
 - Every section in DOCS.md and a process-docs entry is optional.
    - An optional section with nothing to say is left out.
    - Leaving it out beats filling a field just because the template has it.
-- The template's order and shape stay the standard.
 
 ### No Issue References
 
 **Docs never point back at issues.**
 - Files under process-docs never reference issues.
 - Issues point at docs, and the direction stays one-way.
-   - One-way means even the issue that drove the work stays unnamed in the entry.
 
 ### RAG Collection Layers
 
@@ -116,10 +107,7 @@ Module-specific landmines. Direct text. No rule-link references (rules are alway
 **Always at the project root, always named process-docs.**
 - The process-docs folder always sits at the project root.
 - At the root it carries the exact name `process-docs/`.
-   - The name never changes, and the folder never moves into a subdirectory.
 - What the folder records is how things were investigated and decided.
-   - Investigations and decisions cover evaluated alternatives, measurements, dead ends, and iteration history.
-   - The reasoning behind chosen values belongs there too.
 
 **Write-once, not maintained.**
 - A process-docs entry is a dated snapshot, written once and never touched again.
@@ -128,14 +116,10 @@ Module-specific landmines. Direct text. No rule-link references (rules are alway
 **No present-tense "current" claims.**
 - An entry never asserts present-tense production state, like "X is the production value".
 - Production state gets framed as of its date instead, like "as of 2026-06, the sweep showed X".
-   - A dated value is a historical record rather than a live figure.
 
 **Structured, not a chaotic dump.**
-- Entries are dense, organized, English, dated, and thematic.
 - The theme decides the folder, so entries organize into `process-docs/<area>/` subfolders.
    - Inside a subfolder, file naming is free, so date-based and purpose-based names both work.
-- Follow-ups and one-offs alike stay inside their area folder.
-   - A loose top-level `.md` is not allowed.
 
 **An area is a line of work.**
 - An area runs across sessions and accumulates entries.
@@ -143,15 +127,12 @@ Module-specific landmines. Direct text. No rule-link references (rules are alway
 
 **Methods and answers within an area may change completely.**
 - A complete change of approach continues the area, because a pivot is not a new question.
-- A question settled by one entry stays an entry inside an area.
 
 **Cross-references point at AREAS, never at single entries.**
 - A process-docs entry must not reference another process-docs file by path.
 - The folder of another area, `process-docs/<area>/`, may be referenced, and that is wanted.
-- Beyond areas, anything may be referenced, such as dev/ reports, src/ symbols, DOCS.md, or external sources.
 
 **Evidence stays inline.**
 - State a measurement's key result in the prose itself.
    - The key result means the number, the dataset size, and the finding.
-- With the finding inline, the entry stands on its own without following any link.
 - A link to a dev/ report may back the claim, but it stays optional reading.
