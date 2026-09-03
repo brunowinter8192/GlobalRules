@@ -153,6 +153,9 @@ worker-cli merge <name> <target_repo>
 **The steps run sequentially with a gate after each.**
 - After each step, present the findings and wait for remarks before proceeding.
 
+**In the planning phase the chat output is not limited to Exchanges and Action frames.**
+- Print what the step's template says.
+
 **Work extremely close with the user.**
 - Do exactly and 100% what the user demands, limited to what you are sure their prompt asked for.
 - An Exchange carries only conclusions that tie unambiguously and 100% to the user's prompt.
@@ -176,20 +179,12 @@ worker-cli merge <name> <target_repo>
    - The area pass structurally cannot surface neighbouring work, however well it is phrased.
    - A mechanism is routinely solved in one area and only inherited by the area you are in.
 - Greenfield without an issue, a single pass over `--document 'process-docs/%'` is the whole search.
-- The goal is understanding what happened on the pure process level.
-   - That means the investigation trail, the decisions, the iteration history, and the real task.
-   - Code paths play no role yet.
-- Do not direct-read process-docs, because search and read_document already gave you its content.
 
 **Every hit that carries your process understanding gets expanded with `read_document` first.**
 - A hit carries the understanding as soon as one sentence of your presentation rests on it.
 - Expanding only the hits you subjectively rank as important is not the standard.
 - A bare search snippet is never a sufficient basis for a statement to the user.
 - Carrying N hits into the presentation therefore means N expansions before you write it.
-
-**Present the process understanding to the user.**
-- Say what the task really is in process terms, with the history and the open threads.
-- Say why it matters at the process level.
 
 **The area assessment is a mandatory part of this step's output.**
 - This is a user gate, so the user can intervene here.
@@ -209,7 +204,14 @@ EXISTING area (continue it) — ALL three must hold:
 - Is that area's foundation the foundation of THIS continuation and no other?
 - Does the work draw on this ONE area alone?
 
+**Template**
+
+```
+**Last step of the process prior to the current scope.**
+- elaboration
+
 🛑 STOP — Ask for remarks.
+```
 
 ### Step 3 — Code Investigation & Gap Analysis
 
@@ -235,7 +237,6 @@ EXISTING area (continue it) — ALL three must hold:
 - Do not weigh whether pulling external sources is worth it.
    - Imagine every resource in the world is available, and one flag closes the gap.
 - From training knowledge, name the kind of source that would firm up your mental model.
-   - Kinds are a book, a paper, vendor docs, a GitHub repo, a GitHub issue, or any website.
    - For communities like Reddit, judge whether the topic might be discussed there.
 - You will not know the exact repo or post, and that is fine.
    - The judgment is whether that kind of search would pay off.
@@ -252,46 +253,54 @@ EXISTING area (continue it) — ALL three must hold:
 
 ```
 Gap 1 — <gap in one line> — gh
-- <what you want out of gh>
-- <what you want out of gh>
+- elaboration
 
 Gap 2 — <gap in one line> — web
-- <what you want out of the web>
+- elaboration
 
 Gap 3 — <gap in one line> — reddit
-- <what you want out of reddit>
-```
+- elaboration
 
 🛑 STOP — Ask for remarks.
+```
 
 ### Step 4 — Deliverables & Milestones
 
-**Steps 2 and 3 culminate here in WHAT gets done and HOW.**
-- First state the whole as one coherent picture, which may stay abstract.
-- Then decompose it into ordered milestones.
-   - A milestone is a logically delimited unit, independently committable and verifiable, ending in a deliverable.
-- Present in chat the overall picture and the milestone sequence.
-   - Per deliverable, present the affected file categories.
+**Cut as many milestones as needed.**
+- A milestone is a logically delimited unit, independently committable and verifiable, ending in a deliverable.
+
+**Template**
+
+```
+**Big picture of what needs to be done.**
+- elaboration
+
+**M1 of what needs to be done.**
+- elaboration
+
+**M2 of what needs to be done.**
+- elaboration
+
+...
+
+**Mn of what needs to be done.**
+- elaboration
 
 🛑 STOP — Ask for remarks.
+```
 
 ---
 
 ## Phase 2 — Implement (after at least one worker is spawned)
 
-**Work close to the milestones.**
-- An Exchange carries only conclusions that came out of the work with the worker.
-- Every one of those conclusions relates 100% to the milestones fixed beforehand.
+**Work extremely close to the worker.**
+- The phase with the user is over.
+- Only consult the user for critical decision-demanding Exchanges.
 
 ### Step 1 — Dispatch
 
 **Dispatch ONE milestone at a time, never the whole plan.**
-- The milestones come from the Step 4 decomposition.
-   - A small single-file fix is just one un-split milestone.
 - Hand the worker the milestone as an abstract task plus the named files.
-- The worker plans and reports back on its own, because that is its standing behavior.
-   - Evaluate the returned plan at Step 2 before giving Go.
-- Sign off on each milestone before dispatching the next.
 
 **Stage 1, the integration branch.**
 - Workers merge onto `integration` and never onto `main`.
@@ -359,14 +368,6 @@ Then spawn:
 - Before every `worker-cli merge`, ask yourself whether you ran and read the diff in this session.
    - If not, stop and run the diff first.
 
-**Interpretation cross-check when worker output interprets measured data, mandatory.**
-- Workers often go beyond raw measurements and propose a mechanism for an observation.
-- Before accepting such an interpretation, walk the four steps below.
-
-1. Identify each interpretation claim, meaning a sentence like "this measurement proves X" or "the mechanism is Y".
-2. Read the source code that produced the observation, so you know how the number was generated.
-3. Ask whether a different mechanism could produce the same observation. If yes, the interpretation is one hypothesis among several. Either accept it as one candidate, or send the worker a follow-up probe that discriminates between the hypotheses.
-4. Reject the interpretation but accept the data. The data stays valid evidence, while the unproven conclusion does not become the basis for the next worker task.
 
 #### Review Disagreements
 
@@ -397,14 +398,6 @@ Then spawn:
 - The current branch is `integration`, and the worker stays alive.
 - For a cross-project worker, `project_path` is mandatory.
 
-**Post-merge verification, mandatory.**
-- If the merge says "Already up to date", stop.
-   - For a cross-project worker, re-run the merge with `project_path`.
-   - Otherwise the worker did not commit, so investigate via `worker-cli capture`.
-- Run `git diff ORIG_HEAD --name-only` and check that the expected files are modified.
-   - `ORIG_HEAD` is the pre-merge tip, so this shows all of the worker's commits.
-   - A diff against `HEAD~1` would miss earlier commits on a multi-commit branch.
-- If no changes show, send the worker commit instructions.
 
 ---
 
@@ -432,11 +425,20 @@ Then spawn:
    - Usually that capture is a process-docs entry.
    - An issue is right only when the item is a standalone task in its own right.
 
-**Present the chat summary.**
-- Name the issues touched, created, and closed this session.
-- Name the doc files that get written or edited in the improve phase.
+**Template**
+
+```
+**Issues touched this session.**
+- elaboration
+
+**Open items captured.**
+- elaboration
+
+**Doc files written or edited in the improve phase.**
+- elaboration
 
 🛑 STOP — Ask for remarks.
+```
 
 ### Phase 2 — IMPROVE+CLOSE 🛠️
 
