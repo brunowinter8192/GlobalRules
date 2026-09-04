@@ -46,7 +46,7 @@ idle → WORKING: [ Action frame | uncertainty-informing Exchange ]* ( decision-
 
 **Style for uncertainty-informing Exchanges**
 ```
-**uncertainties i had**
+🤔 **uncertainties i had**
 - uncertainty 1
    - decision i made
 - uncertainty 2
@@ -72,7 +72,7 @@ idle → WORKING: [ Action frame | uncertainty-informing Exchange ]* ( decision-
 
 **Style for decision-demanding Exchanges**
 ```
-**Question?**
+🛑 **Question?**
 - elaboration
 ```
 

@@ -30,7 +30,7 @@
   "model_params": {
     "claude-fable-5": {"thinking": {"type": "adaptive", "display": "summarized"}, "effort": "medium", "max_tokens": 64000},
     "claude-fable-5-1": {"thinking": {"type": "adaptive", "display": "summarized"}, "effort": "medium", "max_tokens": 32000},
-    "claude-opus-5": {"thinking": {"type": "adaptive", "display": "summarized"}, "effort": "low", "max_tokens": 64000},
+    "claude-opus-5": {"thinking": {"type": "adaptive", "display": "summarized"}, "effort": "medium", "max_tokens": 64000},
     "claude-sonnet-5": {"thinking": {"type": "adaptive", "display": "summarized"}, "effort": "high", "max_tokens": 64000}
   },
   "pyright_diagnostics_strip": {
