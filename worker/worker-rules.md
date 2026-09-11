@@ -81,19 +81,25 @@ git -C <worktree> diff integration --name-only --
 
 - The command gives your touched-file inventory for the recap.
 
-### Step 2 — Bring Docs to the Latest State
+### Step 2 — Progress to process-docs, Currency Check on DOCS.md
 
-**Bring every place you touched in sync with what you did.**
-- You already know the docs structure from the documentation rules.
-- Update the DOCS.md for every `src/` and `dev/` file you touched.
-   - The module description matches the file as you left it.
-   - DOCS.md must track the current code shape, so update it in the same commit.
+**Your progress goes into process-docs, and nowhere else.**
+- You own exactly one process-docs file for your whole lifetime, under `process-docs/<area>/`.
+   - Your first recap creates it, dated, and every later recap appends a dated section to it.
+   - The file covers the investigation trail, the decisions, the measurements, and what you tried and discarded.
+- Never touch any other process-docs file, regardless of what it contains.
+   - A found error or contradiction in another file is stated in your own file, never fixed there.
+- Present-tense claims about the current state stay out, because the code is the current state.
+
+**DOCS.md gets a currency check against the documentation rules, never a progress note.**
+- For every `src/` and `dev/` file you touched, check its DOCS.md entry against the file as you left it.
+   - The entry stays within the DOCS.md Format of the documentation rules, meaning module level only.
+   - The LOC value matches `wc -l`.
+- Fix only what is stale or missing under that format.
+- Nothing of what you did goes into DOCS.md.
+   - No dates, no "replaced X", no "split out of Y", no verification notes, no function-level narrative.
+   - A change that only adds such text is not a DOCS.md update, so leave the entry as it is.
 - Create a new DOCS.md only when a formerly empty package now holds several modules.
-- Write a new process-docs entry for the progress you made, when it is substantial.
-   - The entry covers the investigation trail, the decisions, and what you tried and discarded.
-   - Never edit an existing entry.
-   - Add a dated new one instead.
-   - Present-tense claims about the current state stay out, because the code is the current state.
 
 ### Step 3 — Commit + Report
 

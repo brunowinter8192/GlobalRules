@@ -109,9 +109,17 @@ Module-specific landmines. Direct text. No rule-link references (rules are alway
 - At the root it carries the exact name `process-docs/`.
 - What the folder records is how things were investigated and decided.
 
+**One file per author session.**
+- A worker writes exactly one process-docs file across its whole lifetime.
+   - Every recap of that worker appends to that same file.
+- A main session writes exactly one process-docs file.
+- No other process-docs file is ever touched, regardless of what it contains.
+   - Every main session and every worker has its own file as its sole writable area.
+   - A found error, a stale claim, or a contradiction in another file is stated in the own file, never fixed in the other one.
+
 **Write-once, not maintained.**
-- A process-docs entry is a dated snapshot, written once and never touched again.
-   - New work gets a NEW entry instead of touching the old one.
+- A process-docs file is a dated snapshot, closed when its author's session ends, and never touched after that.
+   - New work gets a NEW file instead of touching the old one.
 
 **No present-tense "current" claims.**
 - An entry never asserts present-tense production state, like "X is the production value".
