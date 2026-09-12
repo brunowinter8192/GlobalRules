@@ -6,6 +6,9 @@
 - A call that no dependency forces into a later turn runs now.
 - Announcing it for the next turn instead is not allowed.
 
+**Independent probes go into ONE call, joined with `;`.**
+- The chain's exit code is only the last segment's, so judge each segment by its own output and never by the exit code.
+
 ### Git
 
 **Commit with `gcommit "<message>" [repo_path]`.**

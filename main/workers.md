@@ -327,8 +327,9 @@ Then spawn:
    ```
    Do not restrict the diff to the last commit, because code review means reading the entire delta. For a single file's current content, use `git -C <worktree> show HEAD:<relpath>` or `cat` via Bash.
 3. Check correctness, adherence to existing patterns, and absence of regressions.
-4. If issues are found, treat them as a review disagreement.
-5. If the review passes, proceed to Step 5.
+4. Check every touched `DOCS.md` hunk against § DOCS.md Format, and judge it against that format, never against the neighbouring entries.
+5. If issues are found, treat them as a review disagreement.
+6. If the review passes, proceed to Step 5.
 
 **The review is non-skippable, even for ad-hoc or one-line merges.**
 - Before every `worker-cli merge`, ask yourself whether you ran and read the diff in this session.

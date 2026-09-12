@@ -60,6 +60,17 @@
 - A DOCS.md describes the modules of its directory.
    - That description is the only documentation that gets continuously updated.
 
+**Verbosity belongs to process-docs, and DOCS.md stays lean.**
+- A process-docs entry carries any length its author needs.
+- Content that does not fit DOCS.md's lean form goes to process-docs instead.
+
+**DOCS.md never restates the code.**
+- DOCS.md is the bird's-eye view, and it answers which modules are relevant to a given question.
+- What a module does in detail is not answered in DOCS.md.
+- A module's individual constants, parameters, formulas and thresholds stay out.
+   - Name the group they form instead.
+- A DOCS.md entry longer than the module it describes is a violation of this rule.
+
 ### Placement
 
 **One DOCS.md per module directory.**
@@ -71,7 +82,7 @@
 # <dir>/
 
 ## Role
-One paragraph — WHAT this directory does in the bigger picture (not HOW), when to touch it, when NOT to touch it.
+One paragraph, 50 words maximum — WHAT this directory does in the bigger picture (not HOW), when to touch it, when NOT to touch it.
 
 ## Public Interface
 What `__init__.py` exports. One line per export. If `__init__.py` is empty: say so and state the actual entry path (e.g. "loaded via `mitmproxy -s`").
@@ -83,7 +94,7 @@ What `__init__.py` exports. One line per export. If `__init__.py` is empty: say 
 
 ### <module>.py (<LOC> LOC)
 
-**Purpose:** one sentence.
+**Purpose:** one sentence, 25 words maximum.
 **Reads:** data sources (shared state, files, stdin).
 **Writes:** outputs (stdout, files, shared state, mutated state).
 **Called by:** list of files/packages. Empty list = DEAD CODE, flag explicitly.
@@ -93,9 +104,6 @@ What `__init__.py` exports. One line per export. If `__init__.py` is empty: say 
 
 ## State
 Which module owns the state, who mutates, who reads.
-
-## Gotchas
-Module-specific landmines. Direct text. No rule-link references (rules are always invoked).
 ```
 
 **Module-level only.**
@@ -108,6 +116,13 @@ Module-specific landmines. Direct text. No rule-link references (rules are alway
 - The process-docs folder always sits at the project root.
 - At the root it carries the exact name `process-docs/`.
 - What the folder records is how things were investigated and decided.
+
+**Everything that does not fit DOCS.md's lean form is recorded here.**
+- Process history belongs here, meaning dates and what was extracted, split, replaced or renamed.
+- Evidence belongs here, meaning verification narratives, measured results and rationale.
+- Module-specific landmines and guards on calibrated values belong here.
+- Detail that refers directly to the code belongs here.
+- Your own reasoning belongs here whenever a following agent can use it.
 
 **One file per author session.**
 - A worker writes exactly one process-docs file across its whole lifetime.

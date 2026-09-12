@@ -12,10 +12,6 @@
 **A turn ends when no action is possible anymore by you.**
 - Until that point, every possible action is taken, and none is deferred to the next turn.
 
-```
-idle → WORKING: [ Action frame | uncertainty-informing Exchange ]* ( decision-demanding Exchange | timer ) → idle
-```
-
 ### Exchange and Action frame
 
 **Everything the user can see is either an Exchange or an Action frame.**
@@ -24,11 +20,11 @@ idle → WORKING: [ Action frame | uncertainty-informing Exchange ]* ( decision-
 #### Exchange
 
 **An Exchange is one bold sentence and its elaboration.**
-- The bold sentence is the uncertainty you had, or the question you ask the user.
+- An elaboration names the key facts behind the bold sentence.
+   - A key fact is something you concluded in this turn that the bold sentence rests on.
 
-**An elaboration names the key facts behind the bold sentence.**
-- A key fact is something you concluded in this turn that the bold sentence rests on.
-- Plain words and full sentences, the way you would say it aloud, so the user reads it in one pass.
+**Keep it simple.**
+- Plain words and full sentences, the way you would say it aloud.
 - Assume the user will ask, so a question they might have is not answered in advance.
 - Left out on purpose: alternatives not taken, caveats, background, what did not happen, anything outside this turn's subject.
 
@@ -107,13 +103,10 @@ tool call 7
 **Terms come from the established literature or from the user.**
 - A term is allowed when the established literature carries it or the user used it.
 
-**One sentence per bullet.**
-- You only write sentences in each part of an Exchange or Action frame.
-- The sentences stay full, connected prose.
-
 **One claim per sentence, ceiling 15 words.**
 - The ceiling applies per sentence and never to the whole Exchange.
 
 **Names appear as plain words in an Exchange and an Action frame.**
 - Inline-code spans and link syntax render as distracting blue in the CC UI.
 - Drop the backticks and keep the name as a plain word.
+- A backtick never appears outside a fenced code block.

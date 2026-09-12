@@ -28,22 +28,19 @@
 
 ## Comment Rules
 
-**Three comment types are allowed, and everything else is prohibited.**
+**The only comment lines are the three section markers.**
+- `# INFRASTRUCTURE`, `# ORCHESTRATOR`, `# FUNCTIONS`.
 
-| Type | Rule |
-|---|---|
-| Section markers | `# INFRASTRUCTURE`, `# ORCHESTRATOR`, `# FUNCTIONS` |
-| Function header | One line, WHAT and not HOW, directly above the `def`. Example is `# Load validated customer data from CSV`. |
-| Cross-module import | `# From <module>.py: <what it does>` |
-
-**Inline comments are prohibited in particular.**
-- A trailing explainer like `df = df.dropna()  # Remove missing values` is the banned pattern.
+**Every other comment is prohibited.**
+- No docstring on a module, class, or function.
+- No header above a `def`.
+- No trailing explainer on a statement.
+- No annotation on an import.
 
 ## Import Convention
 
 **Prefer absolute imports.**
 - The form is `from src.module.submodule import name`.
-- Document cross-module imports with a comment like `# From src/module.py: what it does`.
 - Relative imports stay out of projects that use absolute imports consistently.
 
 ## Inter-Module Dependencies
