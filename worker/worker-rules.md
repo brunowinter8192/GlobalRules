@@ -89,17 +89,13 @@ git -C <worktree> diff integration --name-only --
    - The file covers the investigation trail, the decisions, the measurements, and what you tried and discarded.
 - Never touch any other process-docs file, regardless of what it contains.
    - A found error or contradiction in another file is stated in your own file, never fixed there.
-- Present-tense claims about the current state stay out, because the code is the current state.
+- In doubt between a comment in the code, an entry in DOCS.md, and process-docs, it goes into process-docs.
 
 **DOCS.md gets a currency check against the documentation rules, never a progress note.**
 - For every `src/` and `dev/` file you touched, check its DOCS.md entry against the file as you left it.
    - The entry stays within the DOCS.md Format of the documentation rules, meaning module level only.
    - The LOC value matches `wc -l`.
 - Fix only what is stale or missing under that format.
-- Nothing of what you did goes into DOCS.md.
-   - No dates, no "replaced X", no "split out of Y", no verification notes, no function-level narrative.
-   - A change that only adds such text is not a DOCS.md update, so leave the entry as it is.
-- Create a new DOCS.md only when a formerly empty package now holds several modules.
 
 ### Step 3 — Commit + Report
 
