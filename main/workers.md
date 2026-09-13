@@ -135,16 +135,25 @@ worker-cli merge <name> <target_repo>
 
 ### Step 2 — Process Investigation
 
-**Search the process history via RAG, and with a known area that means TWO mandatory passes.**
+**Search the process history via RAG in TWO passes, and refine the query between them.**
 - Every pass runs `search` on `<Project>-docs`, scoped to the process layer and never to the code map.
-- With an issue, the area comes from the issue's `Area:` field, and that field splits the two passes.
-   - Pass 1 is the area pass, scoped with `--document 'process-docs/<area>/%'`.
-   - Pass 2 is the cross-area pass, scoped with `--document 'process-docs/%' --exclude 'process-docs/<area>/%'`.
-   - Both passes carry the SAME query, because the question is where ELSE the topic was worked.
-- The cross-area pass is not optional, and skipping it is not a judgment call.
-   - The area pass structurally cannot surface neighbouring work, however well it is phrased.
+- The second pass never repeats the first pass's query, because the first pass's hits tell you what to ask for.
+   - Pick the chunks that matched best, and take their vocabulary into the refined query.
+- The pass you do not start with is not optional, and skipping it is not a judgment call.
+   - An area-scoped pass structurally cannot surface neighbouring work, however well it is phrased.
    - A mechanism is routinely solved in one area and only inherited by the area you are in.
-- Greenfield without an issue, a single pass over `--document 'process-docs/%'` is the whole search.
+
+**With an issue, the area comes from the issue's `Area:` field, and the area pass runs first.**
+1. Query scoped with `--document 'process-docs/<area>/%'`.
+2. Decide which chunks matched best.
+3. Refine the query from those chunks.
+4. Run the refined query cross-area, scoped with `--document 'process-docs/%' --exclude 'process-docs/<area>/%'`.
+
+**Without an issue, the area is still open, so the cross-area pass runs first.**
+1. Query scoped with `--document 'process-docs/%'`.
+2. Decide which chunks matched best, and let them name the ONE area this work belongs to.
+3. Refine the query from those chunks.
+4. Run the refined query scoped with `--document 'process-docs/<area>/%'`.
 
 **Every hit that carries your process understanding gets expanded with `read_document` first.**
 - A hit carries the understanding as soon as one sentence of your presentation rests on it.
