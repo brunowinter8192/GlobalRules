@@ -69,7 +69,6 @@
 - What a module does in detail is not answered in DOCS.md.
 - A module's individual constants, parameters, formulas and thresholds stay out.
    - Name the group they form instead.
-- A DOCS.md entry longer than the module it describes is a violation of this rule.
 
 ### Placement
 
@@ -124,10 +123,14 @@ Which module owns the state, who mutates, who reads.
 - Detail that refers directly to the code belongs here.
 - Your own reasoning belongs here whenever a following agent can use it.
 
-**One file per author session.**
+**An entry is a section inside the author's own file, never a file of its own.**
+- A file accumulates as many entries as its author has subjects.
+
+**One file per author session, per area.**
 - A worker writes exactly one process-docs file across its whole lifetime.
    - Every recap of that worker appends to that same file.
 - A main session writes exactly one process-docs file.
+- Content spanning several areas gets one file per area, each in its own `process-docs/<area>/`.
 - No other process-docs file is ever touched, regardless of what it contains.
    - Every main session and every worker has its own file as its sole writable area.
    - A found error, a stale claim, or a contradiction in another file is stated in the own file, never fixed in the other one.

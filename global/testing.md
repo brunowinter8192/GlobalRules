@@ -40,7 +40,13 @@
 
 ## Fallback and Tripwire
 
-**A branch that produces alternative output by a second method is a fallback, and a fallback is eliminated.**
+**A second path that produces output is allowed under four conditions, and all four hold at once.**
+- It answers a failure observed in real data.
+- It covers that observed case and nothing beyond it.
+- The artifact the result travels in names which path produced it.
+- Every deviation outside the observed case fails loudly.
+
+**A second path missing any one of the four is a fallback, and a fallback is eliminated.**
 
 **A branch that refuses to produce output and surfaces the failure is a tripwire, and a tripwire stays.**
 

@@ -2,6 +2,8 @@
   "system2_rules": {
     "global": {
       "files": [
+        "global/code-standards.md",
+        "global/dev-convention.md",
         "global/documentation.md",
         "global/testing.md",
         "global/tool-use.md"
@@ -16,8 +18,6 @@
     },
     "worker": {
       "files": [
-        "worker/code-standards.md",
-        "worker/dev-convention.md",
         "worker/worker-rules.md"
       ]
     },
