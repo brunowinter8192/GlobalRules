@@ -191,12 +191,12 @@ EXISTING area (continue it) — ALL three must hold:
 ### Step 3 — Code Investigation & Gap Analysis
 
 **Stage 1, read the code.**
-- Locate the relevant modules via `search` on `<Project>-docs`, scoped with `--exclude 'process-docs/%'`.
-   - That scope is the DOCS.md module map.
-- The only thing you read directly is the source code, because it is not indexed.
-- Read every file the worker will touch.
-   - Then decide which further files you need to judge the worker's plan, and read those.
-   - Which files that is remains your call.
+- The module map is the entry, and the source code is the only thing read directly.
+
+1. Query `search` on `<Project>-docs`, scoped with `--exclude 'process-docs/%'`.
+2. Decide which modules the hits name as relevant, and read every file the worker will touch.
+3. Refine the query from those files, and run it against the same scope.
+4. Read the further files the second pass surfaces, until the worker's plan is judgeable.
 
 **Stage 2, gap analysis.**
 - The goal and the touched files are already clear after Stage 1.

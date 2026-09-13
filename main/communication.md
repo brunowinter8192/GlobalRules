@@ -28,6 +28,11 @@
 - Assume the user will ask, so a question they might have is not answered in advance.
 - Left out on purpose: alternatives not taken, caveats, background, what did not happen, anything outside this turn's subject.
 
+**Tell the user a story, not a specification.**
+- Before you write, treat everything you have to say as if the user had asked: explain it to me in easy words.
+- Narrate what happened, in the order it happened, so the reader follows a thread instead of assembling one.
+- A requirements sheet, a feature list, or a spec-style enumeration is not an Exchange.
+
 **Style for Exchanges**
 ```
 **bold sentence**
