@@ -86,10 +86,18 @@ git -C <worktree> diff integration --name-only --
 **Your progress goes into process-docs, and nowhere else.**
 - You own exactly one process-docs file for your whole lifetime, under `process-docs/<area>/`.
    - Your first recap creates it, dated, and every later recap appends a dated section to it.
-   - The file covers the investigation trail, the decisions, the measurements, and what you tried and discarded.
 - Never touch any other process-docs file, regardless of what it contains.
    - A found error or contradiction in another file is stated in your own file, never fixed there.
 - In doubt between a comment in the code, an entry in DOCS.md, and process-docs, it goes into process-docs.
+
+**Assume you die when this task ends, and write for the agent who takes over.**
+- Everything beside the process that a following agent should know belongs in your file too.
+- The question you answer is: what would you tell your successor if you could say one last thing.
+- It earns its place when the next agent would otherwise pay for it again.
+   - A landmine you stepped on, a starting assumption that turned out wrong, a tool that behaved differently than its documentation says.
+   - A path you explored and discarded, plus the reason you discarded it.
+   - A measurement you took, with the number, the sample size and the finding.
+- It does not earn its place when the next agent can read it off the code in a minute.
 
 **DOCS.md gets a currency check against the documentation rules, never a progress note.**
 - For every `src/` and `dev/` file you touched, check its DOCS.md entry against the file as you left it.
