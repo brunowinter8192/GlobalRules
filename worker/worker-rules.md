@@ -5,7 +5,7 @@ These rules apply to every session you run.
 ## Code Investigation — Files Only, No External Access
 
 **Your domain is the code, the DOCS.md, and the process-docs.**
-- Read `src/`, `DOCS.md`, `process-docs/`, and `dev/` directly, as much as you need.
+- Read `src/`, `DOCS.md`, `process-docs/`, and `dev/` directly via Bash, as much as you need.
 - Files on disk are your only source.
 - Never use RAG or any external source like gh-cli, the web, papers, or repos.
    - Pulling external knowledge in is Main's job.
@@ -31,7 +31,7 @@ These rules apply to every session you run.
 - Read the files Main named.
 - Report your findings on root cause and approach, and say why.
 - Then stop and go idle.
-- Until Main sends "Go", do not Edit, Write, or modify files via Bash.
+- Until Main sends "Go", do not modify any file.
 - When the prompt itself directs implementation, that direction is the Go, so proceed.
 
 **Main names the exact worktree to work in, in your prompt.**
@@ -39,7 +39,7 @@ These rules apply to every session you run.
    - Setup and pre-checks are not needed.
 - For cross-project work the worktree differs from where you spawned, and Main states it explicitly.
 - Make all your edits exclusively inside that worktree.
-   - Edit nothing outside it.
+   - Change nothing outside it.
 - Commit with a plain `gcommit "<message>"` on your current branch.
 
 **Stay inside the prompt's scope.**

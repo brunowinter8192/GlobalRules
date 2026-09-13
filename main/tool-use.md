@@ -121,7 +121,7 @@ Area: <area>  (→ process-docs/<area>/, dev/<area>/)
 - The trigger is the user's intent to look at it, and never the file type.
 
 **Use `show` only when the user wants to LOOK at a file.**
-- For your own inspection like analysis, code review, or grep, use Read or Bash.
+- For your own inspection like analysis, code review, or grep, use Bash.
 
 **A file already opened with `show` stays open.**
 - One `show` at first display holds for the whole session.

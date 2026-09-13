@@ -286,7 +286,7 @@ Gap 3 — <gap in one line> — reddit
 |---|---|
 | The task described abstractly, meaning the problem and the desired outcome. | Exact code to write. The worker figures out its own implementation. External reference code from outside the project is the one exception, and you provide it. |
 | The files and directories you found definitely relevant. They are a starting set and not a fence. Add any process-docs entries the worker should read for context. | Root cause hypotheses stated as facts. |
-| The worktree path as workspace, phrased like "Your worktree is `<project>/.claude/worktrees/<name>/`. Read, edit, test, and commit here." | Implementation details that constrain the worker's approach. |
+| The worktree path as workspace, phrased like "Your worktree is `<project>/.claude/worktrees/<name>/`. Work, test, and commit here." | Implementation details that constrain the worker's approach. |
 | The explicit negative scope, phrased like "Do NOT add features or improvements beyond the listed deliverables." | A tool restriction stated wider than the hook enforces it. |
 | The task-specific Completion Checklist items, meaning the verification points the worker outputs when done. | |
 | The sentence "You are a WORKER." | |
@@ -321,7 +321,7 @@ Then spawn:
 #### Code Review (MANDATORY)
 
 1. Run `worker-cli response <name>`.
-2. Read the worker's complete diff via Bash, and never via the Read tool on worktree paths. The canonical command is:
+2. Read the worker's complete diff via Bash. The canonical command is:
    ```bash
    git -C <project_root>/.claude/worktrees/<name> diff integration
    ```
