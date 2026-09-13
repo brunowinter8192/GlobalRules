@@ -91,6 +91,7 @@ git -C <worktree> diff integration --name-only --
 - In doubt between a comment in the code, an entry in DOCS.md, and process-docs, it goes into process-docs.
 
 **Assume you die when this task ends, and write for the agent who takes over.**
+- The target is that your successor is massively faster and more successful than you were.
 - Everything beside the process that a following agent should know belongs in your file too.
 - The question you answer is: what would you tell your successor if you could say one last thing.
 - It earns its place when the next agent would otherwise pay for it again.
