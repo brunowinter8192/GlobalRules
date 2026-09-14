@@ -1,64 +1,64 @@
-# Testing and Verification
+# Test und Verifikation
 
-## What a Test Is
+## Was ein Test ist
 
-**A test depends only on factors you control, with no environment dependency.**
-- Repeating it 10 or 100 times in a row produces the same result every time.
-- Running it in a month or in a year produces the same result too.
+**Ein Test hängt nur von Faktoren ab, die du kontrollierst, ohne Abhängigkeit von der Umgebung.**
+- Ihn 10 oder 100 Mal hintereinander zu wiederholen ergibt jedes Mal dasselbe Ergebnis.
+- Ihn in einem Monat oder in einem Jahr laufen zu lassen ergibt ebenfalls dasselbe Ergebnis.
 
-## When a Test Is Required
+## Wann ein Test erforderlich ist
 
-**A test is required exactly when an implementation changes behavior.**
-- The application shows behavior A, and the implementation moves it to A.1 or B.
-- The test shows that behavior A.1 or B should match the specification.
+**Ein Test ist genau dann erforderlich, wenn eine Implementierung Verhalten ändert.**
+- Die Anwendung zeigt Verhalten A, und die Implementierung bewegt es zu A.1 oder B.
+- Der Test zeigt, dass Verhalten A.1 oder B der Spezifikation entsprechen soll.
 
-**The test of a change also proves that the callers of the changed code behave as before.**
-- Every caller is found via import grep and the DOCS.md map.
-- The caller check is woven into each change's test individually, so no maintained suite is needed.
-- A broken caller is a caused behavior change, so it belongs to the task.
+**Der Test einer Änderung beweist auch, dass die Aufrufer des geänderten Codes sich wie vorher verhalten.**
+- Jeder Aufrufer wird über Import-Grep und die DOCS.md-Karte gefunden.
+- Die Aufruferprüfung ist in den Test jeder Änderung einzeln eingewoben, deshalb braucht es keine gepflegte Suite.
+- Ein kaputter Aufrufer ist eine verursachte Verhaltensänderung und gehört damit zur Aufgabe.
 
-**A test covers the functionality the milestone delivers, and nothing beyond it.**
-- An edge case nobody has observed in real data gets no test.
-- A test case the implementer invents is not an observation.
+**Ein Test deckt die Funktionalität ab, die der Meilenstein liefert, und nichts darüber hinaus.**
+- Ein Randfall, den niemand in echten Daten beobachtet hat, bekommt keinen Test.
+- Ein Testfall, den der Implementierer sich ausdenkt, ist keine Beobachtung.
 
-## What a Verification Is
+## Was eine Verifikation ist
 
-**A verification matches the prod environment exactly.**
-- It runs once, when tests no longer yield any gain in insight.
+**Eine Verifikation entspricht genau der Produktionsumgebung.**
+- Sie läuft einmal, wenn Tests keinen Erkenntnisgewinn mehr bringen.
 
-**A verification that does not show the intended behavior A.1 or B goes back to the implementation.**
-- Return to the implementation change, test again, then verify again.
-- A verification that fails twice stops all actions immediately, and you report.
+**Eine Verifikation, die das beabsichtigte Verhalten A.1 oder B nicht zeigt, geht zurück in die Implementierung.**
+- Zurück zur Implementierungsänderung, erneut testen, dann erneut verifizieren.
+- Eine Verifikation, die zweimal scheitert, stoppt alle Handlungen sofort, und du meldest.
 
-## Evidence Burden
+## Beweislast
 
-**Complexity that reaches production traces back to a failure observed in real data.**
-- A fixture written by the person demanding the defence never counts as that observation.
+**Komplexität, die es in die Produktion schafft, führt auf einen in echten Daten beobachteten Fehler zurück.**
+- Ein Fixture, geschrieben von der Person, die die Absicherung fordert, zählt nie als diese Beobachtung.
 
-**A proposed defence carries a measured cost and a measured risk.**
-- A measured loss is never traded away for a hypothetical one.
+**Eine vorgeschlagene Absicherung bringt einen gemessenen Preis und ein gemessenes Risiko mit.**
+- Ein gemessener Verlust wird nie gegen einen hypothetischen weggetauscht.
 
-## Fallback and Tripwire
+## Fallback und Tripwire
 
-**A second path that produces output is allowed under four conditions, and all four hold at once.**
-- It answers a failure observed in real data.
-- It covers that observed case and nothing beyond it.
-- The artifact the result travels in names which path produced it.
-- Every deviation outside the observed case fails loudly.
+**Ein zweiter Pfad, der Ausgabe erzeugt, ist unter vier Bedingungen erlaubt, und alle vier gelten gleichzeitig.**
+- Er antwortet auf einen in echten Daten beobachteten Fehler.
+- Er deckt diesen beobachteten Fall ab und nichts darüber hinaus.
+- Das Artefakt, in dem das Ergebnis reist, benennt, welcher Pfad es erzeugt hat.
+- Jede Abweichung außerhalb des beobachteten Falls scheitert laut.
 
-**A second path missing any one of the four is a fallback, and a fallback is eliminated.**
+**Ein zweiter Pfad, dem eine der vier Bedingungen fehlt, ist ein Fallback, und ein Fallback wird beseitigt.**
 
-**A branch that refuses to produce output and surfaces the failure is a tripwire, and a tripwire stays.**
+**Ein Zweig, der sich weigert Ausgabe zu erzeugen und den Fehler sichtbar macht, ist ein Tripwire, und ein Tripwire bleibt.**
 
-**A runtime fallback shipped after a passing proof distrusts the proof.**
-- At most a tripwire for genuinely novel input remains.
+**Ein Laufzeit-Fallback, der nach einem bestandenen Beweis ausgeliefert wird, misstraut dem Beweis.**
+- Höchstens ein Tripwire für wirklich neuartige Eingaben bleibt übrig.
 
 ## dev/
 
-**dev/ holds development scripts for testing, debugging, and experimentation.**
+**dev/ hält Entwicklungsskripte für Test, Debugging und Experimente.**
 
-**Permanent value decides what earns a place in dev/.**
-- The deciding question is whether the script is useful to another agent with zero context.
-- If yes, it belongs in dev/.
-- If no, it belongs in the worktree or /tmp/.
-- dev/ hands a zero-context agent which tests ran, when, how, and with what result.
+**Dauerhafter Wert entscheidet, was einen Platz in dev/ verdient.**
+- Die entscheidende Frage ist, ob das Skript einem anderen Agenten ohne jeden Kontext nützt.
+- Wenn ja, gehört es in dev/.
+- Wenn nein, gehört es in den Worktree oder nach /tmp/.
+- dev/ gibt einem Agenten ohne Kontext an die Hand, welche Tests liefen, wann, wie und mit welchem Ergebnis.

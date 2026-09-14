@@ -1,81 +1,60 @@
-# Documentation Hierarchy
+# Dokumentationshierarchie
 
-## Core Rules
+## Kernregeln
 
-### Language (NON-NEGOTIABLE)
+### Sprache (NICHT VERHANDELBAR)
 
-**English, always.**
-- Every documentation file is written in English, without exception.
-   - Documentation files include DOCS.md, process-docs entries, dev/ reports, and code comments.
+**Jede Dokumentationsdatei wird in Englisch geschrieben.**
+   - Dokumentationsdateien umfassen DOCS.md, process-docs-Einträge, dev/-Reports und Code-Kommentare.
 
-### Artifact Density
+### Abschnitte sind optional
 
-**Written for an agent, not a leisurely human reader.**
-- An artifact is anything you read or produce outside the chat.
-   - Artifacts include code, DOCS.md, skills, process-docs, and code comments.
+**Weglassen, nicht auffüllen.**
+- Jeder Abschnitt in DOCS.md und in einem process-docs-Eintrag ist optional.
+   - Ein optionaler Abschnitt ohne Inhalt wird weggelassen.
+   - Weglassen schlägt es, ein Feld zu füllen, nur weil die Vorlage es hat.
 
-**Specific enough to guide, flexible enough to last.**
-- Write the concrete points a reader needs to act, so nothing rests on shared context.
-- Keep the detail at the level that survives the next code change.
+### Keine Verweise auf Issues
 
-**A few good examples beat an exhaustive list.**
-- A few diverse examples show the expected behavior better than a dump of edge cases.
-- An example earns its place only when it shows HOW to decide.
-   - Showing only that a case exists earns no place, so such an example gets cut.
+**Docs zeigen nie zurück auf Issues.**
+- Dateien unter process-docs verweisen nie auf Issues.
+- Issues zeigen auf Docs, und die Richtung bleibt einseitig.
 
-**Unambiguous naming.**
-- Make implicit context explicit.
-   - Explicit context means names the reader cannot mis-resolve.
-   - A name like `user_id` resolves cleanly where `user` does not.
+### RAG-Sammlungsschichten
 
-### Sections Are Optional
+**Zwei Sammlungen pro Projekt.**
+- Die docs-Sammlung hält alle internen Projektdokumente, also DOCS.md und process-docs.
+- Neben der docs-Sammlung hält die reference-Sammlung alle externen Quellen, etwa Herstellerdokumentation und Papers.
 
-**Omit, don't pad.**
-- Every section in DOCS.md and a process-docs entry is optional.
-   - An optional section with nothing to say is left out.
-   - Leaving it out beats filling a field just because the template has it.
+**Kanonische Benennung:**
 
-### No Issue References
-
-**Docs never point back at issues.**
-- Files under process-docs never reference issues.
-- Issues point at docs, and the direction stays one-way.
-
-### RAG Collection Layers
-
-**Two collections per project.**
-- The docs collection holds all internal project documents, meaning DOCS.md and process-docs.
-- Next to the docs collection, the reference collection holds all external sources, such as vendor docs and papers.
-
-**Canonical naming:**
-
-| Layer | Convention | Example |
+| Schicht | Konvention | Beispiel |
 |---|---|---|
 | docs | `<Project>-docs` | `monitor-cc-docs` |
 | reference | `<Project>-reference` | `monitor-cc-reference` |
 
 ## docs
 
-**DOCS.md is the module map.**
-- A DOCS.md describes the modules of its directory.
-   - That description is the only documentation that gets continuously updated.
+**DOCS.md ist die Modulkarte.**
+- Eine DOCS.md beschreibt die Module ihres Verzeichnisses.
+   - Diese Beschreibung ist die einzige Dokumentation, die laufend aktualisiert wird.
 
-**Verbosity belongs to process-docs, and DOCS.md stays lean.**
-- A process-docs entry carries any length its author needs.
-- Content that does not fit DOCS.md's lean form goes to process-docs instead.
+**Ausführlichkeit gehört zu process-docs, und DOCS.md bleibt schlank.**
+- Ein process-docs-Eintrag trägt jede Länge, die sein Autor braucht.
+- Inhalt, der nicht in die schlanke Form von DOCS.md passt, geht stattdessen nach process-docs.
 
-**DOCS.md never restates the code.**
-- DOCS.md is the bird's-eye view, and it answers which modules are relevant to a given question.
-- What a module does in detail is not answered in DOCS.md.
-- A module's individual constants, parameters, formulas and thresholds stay out.
-   - Name the group they form instead.
+**DOCS.md wiederholt nie den Code.**
+- DOCS.md ist die Vogelperspektive und beantwortet, welche Module für eine gegebene Frage relevant sind.
+- Was ein Modul im Detail tut, wird in DOCS.md nicht beantwortet.
+- Die einzelnen Konstanten, Parameter, Formeln und Schwellwerte eines Moduls bleiben draußen.
+   - Benenne stattdessen die Gruppe, die sie bilden.
 
-### Placement
+### Ablage
 
-**One DOCS.md per module directory.**
-- The file lives in the directory holding the `.py` modules it documents.
+**Eine DOCS.md pro Modulverzeichnis.**
+- Die Datei liegt in dem Verzeichnis, das die `.py`-Module hält, die sie dokumentiert.
 
-### DOCS.md Format
+### DOCS.md-Format
 
 ```markdown
 # <dir>/
@@ -105,60 +84,75 @@ What `__init__.py` exports. One line per export. If `__init__.py` is empty: say 
 Which module owns the state, who mutates, who reads.
 ```
 
-**Module-level only.**
-- Function-level documentation does not belong in DOCS.md.
-- In DOCS.md each module heading's LOC value matches the file's actual `wc -l`.
+**Nur auf Modulebene.**
+- Dokumentation auf Funktionsebene gehört nicht in DOCS.md.
+- In DOCS.md entspricht der LOC-Wert jeder Modulüberschrift dem tatsächlichen `wc -l` der Datei.
 
 ## process docs
 
-**Always at the project root, always named process-docs.**
-- The process-docs folder always sits at the project root.
-- At the root it carries the exact name `process-docs/`.
-- What the folder records is how things were investigated and decided.
+**Ein paar gute Beispiele schlagen eine erschöpfende Liste.**
+- Ein paar unterschiedliche Beispiele zeigen das erwartete Verhalten besser als eine Halde von Randfällen.
+- Ein Beispiel verdient seinen Platz nur, wenn es zeigt, WIE man entscheidet.
+   - Nur zu zeigen, dass ein Fall existiert, verdient keinen Platz, deshalb fällt so ein Beispiel raus.
 
-**Everything that does not fit DOCS.md's lean form is recorded here.**
-- Process history belongs here, meaning dates and what was extracted, split, replaced or renamed.
-- Evidence belongs here, meaning verification narratives, measured results and rationale.
-- Module-specific landmines and guards on calibrated values belong here.
-- Detail that refers directly to the code belongs here.
-- Your own reasoning belongs here whenever a following agent can use it.
+**Eindeutige Benennung.**
+- Mache impliziten Kontext explizit.
+- Expliziter Kontext heißt Namen, die der Leser nicht falsch auflösen kann.
+   - Ein Name wie `user_id` löst sauber auf, wo `user` es nicht tut.
 
-**An entry is a section inside the author's own file, never a file of its own.**
-- A file accumulates as many entries as its author has subjects.
+**Artefakte werden für einen anderen Agenten geschrieben**
+- Ein Artefakt ist alles, was du außerhalb des Chat outputs der sich direkt an den user richtet, liest oder erzeugst.
+   - Artefakte umfassen process-docs.
+- gehe immer davon aus das der lesende Agent mit 0 Context beginnt wenn er dein artefakt liest.
 
-**One file per author session, per area.**
-- A worker writes exactly one process-docs file across its whole lifetime.
-   - Every recap of that worker appends to that same file.
-- A main session writes exactly one process-docs file.
-- Content spanning several areas gets one file per area, each in its own `process-docs/<area>/`.
-- No other process-docs file is ever touched, regardless of what it contains.
-   - Every main session and every worker has its own file as its sole writable area.
-   - A found error, a stale claim, or a contradiction in another file is stated in the own file, never fixed in the other one.
+**Immer in der Projektwurzel, immer process-docs genannt.**
+- Der process-docs-Ordner sitzt immer in der Projektwurzel.
+- In der Wurzel trägt er den exakten Namen `process-docs/`.
+- Was der Ordner festhält, ist, wie Dinge untersucht und entschieden wurden.
 
-**Write-once, not maintained.**
-- A process-docs file is a dated snapshot, closed when its author's session ends, and never touched after that.
-   - New work gets a NEW file instead of touching the old one.
+**Alles, was nicht in die schlanke Form von DOCS.md passt, wird hier festgehalten.**
+- Prozesshistorie gehört hierher, also Daten und was extrahiert, aufgeteilt, ersetzt oder umbenannt wurde.
+- Belege gehören hierher, also Verifikationsberichte, gemessene Ergebnisse und Begründungen.
+- Modulspezifische Tretminen und Absicherungen kalibrierter Werte gehören hierher.
+- Detail, das direkt auf den Code verweist, gehört hierher.
+- Deine eigene Argumentation gehört hierher, wann immer ein folgender Agent sie nutzen kann.
 
-**No present-tense "current" claims.**
-- An entry never asserts present-tense production state, like "X is the production value".
-- Production state gets framed as of its date instead, like "as of 2026-06, the sweep showed X".
+**Ein Eintrag ist ein Abschnitt in der eigenen Datei des Autors, nie eine Datei für sich.**
+- Eine Datei sammelt so viele Einträge an, wie ihr Autor Themen hat.
 
-**Structured, not a chaotic dump.**
-- The theme decides the folder, so entries organize into `process-docs/<area>/` subfolders.
-   - Inside a subfolder, file naming is free, so date-based and purpose-based names both work.
+**Eine Datei pro Autorensession, pro Bereich.**
+- Ein Worker schreibt über seine gesamte Lebensdauer genau eine process-docs-Datei.
+   - Jeder Recap dieses Workers hängt an dieselbe Datei an.
+- Eine Main-Session schreibt genau eine process-docs-Datei.
+- Inhalt, der mehrere Bereiche umspannt, bekommt eine Datei pro Bereich, jede in ihrem eigenen `process-docs/<area>/`.
+- Keine andere process-docs-Datei wird jemals angefasst, egal was sie enthält.
+   - Jede Main-Session und jeder Worker hat die eigene Datei als einzigen beschreibbaren Bereich.
+   - Ein gefundener Fehler, eine veraltete Behauptung oder ein Widerspruch in einer anderen Datei wird in der eigenen Datei festgestellt, nie in der anderen korrigiert.
 
-**An area is a line of work.**
-- An area runs across sessions and accumulates entries.
-- The area's name is used identically by issues, `process-docs/<area>/`, and `dev/<area>/`.
+**Einmal schreiben, nicht pflegen.**
+- Eine process-docs-Datei ist eine datierte Momentaufnahme, geschlossen wenn die Session ihres Autors endet, und danach nie mehr angefasst.
+   - Neue Arbeit bekommt eine NEUE Datei, statt die alte anzufassen.
 
-**Methods and answers within an area may change completely.**
-- A complete change of approach continues the area, because a pivot is not a new question.
+**Keine Gegenwartsbehauptungen über den "aktuellen" Stand.**
+- Ein Eintrag behauptet nie einen Produktionsstand in der Gegenwart, wie "X ist der Produktionswert".
+- Produktionsstand wird stattdessen auf sein Datum bezogen gerahmt, wie "Stand 2026-06 zeigte der Sweep X".
 
-**Cross-references point at AREAS, never at single entries.**
-- A process-docs entry must not reference another process-docs file by path.
-- The folder of another area, `process-docs/<area>/`, may be referenced, and that is wanted.
+**Strukturiert, keine chaotische Halde.**
+- Das Thema entscheidet den Ordner, also ordnen sich Einträge in `process-docs/<area>/`-Unterordner.
+   - Innerhalb eines Unterordners ist die Dateibenennung frei, also funktionieren datumsbasierte und zweckbasierte Namen beide.
 
-**Evidence stays inline.**
-- State a measurement's key result in the prose itself.
-   - The key result means the number, the dataset size, and the finding.
-- A link to a dev/ report may back the claim, but it stays optional reading.
+**Ein Bereich ist eine Arbeitslinie.**
+- Ein Bereich läuft über Sessions hinweg und sammelt Einträge an.
+- Der Name des Bereichs wird identisch von Issues, `process-docs/<area>/` und `dev/<area>/` verwendet.
+
+**Methoden und Antworten innerhalb eines Bereichs dürfen sich vollständig ändern.**
+- Ein vollständiger Wechsel des Ansatzes setzt den Bereich fort, denn ein Schwenk ist keine neue Frage.
+
+**Querverweise zeigen auf BEREICHE, nie auf einzelne Einträge.**
+- Ein process-docs-Eintrag darf keine andere process-docs-Datei über ihren Pfad referenzieren.
+- Der Ordner eines anderen Bereichs, `process-docs/<area>/`, darf referenziert werden, und das ist gewollt.
+
+**Belege bleiben im Text.**
+- Nenne das Kernergebnis einer Messung in der Prosa selbst.
+   - Das Kernergebnis heißt die Zahl, die Datensatzgröße und der Befund.
+- Ein Link auf einen dev/-Report darf die Behauptung stützen, bleibt aber optionale Lektüre.

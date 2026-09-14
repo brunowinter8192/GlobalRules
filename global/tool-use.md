@@ -1,57 +1,57 @@
-# Tool-Use
+# Werkzeugnutzung
 
 ## Bash
 
-**Never verbally defer what could have chained into the current block.**
-- A call that no dependency forces into a later turn runs now.
-- Announcing it for the next turn instead is not allowed.
+**Verschiebe niemals verbal, was in den aktuellen Block hätte mitkönnen.**
+- Ein Aufruf, den keine Abhängigkeit in einen späteren Zug zwingt, läuft jetzt.
+- Ihn stattdessen für den nächsten Zug anzukündigen ist nicht erlaubt.
 
-**Independent probes go into ONE call, joined with `;`.**
-- The chain's exit code is only the last segment's, so judge each segment by its own output and never by the exit code.
+**Unabhängige Sondierungen gehen in EINEN Aufruf, verbunden mit `;`.**
+- Der Exit-Code der Kette ist nur der des letzten Segments, also beurteile jedes Segment an seiner eigenen Ausgabe und nie am Exit-Code.
 
 ### Git
 
-**Commit with `gcommit "<message>" [repo_path]`.**
-- The call stages all changes and commits them in one step, on the current branch.
-   - Staging covers tracked modifications plus untracked files, minus a skip-list of secret files.
-- In a worktree the call commits on the worktree's branch.
-- Working directly in a repo, it commits on that repo's branch.
-- The parent repo is never the commit target from a worktree.
-- `repo_path` defaults to the current working directory.
+**Committe mit `gcommit "<message>" [repo_path]`.**
+- Der Aufruf staged alle Änderungen und committet sie in einem Schritt, auf dem aktuellen Branch.
+   - Das Staging umfasst getrackte Änderungen plus ungetrackte Dateien, abzüglich einer Skip-Liste geheimer Dateien.
+- In einem Worktree committet der Aufruf auf dem Branch des Worktrees.
+- Arbeitest du direkt in einem Repo, committet er auf dem Branch dieses Repos.
+- Das Elternrepo ist aus einem Worktree heraus nie das Commit-Ziel.
+- `repo_path` fällt auf das aktuelle Arbeitsverzeichnis zurück.
 
-#### Commit Message
+#### Commit-Nachricht
 
-**Single-line, type-prefixed, one concern per commit.**
-- Prefix with `feat`, `fix`, `refactor`, `docs`, or `chore`.
-- The message stays under 72 characters.
-- If concerns mix, pick the dominant one.
-- Routine commits carry no Co-Author footer.
+**Einzeilig, mit Typ-Präfix, eine Sache pro Commit.**
+- Präfix mit `feat`, `fix`, `refactor`, `docs` oder `chore`.
+- Die Nachricht bleibt unter 72 Zeichen.
+- Mischen sich die Sachen, wähle die dominante.
+- Routine-Commits tragen keinen Co-Author-Footer.
 
-### Reading files
+### Dateien lesen
 
-**Grep serves fixed patterns and reading serves meaning.**
-- Grep fits a symbol, an import, a path, a literal string, or an exact token.
-   - Those targets are typically code.
-- When the target is semantic, read the whole file instead of grepping.
-   - Semantic means questions like whether a topic is covered or a claim is made.
-- Prose says the same thing many ways, so grep misses valid content there.
-   - Grepping `haus` returns nothing when the file says `villa`.
+**Grep dient festen Mustern, Lesen dient dem Sinn.**
+- Grep passt zu einem Symbol, einem Import, einem Pfad, einem wörtlichen String oder einem exakten Token.
+   - Diese Ziele sind typischerweise Code.
+- Ist das Ziel semantisch, lies die ganze Datei statt zu greppen.
+   - Semantisch heißt Fragen wie, ob ein Thema behandelt oder eine Behauptung aufgestellt wird.
+- Prosa sagt dasselbe auf viele Weisen, deshalb übersieht Grep dort gültige Inhalte.
+   - `haus` zu greppen liefert nichts, wenn die Datei `villa` sagt.
 
-#### `<persisted-output>` blocks
+#### `<persisted-output>`-Blöcke
 
-**Use `poread` to get the full content of the file injected.**
-- The block names its file as `Full output saved to: <path>`.
-- Grep, head, tail, cat, and partial reads are not substitutes.
+**Nutze `poread`, um den vollen Inhalt der Datei eingespielt zu bekommen.**
+- Der Block benennt seine Datei als `Full output saved to: <path>`.
+- Grep, head, tail, cat und Teilzugriffe sind kein Ersatz.
 
-| Operation | CLI |
+| Vorgang | CLI |
 |---|---|
-| Read a persisted output in full | `poread <path>`, alone in its Bash call |
+| Eine persistierte Ausgabe vollständig lesen | `poread <path>`, allein in seinem Bash-Aufruf |
 
-### Writing files
+### Dateien schreiben
 
-**A file is created with a heredoc carrying a quoted delimiter.**
-- The form is `cat > <path> <<'EOF'`, then the content, then `EOF`.
-- The quoted delimiter is mandatory, otherwise the shell expands `$` and backticks inside the content.
+**Eine Datei wird mit einem Heredoc erzeugt, das einen gequoteten Delimiter trägt.**
+- Die Form ist `cat > <path> <<'EOF'`, dann der Inhalt, dann `EOF`.
+- Der gequotete Delimiter ist zwingend, sonst expandiert die Shell `$` und Backticks im Inhalt.
 
-**An existing file is changed in place, never rewritten in full.**
-- A full rewrite resends the entire content, so the content is paid for twice.
+**Eine bestehende Datei wird an ihrer Stelle geändert, nie vollständig neu geschrieben.**
+- Ein vollständiges Neuschreiben sendet den gesamten Inhalt erneut, also wird der Inhalt zweimal bezahlt.

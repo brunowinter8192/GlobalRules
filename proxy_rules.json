@@ -11,6 +11,7 @@
     },
     "main": {
       "files": [
+        "main/communication.md",
         "main/tool-use.md",
         "main/workers.md"
       ]

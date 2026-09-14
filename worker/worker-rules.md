@@ -1,56 +1,56 @@
-# Worker Rules — Worktree Isolation & Report
+# Worker-Regeln — Worktree-Isolation und Report
 
-These rules apply to every session you run.
+Diese Regeln gelten für jede Session, die du fährst.
 
-## Code Investigation — Files Only, No External Access
+## Code-Untersuchung — nur Dateien, kein externer Zugriff
 
-**Your domain is the code, the DOCS.md, and the process-docs.**
-- Read `src/`, `DOCS.md`, `process-docs/`, and `dev/` directly via Bash, as much as you need.
-- Files on disk are your only source.
-- Never use RAG or any external source like gh-cli, the web, papers, or repos.
-   - Pulling external knowledge in is Main's job.
-   - Main distills the relevant findings into your prompt.
+**Deine Domäne ist der Code, die DOCS.md und die process-docs.**
+- Lies `src/`, `DOCS.md`, `process-docs/` und `dev/` direkt über Bash, so viel du brauchst.
+- Dateien auf der Platte sind deine einzige Quelle.
+- Nutze nie RAG oder irgendeine externe Quelle wie gh-cli, das Web, Papers oder Repos.
+   - Externes Wissen hereinzuholen ist die Aufgabe von Main.
+   - Main destilliert die relevanten Befunde in deinen Prompt.
 
-**The files Main names are your entry point, not a fence.**
-- If you think you need more, read further files beyond Main's list.
-   - That is explicitly allowed.
-- You stop and ask Main only when you need something that is not on disk.
+**Die Dateien, die Main benennt, sind dein Einstiegspunkt, kein Zaun.**
+- Wenn du meinst, mehr zu brauchen, lies weitere Dateien über die Liste von Main hinaus.
+   - Das ist ausdrücklich erlaubt.
+- Du stoppst und fragst Main nur, wenn du etwas brauchst, das nicht auf der Platte liegt.
 
-**Commit logs are not an evidence source.**
-- Do not use them for choice rationale, verification claims, or historical inference.
-- Choice, rationale, and verification information lives in DOCS.md, process-docs, and the source code.
-   - If it is not there, the statement is "not documented" instead of "check the git log".
+**Commit-Logs sind keine Belegquelle.**
+- Nutze sie nicht für die Begründung einer Wahl, für Verifikationsbehauptungen oder für historische Schlüsse.
+- Information über Wahl, Begründung und Verifikation lebt in DOCS.md, process-docs und im Quellcode.
+   - Steht sie dort nicht, lautet die Aussage "nicht dokumentiert" statt "schau ins Git-Log".
 
-## Defaults Until the Prompt Says Otherwise
+## Standardverhalten, bis der Prompt etwas anderes sagt
 
-**These are the defaults for every task, and Main's prompt is the override.**
-- Absent an explicit instruction to the contrary, they hold.
-- When the prompt directs otherwise, the prompt wins.
+**Das sind die Standards für jede Aufgabe, und der Prompt von Main ist die Übersteuerung.**
+- Ohne eine ausdrückliche gegenteilige Anweisung gelten sie.
+- Weist der Prompt etwas anderes an, gewinnt der Prompt.
 
-**Default to investigate and report before implementing.**
-- Read the files Main named.
-- Report your findings on root cause and approach, and say why.
-- Then stop and go idle.
-- Until Main sends "Go", do not modify any file.
-- When the prompt itself directs implementation, that direction is the Go, so proceed.
+**Standardmäßig untersuchen und berichten, bevor du implementierst.**
+- Lies die Dateien, die Main benannt hat.
+- Berichte deine Befunde zu Ursache und Vorgehen, und sag warum.
+- Dann stopp und geh idle.
+- Bis Main "Go" sendet, ändere keine Datei.
+- Weist der Prompt selbst die Implementierung an, ist diese Anweisung das Go, also mach weiter.
 
-**Main names the exact worktree to work in, in your prompt.**
-- Start straight away.
-   - Setup and pre-checks are not needed.
-- For cross-project work the worktree differs from where you spawned, and Main states it explicitly.
-- Make all your edits exclusively inside that worktree.
-   - Change nothing outside it.
-- Commit with a plain `gcommit "<message>"` on your current branch.
+**Main benennt in deinem Prompt den exakten Worktree, in dem du arbeitest.**
+- Fang sofort an.
+   - Setup und Vorabprüfungen sind nicht nötig.
+- Bei projektübergreifender Arbeit unterscheidet sich der Worktree von dem, wo du gespawnt wurdest, und Main sagt ihn explizit.
+- Mache alle deine Änderungen ausschließlich innerhalb dieses Worktrees.
+   - Ändere nichts außerhalb davon.
+- Committe mit einem einfachen `gcommit "<message>"` auf deinem aktuellen Branch.
 
-**Stay inside the prompt's scope.**
-- Do not add features, refactor code, or make improvements beyond the prompt scope.
-- Do not add docstrings, comments, or type annotations beyond what the reference pattern uses.
+**Bleib im Geltungsbereich des Prompts.**
+- Füge keine Features hinzu, refaktoriere keinen Code und mache keine Verbesserungen über den Prompt-Bereich hinaus.
+- Füge keine Docstrings, Kommentare oder Typannotationen hinzu, die über das Referenzmuster hinausgehen.
 
 ## Completion Checklist
 
-**Your prompt includes a Completion Checklist, and you print it as your final output.**
-- The items are task-specific verification points defined by Main.
-- Print the checklist after committing and before going idle.
+**Dein Prompt enthält eine Completion Checklist, und du gibst sie als deine letzte Ausgabe aus.**
+- Die Punkte sind aufgabenspezifische Verifikationspunkte, definiert von Main.
+- Gib die Checkliste nach dem Commit und vor dem Idle-Gehen aus.
 
 ```
 COMPLETION CHECKLIST:
@@ -59,62 +59,62 @@ COMPLETION CHECKLIST:
 - [ ] <item 3>: FAILED — <reason>
 ```
 
-- Be concrete with file paths, counts, and specific values.
-   - Bare words like "done" or "verified" are not concrete results.
+- Sei konkret mit Dateipfaden, Anzahlen und bestimmten Werten.
+   - Nackte Worte wie "done" oder "verified" sind keine konkreten Ergebnisse.
 
-## Worker Recap
+## Worker-Recap
 
-**When Main sends `recap`, stop all other work and run the recap pass.**
-- The recap produces one additional commit on your branch with all correction edits.
+**Wenn Main `recap` sendet, stopp alle andere Arbeit und fahre den Recap-Durchlauf.**
+- Der Recap erzeugt einen zusätzlichen Commit auf deinem Branch mit allen Korrekturänderungen.
 
-**The scope is YOUR task.**
-- It covers the files you touched during your task and its follow-up tasks.
-- It covers the docs that describe them.
-- It covers the progress trail, meaning investigations, decisions, and dead ends.
-- Session-wide concerns stay out, because issues, RAG sync, and rule files are Main's responsibility.
+**Der Geltungsbereich ist DEINE Aufgabe.**
+- Er umfasst die Dateien, die du während deiner Aufgabe und ihrer Folgeaufgaben angefasst hast.
+- Er umfasst die Docs, die sie beschreiben.
+- Er umfasst die Fortschrittsspur, also Untersuchungen, Entscheidungen und Sackgassen.
+- Sessionweite Belange bleiben draußen, denn Issues, RAG-Sync und Regeldateien sind die Verantwortung von Main.
 
-### Step 1 — Self-Audit
+### Schritt 1 — Selbstprüfung
 
 ```bash
 git -C <worktree> diff integration --name-only --
 ```
 
-- The command gives your touched-file inventory for the recap.
+- Das Kommando liefert dein Inventar angefasster Dateien für den Recap.
 
-### Step 2 — Progress to process-docs, Currency Check on DOCS.md
+### Schritt 2 — Fortschritt nach process-docs, Aktualitätsprüfung an DOCS.md
 
-**Your progress goes into process-docs, and nowhere else.**
-- You own exactly one process-docs file for your whole lifetime, under `process-docs/<area>/`.
-   - Your first recap creates it, dated, and every later recap appends a dated section to it.
-- Never touch any other process-docs file, regardless of what it contains.
-   - A found error or contradiction in another file is stated in your own file, never fixed there.
-- In doubt between a comment in the code, an entry in DOCS.md, and process-docs, it goes into process-docs.
+**Dein Fortschritt geht nach process-docs und nirgendwo sonst.**
+- Du besitzt für deine gesamte Lebensdauer genau eine process-docs-Datei, unter `process-docs/<area>/`.
+   - Dein erster Recap erzeugt sie, datiert, und jeder spätere Recap hängt einen datierten Abschnitt an.
+- Fasse nie eine andere process-docs-Datei an, egal was sie enthält.
+   - Ein gefundener Fehler oder Widerspruch in einer anderen Datei wird in deiner eigenen Datei festgestellt, nie dort korrigiert.
+- Im Zweifel zwischen einem Kommentar im Code, einem Eintrag in DOCS.md und process-docs geht es nach process-docs.
 
-**Assume you die when this task ends, and write for the agent who takes over.**
-- The target is that your successor is massively faster and more successful than you were.
-- Everything beside the process that a following agent should know belongs in your file too.
-- The question you answer is: what would you tell your successor if you could say one last thing.
-- It earns its place when the next agent would otherwise pay for it again.
-   - A landmine you stepped on, a starting assumption that turned out wrong, a tool that behaved differently than its documentation says.
-   - A path you explored and discarded, plus the reason you discarded it.
-   - A measurement you took, with the number, the sample size and the finding.
-- It does not earn its place when the next agent can read it off the code in a minute.
+**Nimm an, du stirbst wenn diese Aufgabe endet, und schreibe für den Agenten, der übernimmt.**
+- Das Ziel ist, dass dein Nachfolger massiv schneller und erfolgreicher ist als du es warst.
+- Alles neben dem Prozess, was ein folgender Agent wissen sollte, gehört ebenfalls in deine Datei.
+- Die Frage, die du beantwortest, ist: was würdest du deinem Nachfolger sagen, wenn du ein letztes Mal sprechen könntest.
+- Es verdient seinen Platz, wenn der nächste Agent sonst erneut dafür bezahlen würde.
+   - Eine Tretmine, in die du getreten bist, eine Ausgangsannahme, die sich als falsch erwies, ein Werkzeug, das sich anders verhielt als seine Dokumentation sagt.
+   - Ein Pfad, den du erkundet und verworfen hast, plus der Grund, warum du ihn verworfen hast.
+   - Eine Messung, die du gemacht hast, mit der Zahl, der Stichprobengröße und dem Befund.
+- Es verdient seinen Platz nicht, wenn der nächste Agent es in einer Minute am Code ablesen kann.
 
-**DOCS.md gets a currency check against the documentation rules, never a progress note.**
-- For every `src/` and `dev/` file you touched, check its DOCS.md entry against the file as you left it.
-   - The entry stays within the DOCS.md Format of the documentation rules, meaning module level only.
-   - The LOC value matches `wc -l`.
-- Fix only what is stale or missing under that format.
+**DOCS.md bekommt eine Aktualitätsprüfung gegen die Dokumentationsregeln, nie eine Fortschrittsnotiz.**
+- Prüfe für jede angefasste Datei in `src/` und `dev/` ihren DOCS.md-Eintrag gegen die Datei, wie du sie hinterlassen hast.
+   - Der Eintrag bleibt im DOCS.md-Format der Dokumentationsregeln, also nur auf Modulebene.
+   - Der LOC-Wert entspricht `wc -l`.
+- Korrigiere nur, was unter diesem Format veraltet oder fehlend ist.
 
-### Step 3 — Commit + Report
+### Schritt 3 — Commit und Report
 
-**Commit all recap edits as one commit with gcommit.**
+**Committe alle Recap-Änderungen als einen Commit mit gcommit.**
 
 ```
 gcommit "docs: recap for <task name>"
 ```
 
-- Output the recap report after committing and before going idle.
+- Gib den Recap-Report nach dem Commit und vor dem Idle-Gehen aus.
 
 ```
 RECAP REPORT:

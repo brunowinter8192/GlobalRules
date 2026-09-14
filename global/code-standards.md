@@ -1,59 +1,51 @@
-# Code Standards
+# Code-Standards
 
-## Core Rules
+## Kernregeln
 
-**Three defaults hold in every project.**
-- debug/ and logs/ folders stay out of version control and must be in .gitignore.
-- Emojis stay out of production code, READMEs, DOCS.md, and logs.
-- Script console output stays concise.
+- Die Ordner debug/ und logs/ sind kein Teil der Versionskontrolle und müssen zudem in .gitignore stehen.
+- Emojis landen nicht in Produktionscode, READMEs, DOCS.md und Logs.
 
-**Type hints are recommended but optional.**
+## Modulaufbau
 
-**Fail fast and let exceptions fly.**
-- No try-catch may silently swallow errors that affect business logic.
-- A script must fail if it cannot fulfill its purpose.
+**Jedes Modul folgt INFRASTRUCTURE, dann ORCHESTRATOR, dann FUNCTIONS.**
 
-## Module Layout
-
-**Every module follows INFRASTRUCTURE, then ORCHESTRATOR, then FUNCTIONS.**
-
-| Section | Contents |
+| Abschnitt | Inhalt |
 |---|---|
-| INFRASTRUCTURE | Imports and constants. Functions and logic do not belong here. Module-specific constants live here. Constants shared by two or more modules go in the config module and are imported. |
-| ORCHESTRATOR | One function, named `<command>_workflow` for CLI commands and freely named otherwise. It only calls other functions and contains zero functional logic. Conditional workflow execution and parameter routing are allowed. |
-| FUNCTIONS | Ordered by call sequence, one responsibility each. Functions may call other functions internally. Every function is reachable from the orchestrator, directly or indirectly. |
+| INFRASTRUCTURE | Imports und Konstanten. Funktionen und Logik gehören nicht hierher. Modulspezifische Konstanten leben hier. Konstanten, die zwei oder mehr Module teilen, gehören ins config-Modul und werden importiert. |
+| ORCHESTRATOR | Eine Funktion, benannt `<command>_workflow` bei CLI-Kommandos und ansonsten frei benannt. Sie ruft nur andere Funktionen auf und enthält null funktionale Logik. Bedingte Workflow-Ausführung und Parameter-Routing sind erlaubt. |
+| FUNCTIONS | Geordnet nach Aufrufreihenfolge, je eine Verantwortung. Funktionen dürfen intern andere Funktionen aufrufen. Jede Funktion ist vom Orchestrator aus erreichbar, direkt oder indirekt. |
 
-**Utility modules are the exception.**
-- Constants-only modules, client.py, and helpers may omit the ORCHESTRATOR and FUNCTIONS sections.
+**Utility-Module sind die Ausnahme.**
+- Module, die nur Konstanten enthalten, client.py und Helper dürfen die Abschnitte ORCHESTRATOR und FUNCTIONS weglassen.
 
-## Comment Rules
+## Kommentarregeln
 
-**The only comment lines are the three section markers.**
+**Die einzigen Kommentarzeilen sind die drei Abschnittsmarker.**
 - `# INFRASTRUCTURE`, `# ORCHESTRATOR`, `# FUNCTIONS`.
 
-**Every other comment is prohibited.**
-- No docstring on a module, class, or function.
-- No header above a `def`.
-- No trailing explainer on a statement.
-- No annotation on an import.
+**Jeder andere Kommentar ist verboten.**
+- Kein Docstring an einem Modul, einer Klasse oder einer Funktion.
+- Keine Überschrift über einem `def`.
+- Kein nachgestellter Erklärer an einer Anweisung.
+- Keine Anmerkung an einem Import.
 
-## Import Convention
+## Import-Konvention
 
-**Prefer absolute imports.**
-- The form is `from src.module.submodule import name`.
-- Relative imports stay out of projects that use absolute imports consistently.
+**Absolute Imports bevorzugen.**
+- Die Form ist `from src.module.submodule import name`.
+- Relative Imports bleiben aus Projekten heraus, die absolute Imports durchgängig verwenden.
 
-## Inter-Module Dependencies
+## Abhängigkeiten zwischen Modulen
 
-**When module A needs functionality from module B, A imports specific functions from B.**
-- Module A's orchestrator calls the imported functions.
-- A function used only by another module belongs in that module.
+**Wenn Modul A Funktionalität aus Modul B braucht, importiert A bestimmte Funktionen aus B.**
+- Der Orchestrator von Modul A ruft die importierten Funktionen auf.
+- Eine Funktion, die nur ein anderes Modul nutzt, gehört in dieses Modul.
 
-## Naming Conventions
+## Namenskonventionen
 
-| Element | Convention |
+| Element | Konvention |
 |---|---|
-| Domain folders | `src/domain_name/`, snake_case and descriptive |
-| Modules | `src/domain/module_name.py`, snake_case |
-| Package markers | `src/__init__.py` and `src/domain/__init__.py`, required for imports |
-| Documentation | `src/domain/DOCS.md`, one per domain |
+| Domänenordner | `src/domain_name/`, snake_case und beschreibend |
+| Module | `src/domain/module_name.py`, snake_case |
+| Paketmarker | `src/__init__.py` und `src/domain/__init__.py`, für Imports erforderlich |
+| Dokumentation | `src/domain/DOCS.md`, eine pro Domäne |

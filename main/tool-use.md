@@ -1,91 +1,91 @@
-# Tool-Use — Orchestrator-Only
+# Werkzeugnutzung — nur Orchestrator
 
 ## Bash
 
 ### Worker CLI
 
-**Worker names are globally unique.**
-- A registry tracks every worker name.
-- Only `spawn` requires the project path.
-- For a cross-project worker, append `<project_path>` explicitly to every later command.
+**Worker-Namen sind global eindeutig.**
+- Ein Register führt jeden Worker-Namen.
+- Nur `spawn` verlangt den Projektpfad.
+- Bei einem projektübergreifenden Worker hänge `<project_path>` explizit an jedes spätere Kommando.
 
-**`worker-cli response` is the default for reading idle workers.**
-- `response` returns clean assistant text from the session JSONL.
-- `capture` is the reader when `status` shows `dead`.
+**`worker-cli response` ist der Standard, um idle Worker zu lesen.**
+- `response` liefert sauberen Assistententext aus dem Session-JSONL.
+- `capture` ist der Leser, wenn `status` `dead` zeigt.
 
-**Session name pattern.**
-- The pattern is `worker-<basename(project_path)>-<name>`.
+**Muster des Session-Namens.**
+- Das Muster ist `worker-<basename(project_path)>-<name>`.
 
-| Operation | CLI |
+| Vorgang | CLI |
 |---|---|
-| List active workers (project) | `worker-cli list <project_path>` |
-| List active workers (all) | `worker-cli list` |
-| Check worker status | `worker-cli status <name> [project_path]` |
-| Clean output since last prompt | `worker-cli capture <name> [project_path]`. With `--raw` it writes the raw pane to a file. |
-| Clean last N assistant turns (JSONL) | `worker-cli response <name> [N] [project_path]` |
-| Send message to running worker | `worker-cli send <name> <message>` |
-| Merge worker branch | `worker-cli merge <name> [project_path]` |
-| Kill worker (+ registered cross-project worktrees) | `worker-cli kill <name> [project_path]` |
-| Spawn worker in worktree | `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` |
-| Create cross-project worktree | `worker-cli worktree <name> <target_repo> [branch]` |
-| Revive dead worker (resume CC session) | `worker-cli revive <name>` |
+| Aktive Worker listen (Projekt) | `worker-cli list <project_path>` |
+| Aktive Worker listen (alle) | `worker-cli list` |
+| Worker-Status prüfen | `worker-cli status <name> [project_path]` |
+| Saubere Ausgabe seit dem letzten Prompt | `worker-cli capture <name> [project_path]`. Mit `--raw` schreibt es das rohe Pane in eine Datei. |
+| Saubere letzte N Assistentenzüge (JSONL) | `worker-cli response <name> [N] [project_path]` |
+| Nachricht an laufenden Worker senden | `worker-cli send <name> <message>` |
+| Worker-Branch mergen | `worker-cli merge <name> [project_path]` |
+| Worker killen (+ registrierte projektübergreifende Worktrees) | `worker-cli kill <name> [project_path]` |
+| Worker im Worktree spawnen | `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` |
+| Projektübergreifenden Worktree erzeugen | `worker-cli worktree <name> <target_repo> [branch]` |
+| Toten Worker wiederbeleben (CC-Session fortsetzen) | `worker-cli revive <name>` |
 
 ### Git
 
-| Operation | CLI | Notes |
+| Vorgang | CLI | Hinweise |
 |---|---|---|
-| Push (NON-plugin repo) | `git -C <repo_path> push` | Falls back to `-u origin <branch>` if no upstream exists. Use `plugin-publish` instead if `.claude-plugin/plugin.json` exists. |
-| Push with upstream (NON-plugin repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | For the first push on a new branch. |
-| Push (PLUGIN repo) | `cd <plugin-source-repo> && plugin-publish` | One step that pushes, syncs the plugin cache, and bumps the version. Always use this for any repo with `.claude-plugin/plugin.json`. A plain `git push` on a plugin repo is not allowed. |
+| Push (NICHT-Plugin-Repo) | `git -C <repo_path> push` | Fällt auf `-u origin <branch>` zurück, wenn kein Upstream existiert. Nutze stattdessen `plugin-publish`, wenn `.claude-plugin/plugin.json` existiert. |
+| Push mit Upstream (NICHT-Plugin-Repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | Für den ersten Push auf einem neuen Branch. |
+| Push (PLUGIN-Repo) | `cd <plugin-source-repo> && plugin-publish` | Ein Schritt, der pusht, den Plugin-Cache synchronisiert und die Version hochzieht. Nutze das immer für jedes Repo mit `.claude-plugin/plugin.json`. Ein einfaches `git push` auf einem Plugin-Repo ist nicht erlaubt. |
 
 ### RAG CLI
 
-**RAG queries are ALWAYS written in English, regardless of conversation language.**
+**RAG-Abfragen werden IMMER in Englisch geschrieben, unabhängig von der Gesprächssprache.**
 
-**`delete` removes everything the scope covers.**
-- It removes the matched chunks and their rows in the `indexed_files` manifest.
-- It also removes the on-disk source files under `data/documents/<collection>/`.
+**`delete` entfernt alles, was der Geltungsbereich abdeckt.**
+- Es entfernt die getroffenen Chunks und ihre Zeilen im `indexed_files`-Manifest.
+- Es entfernt außerdem die Quelldateien auf der Platte unter `data/documents/<collection>/`.
 
-**`index` is the inverse of `delete` over the same scope.**
-- It chunks, embeds, and stores `.md` files from `data/documents/<collection>/`.
-- Unchanged files are skipped by default, detected via content hash.
+**`index` ist die Umkehrung von `delete` über denselben Geltungsbereich.**
+- Es zerlegt, embeddet und speichert `.md`-Dateien aus `data/documents/<collection>/`.
+- Unveränderte Dateien werden standardmäßig übersprungen, erkannt über den Inhalts-Hash.
 
-**`search` finds the hit and `read_document` pulls the context around it.**
-- `read_document <coll> <doc> <chunk> --before N --after M` returns the chunk plus its neighbors.
-   - The useful detail usually sits in those neighbors.
+**`search` findet den Treffer und `read_document` holt den Kontext darum.**
+- `read_document <coll> <doc> <chunk> --before N --after M` liefert den Chunk plus seine Nachbarn.
+   - Das nützliche Detail sitzt meist in diesen Nachbarn.
 
-**Miss handling.**
-- On a result with zero chunks, reformulate the query at least twice.
-   - After two misses, stop and report to the user.
-- On a partial hit, run `read_document` around the hit's chunk index instead of re-querying.
+**Umgang mit Fehlschlägen.**
+- Bei einem Ergebnis mit null Chunks formuliere die Abfrage mindestens zweimal um.
+   - Nach zwei Fehlschlägen stopp und melde dem Nutzer.
+- Bei einem Teiltreffer führe `read_document` um den Chunk-Index des Treffers aus, statt neu abzufragen.
 
-| Operation | Command |
+| Vorgang | Kommando |
 |---|---|
-| List collections | `rag-cli list_collections [--filter PATTERN]` |
-| List documents | `rag-cli list_documents <collection> [--document PATTERN] [--exclude PATTERN] [--filter PATTERN]` |
-| Search | `rag-cli search <query> <collection> [--document PATTERN] [--exclude PATTERN]` |
-| Read context | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
-| Delete | `rag-cli delete --collection <name> [--document <doc>]` |
-| Index | `rag-cli index --collection <name> [--document <doc>]` |
+| Sammlungen listen | `rag-cli list_collections [--filter PATTERN]` |
+| Dokumente listen | `rag-cli list_documents <collection> [--document PATTERN] [--exclude PATTERN] [--filter PATTERN]` |
+| Suchen | `rag-cli search <query> <collection> [--document PATTERN] [--exclude PATTERN]` |
+| Kontext lesen | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
+| Löschen | `rag-cli delete --collection <name> [--document <doc>]` |
+| Indexieren | `rag-cli index --collection <name> [--document <doc>]` |
 
-### GitHub Issues (gh-cli) — Cross-Session Context
+### GitHub Issues (gh-cli) — sessionübergreifender Kontext
 
-**Derive `<owner>` and `<repo>` from the git remote.**
-- `git remote get-url origin` returns `github.com:<owner>/<repo>.git`.
+**Leite `<owner>` und `<repo>` vom Git-Remote ab.**
+- `git remote get-url origin` liefert `github.com:<owner>/<repo>.git`.
 
-**Open issues are the default listing.**
-- `gh-cli list_issues` shows open issues by default.
+**Offene Issues sind die Standardauflistung.**
+- `gh-cli list_issues` zeigt standardmäßig offene Issues.
 
-#### What an Issue IS
+#### Was ein Issue IST
 
-**An issue is a lean entry point into a topic.**
-- The body names the topic and where its content lives, because the content itself lives elsewhere.
+**Ein Issue ist ein schlanker Einstiegspunkt in ein Thema.**
+- Der Body benennt das Thema und wo sein Inhalt liegt, denn der Inhalt selbst liegt anderswo.
 
-**Issues are created at exactly two points.**
-- The first point is when the user asks mid-session.
-- The second point is Recap, for whatever is still open at session end.
+**Issues werden an genau zwei Punkten erstellt.**
+- Der erste Punkt ist, wenn der Nutzer mitten in der Session danach fragt.
+- Der zweite Punkt ist der Recap, für alles, was am Sessionende noch offen ist.
 
-#### Issue Format
+#### Issue-Format
 
 ```
 <Title: ONE word>
@@ -97,38 +97,38 @@ Goal:
 Area: <area>  (→ process-docs/<area>/, dev/<area>/)
 ```
 
-**The title is ONE word, and it names the thing, never the action.**
-- `Wohnungsmängel`, `Bügeleisen` and `Hausarzt` are titles, while `Zahnarzt in Frankfurt finden und Kontrolle 2026` is not.
+**Der Titel ist EIN Wort, und er benennt die Sache, nie die Handlung.**
+- `Wohnungsmängel`, `Bügeleisen` und `Hausarzt` sind Titel, `Zahnarzt in Frankfurt finden und Kontrolle 2026` ist keiner.
 
-**The body carries the GOAL, meaning the end state, and nothing else.**
-- The end state is what makes closing the issue a yes-or-no question.
-- It is one bullet where the state is single, and several bullets where it genuinely has several parts.
+**Der Body trägt das ZIEL, also den Endzustand, und nichts anderes.**
+- Der Endzustand ist das, was das Schließen des Issues zu einer Ja-Nein-Frage macht.
+- Er ist ein Bullet, wo der Zustand einzeln ist, und mehrere Bullets, wo er wirklich mehrere Teile hat.
 
-| Operation | CLI |
+| Vorgang | CLI |
 |---|---|
-| List open issues | `gh-cli list_issues <owner> <repo>`. Open is the default state. |
-| List closed issues | `gh-cli list_issues <owner> <repo> --state closed` |
-| Read issue body | `gh-cli get_issue <owner> <repo> <number>`. The body is the text after the `---` separator in the output. |
-| Create issue | `gh-cli create_issue <owner> <repo> "<title>" --body "<desc>" [--labels a,b]` |
-| Update issue body (area change only) | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"`. The call replaces the full body. |
-| Close issue | `gh-cli update_issue <owner> <repo> <number> --state closed` |
-| Reopen issue | `gh-cli update_issue <owner> <repo> <number> --state open` |
+| Offene Issues listen | `gh-cli list_issues <owner> <repo>`. Offen ist der Standardzustand. |
+| Geschlossene Issues listen | `gh-cli list_issues <owner> <repo> --state closed` |
+| Issue-Body lesen | `gh-cli get_issue <owner> <repo> <number>`. Der Body ist der Text nach dem `---`-Trenner in der Ausgabe. |
+| Issue erstellen | `gh-cli create_issue <owner> <repo> "<title>" --body "<desc>" [--labels a,b]` |
+| Issue-Body aktualisieren (nur Bereichswechsel) | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"`. Der Aufruf ersetzt den gesamten Body. |
+| Issue schließen | `gh-cli update_issue <owner> <repo> <number> --state closed` |
+| Issue wieder öffnen | `gh-cli update_issue <owner> <repo> <number> --state open` |
 
-### show — open a file for the user
+### show — eine Datei für den Nutzer öffnen
 
-**Open a file in the user's default macOS app so the USER can see it.**
-- Use it when the user asks to be shown a file, like "öffne mir den Report" or "show me X".
-- The trigger is the user's intent to look at it, and never the file type.
+**Öffne eine Datei in der Standard-macOS-App des Nutzers, damit der NUTZER sie sehen kann.**
+- Nutze es, wenn der Nutzer darum bittet, eine Datei gezeigt zu bekommen, etwa "öffne mir den Report" oder "show me X".
+- Der Auslöser ist die Absicht des Nutzers, sie anzusehen, und nie der Dateityp.
 
-**Use `show` only when the user wants to LOOK at a file.**
-- For your own inspection like analysis, code review, or grep, use Bash.
+**Nutze `show` nur, wenn der Nutzer eine Datei ANSEHEN will.**
+- Für deine eigene Inspektion wie Analyse, Code-Review oder Grep nutze Bash.
 
-**A file already opened with `show` stays open.**
-- One `show` at first display holds for the whole session.
+**Eine schon mit `show` geöffnete Datei bleibt offen.**
+- Ein `show` bei der ersten Anzeige gilt für die ganze Session.
 
-| Operation | Command |
+| Vorgang | Kommando |
 |---|---|
-| Open one file | `show <path>` |
-| Open multiple files | `show <p1> <p2> ...` |
-| Relative path | `show ./report.md` |
-| Home path | `show ~/Desktop/foo.png` |
+| Eine Datei öffnen | `show <path>` |
+| Mehrere Dateien öffnen | `show <p1> <p2> ...` |
+| Relativer Pfad | `show ./report.md` |
+| Home-Pfad | `show ~/Desktop/foo.png` |

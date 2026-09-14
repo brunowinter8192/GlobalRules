@@ -1,24 +1,24 @@
-# dev/ Directory Convention
+# Konvention für das dev/-Verzeichnis
 
-## Output Layout
+## Ablage der Ausgaben
 
-**A dev script writes its report into `dev/<area>/`.**
-- Writing to the console instead is not allowed.
-- Inside `dev/<area>/` the report goes to `md/`, `csv/`, or `png/`, chosen by output type.
-- The report file carries a descriptive name that traces to its producing script.
+**Ein dev-Skript schreibt seinen Report nach `dev/<area>/`.**
+- Stattdessen auf die Konsole zu schreiben ist nicht erlaubt.
+- Innerhalb von `dev/<area>/` geht der Report nach `md/`, `csv/` oder `png/`, gewählt nach Ausgabetyp.
+- Die Report-Datei trägt einen beschreibenden Namen, der auf das erzeugende Skript zurückführt.
 
-**Data outputs stay separate from reports.**
-- Scripts also produce data outputs like raw corpora.
-   - Data outputs go into their own type-named folder, for example `jsonl/`.
-- Data folders never mix into `md/`.
+**Datenausgaben bleiben von Reports getrennt.**
+- Skripte erzeugen auch Datenausgaben, etwa Rohkorpora.
+   - Datenausgaben gehen in einen eigenen, nach Typ benannten Ordner, zum Beispiel `jsonl/`.
+- Datenordner mischen sich nie in `md/`.
 
-**Reports and data organize by theme in `dev/<area>/`.**
-- A dev area and a process-docs area on the same theme share one name.
+**Reports und Daten ordnen sich in `dev/<area>/` nach Thema.**
+- Ein dev-Bereich und ein process-docs-Bereich zum selben Thema teilen einen Namen.
 
 ## Staging
 
-**One-shot scripts live in the worktree or /tmp/ and are never staged.**
-- Build forensics and one-shot assertions in the worktree or under /tmp/.
-   - Explicitly do not stage them on merge.
-- A one-shot assertion that becomes a regression guard folds into an existing dev/ test file.
-   - A new file per fix is not allowed.
+**Einmal-Skripte leben im Worktree oder in /tmp/ und werden nie gestaged.**
+- Baue Forensik und Einmal-Assertions im Worktree oder unter /tmp/.
+   - Stage sie beim Merge ausdrücklich nicht.
+- Eine Einmal-Assertion, die zum Regressionswächter wird, geht in eine bestehende dev/-Testdatei ein.
+   - Eine neue Datei pro Fix ist nicht erlaubt.

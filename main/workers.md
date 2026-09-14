@@ -1,103 +1,103 @@
 # Workers
 
-## Core Rules
+## Kernregeln
 
-### YOU NEVER Edit Source Code (NON-NEGOTIABLE)
+### DU editierst NIE Quellcode (NICHT VERHANDELBAR)
 
-**ALL source code edits go through workers, with zero exceptions.**
-- This includes quick fixes, one-line changes, obvious changes, and proxy or config files.
-- Any `.py`, `.sh`, `.js`, `.ts`, or other source file goes to a worker.
+**ALLE Quellcode-Änderungen gehen über Worker, mit null Ausnahmen.**
+- Das umfasst Schnellkorrekturen, Einzeiler, offensichtliche Änderungen und Proxy- oder Konfigdateien.
+- Jede `.py`-, `.sh`-, `.js`-, `.ts`- oder andere Quelldatei geht an einen Worker.
 
-**Docs and skills are yours to edit directly.**
-- You may directly edit skills and all documentation, meaning DOCS.md and process-docs.
+**Docs und Skills darfst du direkt editieren.**
+- Du darfst Skills und alle Dokumentation direkt editieren, also DOCS.md und process-docs.
 
-### Documentation Authorship
+### Urheberschaft der Dokumentation
 
-**Who has the input writes it.**
-- process-docs and DOCS.md are not source code, so authorship follows where the content originates.
-- Content the worker has, like builds, measurements, or decisions, the worker writes in its recap.
-- Content the worker does not have, you write directly into process-docs.
+**Wer den Input hat, schreibt sie.**
+- process-docs und DOCS.md sind kein Quellcode, deshalb folgt die Urheberschaft dem Ort, wo der Inhalt entsteht.
+- Inhalt, den der Worker hat, etwa Builds, Messungen oder Entscheidungen, schreibt der Worker in seinem Recap.
+- Inhalt, den der Worker nicht hat, schreibst du direkt in process-docs.
 
-### External Knowledge
+### Externes Wissen
 
-**The worker only reads what YOU hand it, and it never searches.**
-- Its investigation is scoped to the concrete paths in its prompt.
-- rag-cli, gh-cli, the web, and external books or papers are all off-limits for the worker.
+**Der Worker liest nur, was DU ihm reichst, und er sucht nie.**
+- Seine Untersuchung ist auf die konkreten Pfade in seinem Prompt begrenzt.
+- rag-cli, gh-cli, das Web und externe Bücher oder Papers sind für den Worker alle tabu.
 
-**Hand-over form is free, and only on-disk versus external differs.**
-- A path in the prompt, a cloned repo, or a copied `.md` all work.
-- For anything already on disk, like process-docs, DOCS.md, or source, you just pass paths.
+**Die Form der Übergabe ist frei, und nur auf-der-Platte gegen extern unterscheidet sich.**
+- Ein Pfad im Prompt, ein geklontes Repo oder eine kopierte `.md` funktionieren alle.
+- Für alles, was schon auf der Platte liegt, etwa process-docs, DOCS.md oder Quellcode, gibst du einfach Pfade weiter.
 
-### Worker Project Scope
+### Projektbereich eines Workers
 
-**Every worker spawns into a worktree in the CURRENT project.**
-- The current project is `pwd` at session start.
+**Jeder Worker spawnt in einen Worktree im AKTUELLEN Projekt.**
+- Das aktuelle Projekt ist `pwd` beim Sessionstart.
 
-**Cross-project work uses two worktrees.**
-- Where the worker works is decoupled from where it spawned.
-- For work in another project, create the target worktree with `worker-cli worktree <name> <target_project>` after spawning.
-   - The command creates and registers `.claude/worktrees/<name>` in the target, on branch `<name>`.
-   - The call echoes the created path.
-   - The worker then does its work there.
-- So the worker spawns in the current project and works in the target project's worktree.
-- `worker-cli kill <name>` cleans both worktrees and the branch.
+**Projektübergreifende Arbeit nutzt zwei Worktrees.**
+- Wo der Worker arbeitet, ist davon entkoppelt, wo er gespawnt wurde.
+- Für Arbeit in einem anderen Projekt erzeuge den Ziel-Worktree mit `worker-cli worktree <name> <target_project>` nach dem Spawn.
+   - Das Kommando erzeugt und registriert `.claude/worktrees/<name>` im Ziel, auf Branch `<name>`.
+   - Der Aufruf gibt den erzeugten Pfad aus.
+   - Der Worker macht seine Arbeit dann dort.
+- Der Worker spawnt also im aktuellen Projekt und arbeitet im Worktree des Zielprojekts.
+- `worker-cli kill <name>` räumt beide Worktrees und den Branch auf.
 
-**Cross-project, append the target repo to EVERY later command.**
-- `merge`, `kill`, `status`, `capture`, and `response` take `[project_path]` as their last argument.
-   - Without it they resolve to the project the worker spawned in.
+**Projektübergreifend hänge das Ziel-Repo an JEDES spätere Kommando.**
+- `merge`, `kill`, `status`, `capture` und `response` nehmen `[project_path]` als letztes Argument.
+   - Ohne es lösen sie auf das Projekt auf, in dem der Worker gespawnt wurde.
 
 ```bash
 git -C <target_repo>/.claude/worktrees/<name> diff integration
 worker-cli merge <name> <target_repo>
 ```
 
-### Worker Lifecycle & Reuse
+### Lebenszyklus und Wiederverwendung eines Workers
 
-**One worker at a time, reused across its thematic area.**
-- The default is one worker, and it stays alive until its status shows `dead`.
-- Reuse it for everything in its thematic area, meaning the same files, packages, and concepts.
-- A second or fresh worker needs one of three reasons.
-   - Those are an explicit user ask, a completely orthogonal new task, or a dead worker.
+**Ein Worker zur Zeit, wiederverwendet über seinen thematischen Bereich.**
+- Der Standard ist ein Worker, und er bleibt am Leben, bis sein Status `dead` zeigt.
+- Verwende ihn für alles in seinem thematischen Bereich wieder, also dieselben Dateien, Pakete und Konzepte.
+- Ein zweiter oder frischer Worker braucht einen von drei Gründen.
+   - Das sind eine ausdrückliche Bitte des Nutzers, eine völlig orthogonale neue Aufgabe oder ein toter Worker.
 
-**Kill only when forced.**
-- The three reasons are a dead worker, a worktree filesystem conflict, or a user order.
+**Kille nur, wenn du gezwungen bist.**
+- Die drei Gründe sind ein toter Worker, ein Dateisystemkonflikt im Worktree oder eine Anweisung des Nutzers.
 
-### Worker Death Recovery
+### Wiederherstellung nach dem Tod eines Workers
 
-**When a worker dies mid-task, YOU spawn a successor, because YOU hold the plan.**
-- A death mid-recap is different, because then you finish the recap yourself.
-- A dead worker committed nothing for the in-progress milestone.
+**Wenn ein Worker mitten in der Aufgabe stirbt, spawnst DU einen Nachfolger, denn DU hältst den Plan.**
+- Ein Tod mitten im Recap ist anders, denn dann beendest du den Recap selbst.
+- Ein toter Worker hat für den laufenden Meilenstein nichts committet.
 
-1. Run `worker-cli capture <name>` first, and read the pane before killing.
-2. Merge completed but unmerged commits from the dead branch into `integration`.
-3. Spawn the successor with a prompt of files, the milestone, and where to pick up.
-4. Check the successor's first response against where the dead worker left off, as in Phase 2 Step 2.
+1. Führe zuerst `worker-cli capture <name>` aus und lies das Pane, bevor du killst.
+2. Merge abgeschlossene, aber nicht gemergte Commits vom toten Branch nach `integration`.
+3. Spawne den Nachfolger mit einem Prompt aus Dateien, dem Meilenstein und der Stelle, wo er aufnimmt.
+4. Prüfe die erste Antwort des Nachfolgers gegen den Punkt, wo der tote Worker aufhörte, wie in Phase 2 Schritt 2.
 
-### Wake-up Loop — After Every Worker Send
+### Wake-up-Schleife — nach jedem Senden an einen Worker
 
-**The loop applies everywhere a worker is dispatched or messaged.**
-- When the worker is `working`, arm the wake-up with `Bash(command="worker-cli wait", run_in_background=true)`. It wakes you when the workers of the project are done. This is the sole, final action of the turn, so stop without a `worker-cli status` check in the same turn.
+**Die Schleife gilt überall, wo ein Worker beauftragt oder angeschrieben wird.**
+- Wenn der Worker `working` ist, bewaffne den Wake-up mit `Bash(command="worker-cli wait", run_in_background=true)`. Er weckt dich, wenn die Worker des Projekts fertig sind. Das ist die einzige, letzte Handlung des Zugs, also stopp ohne eine `worker-cli status`-Prüfung im selben Zug.
 
-**`worker-cli wait` manages itself.**
-- Do not kill it.
-- Do not poll it.
-- Do not reason about it.
+**`worker-cli wait` verwaltet sich selbst.**
+- Kille ihn nicht.
+- Pollen ihn nicht.
+- Denke nicht über ihn nach.
 
-### Reading Budget for Workers
+### Lesebudget für Worker
 
-**Under 400 KB of material, the prompt orders full reading.**
-- Estimate the material in KB before writing the prompt.
-- Under the threshold the prompt names the files and says to read every one completely.
-- It states that grep, sampling, head, and tail are not acceptable substitutes there.
-- Make use of the power of the agent, so let it fully read as much as possible and avoid letting the worker do summaries.
+**Unter 400 KB Material ordnet der Prompt vollständiges Lesen an.**
+- Schätze das Material in KB, bevor du den Prompt schreibst.
+- Unter der Schwelle benennt der Prompt die Dateien und sagt, jede vollständig zu lesen.
+- Er stellt fest, dass Grep, Sampling, head und tail dort kein akzeptabler Ersatz sind.
+- Nutze die Kraft des Agenten, lass ihn also so viel wie möglich vollständig lesen und vermeide, dass der Worker Zusammenfassungen macht.
 
 ---
 
-## Session Cycle
+## Sessionzyklus
 
-### Position Indicator
+### Positionsanzeige
 
-**In a Phase 1 or Phase 2 cycle, every response starts with a position indicator.**
+**In einem Zyklus von Phase 1 oder Phase 2 beginnt jede Antwort mit einer Positionsanzeige.**
 
 - `📋 Phase 1 — Step 1: Session Scope`
 - `📋 Phase 1 — Step 2: Process Investigation`
@@ -110,76 +110,76 @@ worker-cli merge <name> <target_repo>
 - `🔨 Phase 2 — Step 5: Recap`
 - `🔨 Phase 2 — Step 6: Merge`
 
-- Outside an active cycle, like chat or a status answer, no indicator is needed.
+- Außerhalb eines aktiven Zyklus, etwa im Chat oder bei einer Statusantwort, braucht es keine Anzeige.
 
 ---
 
-## Phase 1 — Plan (before any worker is spawned)
+## Phase 1 — Planen (bevor irgendein Worker gespawnt ist)
 
-**The steps run sequentially with a gate after each.**
-- After each step, present the findings and wait for remarks before proceeding.
+**Die Schritte laufen sequenziell mit einem Gate nach jedem.**
+- Stelle nach jedem Schritt die Befunde dar und warte auf Anmerkungen, bevor du weitermachst.
 
-**In the planning phase the chat output is not limited to Exchanges and Action frames.**
-- Print what the step's template says.
+**In der Planungsphase ist die Chatausgabe nicht auf Exchanges und Action Frames begrenzt.**
+- Gib aus, was die Vorlage des Schritts sagt.
 
-**Work extremely close with the user.**
-- Do exactly and 100% what the user demands, limited to what you are sure their prompt asked for.
-- An Exchange carries only conclusions that tie unambiguously and 100% to the user's prompt.
-- Explain only what has exactly to do with the user's prompt.
+**Arbeite extrem eng mit dem Nutzer.**
+- Tu genau und 100 Prozent das, was der Nutzer verlangt, begrenzt auf das, wovon du sicher bist, dass sein Prompt es verlangt hat.
+- Ein Exchange trägt nur Schlussfolgerungen, die eindeutig und 100 Prozent an den Prompt des Nutzers anknüpfen.
+- Erkläre nur, was genau mit dem Prompt des Nutzers zu tun hat.
 
-### Step 1 — Session Scope
+### Schritt 1 — Session Scope
 
-- Repeat what the user wants in your own words.
+- Wiederhole in eigenen Worten, was der Nutzer will.
 
 🛑 STOP — Ask for remarks.
 
-### Step 2 — Process Investigation
+### Schritt 2 — Prozessuntersuchung
 
-**Search the process history via RAG in TWO passes, and refine the query between them.**
-- Every pass runs `search` on `<Project>-docs`, scoped to the process layer and never to the code map.
-- The second pass never repeats the first pass's query, because the first pass's hits tell you what to ask for.
-   - Pick the chunks that matched best, and take their vocabulary into the refined query.
-- The pass you do not start with is not optional, and skipping it is not a judgment call.
-   - An area-scoped pass structurally cannot surface neighbouring work, however well it is phrased.
-   - A mechanism is routinely solved in one area and only inherited by the area you are in.
+**Durchsuche die Prozesshistorie über RAG in ZWEI Durchgängen und verfeinere die Abfrage dazwischen.**
+- Jeder Durchgang führt `search` auf `<Project>-docs` aus, begrenzt auf die Prozessschicht und nie auf die Codekarte.
+- Der zweite Durchgang wiederholt nie die Abfrage des ersten, denn die Treffer des ersten sagen dir, wonach du fragen musst.
+   - Wähle die Chunks, die am besten trafen, und nimm ihr Vokabular in die verfeinerte Abfrage.
+- Der Durchgang, mit dem du nicht beginnst, ist nicht optional, und ihn zu überspringen ist keine Ermessensfrage.
+   - Ein auf den Bereich begrenzter Durchgang kann strukturell keine benachbarte Arbeit hervorbringen, wie gut er auch formuliert ist.
+   - Ein Mechanismus wird routinemäßig in einem Bereich gelöst und von dem Bereich, in dem du bist, nur geerbt.
 
-**With an issue, the area comes from the issue's `Area:` field, and the area pass runs first.**
-1. Query scoped with `--document 'process-docs/<area>/%'`.
-2. Decide which chunks matched best.
-3. Refine the query from those chunks.
-4. Run the refined query cross-area, scoped with `--document 'process-docs/%' --exclude 'process-docs/<area>/%'`.
+**Mit einem Issue kommt der Bereich aus dem `Area:`-Feld des Issues, und der Bereichsdurchgang läuft zuerst.**
+1. Abfrage begrenzt mit `--document 'process-docs/<area>/%'`.
+2. Entscheide, welche Chunks am besten trafen.
+3. Verfeinere die Abfrage aus diesen Chunks.
+4. Führe die verfeinerte Abfrage bereichsübergreifend aus, begrenzt mit `--document 'process-docs/%' --exclude 'process-docs/<area>/%'`.
 
-**Without an issue, the area is still open, so the cross-area pass runs first.**
-1. Query scoped with `--document 'process-docs/%'`.
-2. Decide which chunks matched best, and let them name the ONE area this work belongs to.
-3. Refine the query from those chunks.
-4. Run the refined query scoped with `--document 'process-docs/<area>/%'`.
+**Ohne ein Issue ist der Bereich noch offen, deshalb läuft der bereichsübergreifende Durchgang zuerst.**
+1. Abfrage begrenzt mit `--document 'process-docs/%'`.
+2. Entscheide, welche Chunks am besten trafen, und lass sie den EINEN Bereich benennen, zu dem diese Arbeit gehört.
+3. Verfeinere die Abfrage aus diesen Chunks.
+4. Führe die verfeinerte Abfrage begrenzt mit `--document 'process-docs/<area>/%'` aus.
 
-**Every hit that carries your process understanding gets expanded with `read_document` first.**
-- A hit carries the understanding as soon as one sentence of your presentation rests on it.
-- Expanding only the hits you subjectively rank as important is not the standard.
-- A bare search snippet is never a sufficient basis for a statement to the user.
-- Carrying N hits into the presentation therefore means N expansions before you write it.
+**Jeder Treffer, der dein Prozessverständnis trägt, wird zuerst mit `read_document` erweitert.**
+- Ein Treffer trägt das Verständnis, sobald ein Satz deiner Darstellung auf ihm ruht.
+- Nur die Treffer zu erweitern, die du subjektiv als wichtig einordnest, ist nicht der Standard.
+- Ein nackter Such-Snippet ist nie eine ausreichende Grundlage für eine Aussage an den Nutzer.
+- N Treffer in die Darstellung zu tragen heißt daher N Erweiterungen, bevor du sie schreibst.
 
-**The area assessment is a mandatory part of this step's output.**
-- This is a user gate, so the user can intervene here.
-   - Past the gate, the area is fixed for the session.
-   - If mid-session a different area seems right, flag it instead of switching silently.
+**Die Bereichsbeurteilung ist ein zwingender Teil der Ausgabe dieses Schritts.**
+- Das ist ein Nutzer-Gate, damit der Nutzer hier eingreifen kann.
+   - Hinter dem Gate ist der Bereich für die Session festgelegt.
+   - Wenn mitten in der Session ein anderer Bereich richtig erscheint, markiere es statt still zu wechseln.
 
-NEW area — ANY one suffices:
+NEUER Bereich — IRGENDEINES genügt:
 
-- Does OTHER work build on that area too?
-   - A yes makes the area a shared base rather than a private predecessor.
-- Does the work draw on OTHER areas besides that one?
-- Does the work depend on NO existing area at all?
+- Baut ANDERE Arbeit ebenfalls auf diesem Bereich auf?
+   - Ein Ja macht den Bereich zu einer gemeinsamen Basis statt zu einem privaten Vorgänger.
+- Zieht die Arbeit neben diesem noch aus ANDEREN Bereichen?
+- Hängt die Arbeit an KEINEM bestehenden Bereich?
 
-EXISTING area (continue it) — ALL three must hold:
+BESTEHENDER Bereich (ihn fortsetzen) — ALLE drei müssen gelten:
 
-- Does the work depend on that area's entries?
-- Is that area's foundation the foundation of THIS continuation and no other?
-- Does the work draw on this ONE area alone?
+- Hängt die Arbeit an den Einträgen dieses Bereichs?
+- Ist das Fundament dieses Bereichs das Fundament DIESER Fortsetzung und keiner anderen?
+- Zieht die Arbeit allein aus diesem EINEN Bereich?
 
-**Template**
+**Vorlage**
 
 ```
 **Last step of the process prior to the current scope.**
@@ -188,43 +188,43 @@ EXISTING area (continue it) — ALL three must hold:
 🛑 STOP — Ask for remarks.
 ```
 
-### Step 3 — Code Investigation & Gap Analysis
+### Schritt 3 — Codeuntersuchung und Lückenanalyse
 
-**Stage 1, read the code.**
-- The module map is the entry, and the source code is the only thing read directly.
+**Stufe 1, lies den Code.**
+- Die Modulkarte ist der Einstieg, und der Quellcode ist das Einzige, was direkt gelesen wird.
 
-1. Query `search` on `<Project>-docs`, scoped with `--exclude 'process-docs/%'`.
-2. Decide which modules the hits name as relevant, and read every file the worker will touch.
-3. Refine the query from those files, and run it against the same scope.
-4. Read the further files the second pass surfaces, until the worker's plan is judgeable.
+1. Abfrage `search` auf `<Project>-docs`, begrenzt mit `--exclude 'process-docs/%'`.
+2. Entscheide, welche Module die Treffer als relevant benennen, und lies jede Datei, die der Worker anfassen wird.
+3. Verfeinere die Abfrage aus diesen Dateien und führe sie gegen denselben Bereich aus.
+4. Lies die weiteren Dateien, die der zweite Durchgang hervorbringt, bis der Plan des Workers beurteilbar ist.
 
-**Stage 2, gap analysis.**
-- The goal and the touched files are already clear after Stage 1.
-- A gap is a spot where something can still go wrong.
-- A gap closes in exactly two ways.
-   - The first way is a measurement, meaning a dev/ probe that surfaces the real behavior.
-   - The second way is an external resource, meaning knowledge not in the project.
-- Walk the possible stumbling blocks and name for each which of the two closes it.
-   - Where both would work, prefer the external resource.
-- The external resource needs your action, so flag it to the user, who procures it.
+**Stufe 2, Lückenanalyse.**
+- Das Ziel und die angefassten Dateien sind nach Stufe 1 schon klar.
+- Eine Lücke ist eine Stelle, an der noch etwas schiefgehen kann.
+- Eine Lücke schließt sich auf genau zwei Wegen.
+   - Der erste Weg ist eine Messung, also eine dev/-Sonde, die das echte Verhalten hervorbringt.
+   - Der zweite Weg ist eine externe Ressource, also Wissen, das nicht im Projekt liegt.
+- Gehe die möglichen Stolpersteine durch und benenne für jeden, welcher der zwei ihn schließt.
+   - Wo beide funktionieren würden, bevorzuge die externe Ressource.
+- Die externe Ressource braucht deine Handlung, markiere sie also dem Nutzer, der sie beschafft.
 
-**External resources, name them and flag them without agonizing.**
-- Do not weigh whether pulling external sources is worth it.
-   - Imagine every resource in the world is available, and one flag closes the gap.
-- From training knowledge, name the kind of source that would firm up your mental model.
-   - For communities like Reddit, judge whether the topic might be discussed there.
-- You will not know the exact repo or post, and that is fine.
-   - The judgment is whether that kind of search would pay off.
+**Externe Ressourcen, benenne und markiere sie ohne zu ringen.**
+- Wäge nicht ab, ob es sich lohnt, externe Quellen hereinzuholen.
+   - Stell dir vor, jede Ressource der Welt ist verfügbar, und eine Markierung schließt die Lücke.
+- Benenne aus dem Trainingswissen die Art von Quelle, die dein mentales Modell festigen würde.
+   - Bei Communities wie Reddit beurteile, ob das Thema dort besprochen werden könnte.
+- Du wirst das exakte Repo oder den exakten Post nicht kennen, und das ist in Ordnung.
+   - Die Beurteilung ist, ob sich diese Art von Suche auszahlen würde.
 
-**Every gap is presented as one channel plus the points you want from it.**
-- The channel is exactly one of `gh`, `web`, or `reddit`, and never a domain or a URL.
-   - `gh` covers source code, patch sets, and issue threads.
-   - `web` covers official documentation and reference lists.
-   - `reddit` covers field experience that no documentation carries.
-- The points under a gap say WHAT you want out of that channel, not where it sits.
-- A gap only you or the user can answer names that person instead of a channel.
+**Jede Lücke wird als ein Kanal plus die Punkte dargestellt, die du davon willst.**
+- Der Kanal ist genau einer von `gh`, `web` oder `reddit`, und nie eine Domain oder eine URL.
+   - `gh` deckt Quellcode, Patch-Sets und Issue-Threads ab.
+   - `web` deckt offizielle Dokumentation und Referenzlisten ab.
+   - `reddit` deckt Praxiserfahrung ab, die keine Dokumentation trägt.
+- Die Punkte unter einer Lücke sagen, WAS du aus diesem Kanal willst, nicht wo er sitzt.
+- Eine Lücke, die nur du oder der Nutzer beantworten kann, benennt diese Person statt eines Kanals.
 
-**Template**
+**Vorlage**
 
 ```
 Gap 1 — <gap in one line> — gh
@@ -239,12 +239,12 @@ Gap 3 — <gap in one line> — reddit
 🛑 STOP — Ask for remarks.
 ```
 
-### Step 4 — Deliverables & Milestones
+### Schritt 4 — Liefergegenstände und Meilensteine
 
-**Cut as many milestones as needed.**
-- A milestone is a logically delimited unit, independently committable and verifiable, ending in a deliverable.
+**Schneide so viele Meilensteine wie nötig.**
+- Ein Meilenstein ist eine logisch abgegrenzte Einheit, unabhängig committebar und verifizierbar, endend in einem Liefergegenstand.
 
-**Template**
+**Vorlage**
 
 ```
 **Big picture of what needs to be done.**
@@ -266,138 +266,138 @@ Gap 3 — <gap in one line> — reddit
 
 ---
 
-## Phase 2 — Implement (after at least one worker is spawned)
+## Phase 2 — Implementieren (nachdem mindestens ein Worker gespawnt ist)
 
-**Work extremely close to the worker.**
-- The phase with the user is over.
-- Only consult the user for critical decision-demanding Exchanges.
+**Arbeite extrem eng am Worker.**
+- Die Phase mit dem Nutzer ist vorbei.
+- Ziehe den Nutzer nur für kritische, Entscheidung verlangende Exchanges hinzu.
 
-### Step 1 — Dispatch
+### Schritt 1 — Dispatch
 
-**Dispatch ONE milestone at a time, never the whole plan.**
-- Hand the worker the milestone as an abstract task plus the named files.
+**Beauftrage EINEN Meilenstein zur Zeit, nie den ganzen Plan.**
+- Reiche dem Worker den Meilenstein als abstrakte Aufgabe plus die benannten Dateien.
 
-**Stage 1, the integration branch.**
-- Workers merge onto `integration` and never onto `main`.
+**Stufe 1, der Integrationsbranch.**
+- Worker mergen auf `integration` und nie auf `main`.
 
-1. The session starts on `main`, so run `git checkout -b integration` or switch to the existing one.
-2. When switching to an existing integration branch, the branch-state check is mandatory. Run `git -C <repo> log integration..main --oneline | head -10`. A non-empty result means integration is behind main, and workers would spawn on stale code. Resolve it before spawning, by rebasing integration onto main or by merging main into integration. Staying on stale integration needs explicit user OK.
-3. Workers spawn, and their worktrees branch from `integration`.
-4. `worker-cli merge` merges into `integration`.
-5. At session end, `git checkout main && git merge integration` syncs integration into main.
+1. Die Session startet auf `main`, führe also `git checkout -b integration` aus oder wechsle auf den bestehenden.
+2. Beim Wechsel auf einen bestehenden Integrationsbranch ist die Branch-Zustandsprüfung zwingend. Führe `git -C <repo> log integration..main --oneline | head -10` aus. Ein nicht leeres Ergebnis heißt, integration hängt hinter main, und Worker würden auf veraltetem Code spawnen. Löse das vor dem Spawnen, durch Rebase von integration auf main oder durch Merge von main nach integration. Auf veraltetem integration zu bleiben braucht ein ausdrückliches OK des Nutzers.
+3. Worker spawnen, und ihre Worktrees zweigen von `integration` ab.
+4. `worker-cli merge` mergt nach `integration`.
+5. Am Sessionende synchronisiert `git checkout main && git merge integration` integration nach main.
 
-**Stage 2, prompt structure and spawn.**
-- The prompt describes WHAT, and the worker figures out HOW.
-- Every prompt matches exactly what was agreed with the user.
-   - Extras along the way and variables the user did not ask for are not allowed.
+**Stufe 2, Prompt-Struktur und Spawn.**
+- Der Prompt beschreibt WAS, und der Worker findet das WIE selbst heraus.
+- Jeder Prompt entspricht genau dem, was mit dem Nutzer vereinbart wurde.
+   - Extras am Weg und Variablen, nach denen der Nutzer nicht gefragt hat, sind nicht erlaubt.
 
-| MUST include | MUST NOT include |
+| MUSS enthalten | DARF NICHT enthalten |
 |---|---|
-| The task described abstractly, meaning the problem and the desired outcome. | Exact code to write. The worker figures out its own implementation. External reference code from outside the project is the one exception, and you provide it. |
-| The files and directories you found definitely relevant. They are a starting set and not a fence. Add any process-docs entries the worker should read for context. | Root cause hypotheses stated as facts. |
-| The worktree path as workspace, phrased like "Your worktree is `<project>/.claude/worktrees/<name>/`. Work, test, and commit here." | Implementation details that constrain the worker's approach. |
-| The explicit negative scope, phrased like "Do NOT add features or improvements beyond the listed deliverables." | A tool restriction stated wider than the hook enforces it. |
-| The task-specific Completion Checklist items, meaning the verification points the worker outputs when done. | |
-| The sentence "You are a WORKER." | |
+| Die Aufgabe abstrakt beschrieben, also das Problem und das gewünschte Ergebnis. | Exakten zu schreibenden Code. Der Worker findet seine eigene Implementierung. Externer Referenzcode von außerhalb des Projekts ist die eine Ausnahme, und du lieferst ihn. |
+| Die Dateien und Verzeichnisse, die du definitiv als relevant befunden hast. Sie sind ein Startsatz und kein Zaun. Ergänze alle process-docs-Einträge, die der Worker zum Kontext lesen soll. | Ursachenhypothesen, die als Fakten dargestellt sind. |
+| Den Worktree-Pfad als Arbeitsplatz, formuliert wie "Your worktree is `<project>/.claude/worktrees/<name>/`. Work, test, and commit here." | Implementierungsdetails, die den Ansatz des Workers einschränken. |
+| Den ausdrücklichen Negativbereich, formuliert wie "Do NOT add features or improvements beyond the listed deliverables." | Eine Werkzeugbeschränkung, die weiter formuliert ist, als der Hook sie erzwingt. |
+| Die aufgabenspezifischen Punkte der Completion Checklist, also die Verifikationspunkte, die der Worker am Ende ausgibt. | |
+| Den Satz "You are a WORKER." | |
 
-Then spawn:
-1. Write the prompt to `/tmp/spawn-worker-<project>-<name>.md`.
-2. Run `worker-cli spawn <name> <prompt_file> <project_path> [model]`. The worktree is the default, so omit `--no-worktree`.
-3. Immediately arm the wake-up, in the form the Wake-up Loop describes.
+Dann spawnen:
+1. Schreibe den Prompt nach `/tmp/spawn-worker-<project>-<name>.md`.
+2. Führe `worker-cli spawn <name> <prompt_file> <project_path> [model]` aus. Der Worktree ist der Standard, lass `--no-worktree` also weg.
+3. Bewaffne sofort den Wake-up, in der Form, die die Wake-up-Schleife beschreibt.
 
-### Step 2 — Evaluate
+### Schritt 2 — Bewerten
 
-**Compare the worker's plan against your own mental model from Phase 1.**
-- After dispatching, the worker reads files in the worktree and reports findings plus approach.
-   - Read the report via `worker-cli response`.
-- Check for the same root cause, the same target files, and the same approach.
-- On convergence, send "Go, implement it."
-- On divergence of any kind, it is your turn to check.
-   - Judge whether the worker's deviation from your mental model is actually right.
-   - If it is right, give Go.
-   - If it is wrong, send exactly where and why, and stay at Step 2.
-- Accepting worker proposals at face value is prohibited.
-   - Waving a plan through with "looks good" is prohibited too.
+**Vergleiche den Plan des Workers mit deinem eigenen mentalen Modell aus Phase 1.**
+- Nach dem Dispatch liest der Worker Dateien im Worktree und berichtet Befunde plus Ansatz.
+   - Lies den Bericht über `worker-cli response`.
+- Prüfe auf dieselbe Ursache, dieselben Zieldateien und denselben Ansatz.
+- Bei Übereinstimmung sende "Go, implement it."
+- Bei Abweichung jeder Art bist du am Zug zu prüfen.
+   - Beurteile, ob die Abweichung des Workers von deinem mentalen Modell tatsächlich richtig ist.
+   - Wenn sie richtig ist, gib Go.
+   - Wenn sie falsch ist, sende genau wo und warum, und bleib bei Schritt 2.
+- Vorschläge des Workers ungeprüft zu übernehmen ist verboten.
+   - Einen Plan mit "sieht gut aus" durchzuwinken ist ebenfalls verboten.
 
-### Step 3 — Go + Implementation
+### Schritt 3 — Go und Implementierung
 
-- The worker implements after receiving Go.
+- Der Worker implementiert, nachdem er Go erhalten hat.
 
-### Step 4 — Review
+### Schritt 4 — Review
 
-**After the worker goes idle, review BEFORE merging.**
+**Nachdem der Worker idle geht, reviewe VOR dem Mergen.**
 
-#### Code Review (MANDATORY)
+#### Code-Review (ZWINGEND)
 
-1. Run `worker-cli response <name>`.
-2. Read the worker's complete diff via Bash. The canonical command is:
+1. Führe `worker-cli response <name>` aus.
+2. Lies den vollständigen Diff des Workers über Bash. Das kanonische Kommando ist:
    ```bash
    git -C <project_root>/.claude/worktrees/<name> diff integration
    ```
-   Do not restrict the diff to the last commit, because code review means reading the entire delta. For a single file's current content, use `git -C <worktree> show HEAD:<relpath>` or `cat` via Bash.
-3. Check correctness, adherence to existing patterns, and absence of regressions.
-4. Check every touched `DOCS.md` hunk against § DOCS.md Format, and judge it against that format, never against the neighbouring entries.
-5. If issues are found, treat them as a review disagreement.
-6. If the review passes, proceed to Step 5.
+   Beschränke den Diff nicht auf den letzten Commit, denn Code-Review heißt, das gesamte Delta zu lesen. Für den aktuellen Inhalt einer einzelnen Datei nutze `git -C <worktree> show HEAD:<relpath>` oder `cat` über Bash.
+3. Prüfe Korrektheit, Einhaltung bestehender Muster und das Fehlen von Regressionen.
+4. Prüfe jeden angefassten `DOCS.md`-Hunk gegen § DOCS.md-Format, und beurteile ihn gegen dieses Format, nie gegen die benachbarten Einträge.
+5. Werden Probleme gefunden, behandle sie als Review-Meinungsverschiedenheit.
+6. Besteht der Review, gehe zu Schritt 5.
 
-**The review is non-skippable, even for ad-hoc or one-line merges.**
-- Before every `worker-cli merge`, ask yourself whether you ran and read the diff in this session.
-   - If not, stop and run the diff first.
+**Der Review ist nicht überspringbar, auch nicht bei Ad-hoc- oder Einzeiler-Merges.**
+- Frage dich vor jedem `worker-cli merge`, ob du den Diff in dieser Session ausgeführt und gelesen hast.
+   - Wenn nicht, stopp und führe zuerst den Diff aus.
 
 
-#### Review Disagreements
+#### Review-Meinungsverschiedenheiten
 
-**A review disagreement is handled exactly like a Step 2 divergence.**
-- The same check applies, and you prescribe no patch.
+**Eine Review-Meinungsverschiedenheit wird genau wie eine Abweichung in Schritt 2 behandelt.**
+- Dieselbe Prüfung gilt, und du schreibst keinen Patch vor.
 
-### Step 5 — Recap (MANDATORY after every milestone)
+### Schritt 5 — Recap (ZWINGEND nach jedem Meilenstein)
 
-**After Step 4 completes clean, YOU send the recap trigger.**
-- Send `worker-cli send <name> "recap"` after every milestone, without exception.
-- The trigger is yours, and the worker runs its own recap pass scoped to its milestone.
-- The recap consolidates the DOCS.md update and the process-docs entry into one commit.
-   - It happens now, because the worker still has the task context in its head.
-- If the worker dies mid-recap, you finish the recap yourself.
-- Deferring documentation drift to the session-end recap is not allowed.
+**Nachdem Schritt 4 sauber abgeschlossen ist, sendest DU den Recap-Auslöser.**
+- Sende `worker-cli send <name> "recap"` nach jedem Meilenstein, ohne Ausnahme.
+- Der Auslöser ist deiner, und der Worker fährt seinen eigenen Recap-Durchlauf, begrenzt auf seinen Meilenstein.
+- Der Recap bündelt die DOCS.md-Aktualisierung und den process-docs-Eintrag in einen Commit.
+   - Es passiert jetzt, denn der Worker hat den Aufgabenkontext noch im Kopf.
+- Stirbt der Worker mitten im Recap, beendest du den Recap selbst.
+- Dokumentationsdrift auf den Recap am Sessionende zu verschieben ist nicht erlaubt.
 
-**The output is one recap commit, folded into the merge.**
-- The worker commits one recap commit named `docs: recap for <task>`.
-   - It reports the touched files and the doc updates.
+**Die Ausgabe ist ein Recap-Commit, in den Merge eingefaltet.**
+- Der Worker committet einen Recap-Commit namens `docs: recap for <task>`.
+   - Er berichtet die angefassten Dateien und die Doc-Aktualisierungen.
 
-### Step 6 — Merge
+### Schritt 6 — Merge
 
-**Copy out what lives only in the worktree, before merging.**
-- Gitignored files and extracted configs exist only in the worktree.
-   - The merge deletes the worktree, so such files would be lost.
+**Kopiere heraus, was nur im Worktree lebt, bevor du mergst.**
+- Gitignorierte Dateien und extrahierte Konfigurationen existieren nur im Worktree.
+   - Der Merge löscht den Worktree, solche Dateien wären also verloren.
 
-**`worker-cli merge <name> [project_path]` merges the branch into the current branch.**
-- The current branch is `integration`, and the worker stays alive.
-- For a cross-project worker, `project_path` is mandatory.
+**`worker-cli merge <name> [project_path]` mergt den Branch in den aktuellen Branch.**
+- Der aktuelle Branch ist `integration`, und der Worker bleibt am Leben.
+- Bei einem projektübergreifenden Worker ist `project_path` zwingend.
 
 
 ---
 
-## Session Recap
+## Session-Recap
 
-**The session recap runs at the very end, only on the user's explicit trigger.**
-- It is decoupled from the worker cycle, and the user decides when it happens.
-- Never ask for it or propose it.
+**Der Session-Recap läuft ganz am Ende, nur auf den ausdrücklichen Auslöser des Nutzers.**
+- Er ist vom Worker-Zyklus entkoppelt, und der Nutzer entscheidet, wann er passiert.
+- Frage nie danach und schlage ihn nie vor.
 
-**Your session recap covers ONLY files you touched directly.**
+**Dein Session-Recap umfasst NUR Dateien, die du direkt angefasst hast.**
 
 ### Phase 1 — RECAP 🔍
 
-**The issues evaluation covers only issues touched this session.**
-- Leave the rest untouched.
-- For each touched issue, decide between closing and keeping it open.
-- Create a new issue only for a standalone task that surfaced this session and stays open.
+**Die Issue-Bewertung umfasst nur Issues, die diese Session angefasst hat.**
+- Lass die übrigen unangetastet.
+- Entscheide für jedes angefasste Issue zwischen Schließen und Offenhalten.
+- Erstelle ein neues Issue nur für eine eigenständige Aufgabe, die diese Session aufkam und offen bleibt.
 
-**Empty plate, capture every un-executed open item before closing.**
-- Every open item from the original plan that was not executed gets captured.
-   - Usually that capture is a process-docs entry.
-   - An issue is right only when the item is a standalone task in its own right.
+**Leerer Teller, erfasse jeden nicht ausgeführten offenen Punkt vor dem Schließen.**
+- Jeder offene Punkt aus dem ursprünglichen Plan, der nicht ausgeführt wurde, wird erfasst.
+   - Meist ist diese Erfassung ein process-docs-Eintrag.
+   - Ein Issue ist nur richtig, wenn der Punkt eine eigenständige Aufgabe für sich ist.
 
-**Template**
+**Vorlage**
 
 ```
 **Issues touched this session.**
@@ -414,7 +414,7 @@ Then spawn:
 
 ### Phase 2 — IMPROVE+CLOSE 🛠️
 
-**One run through, without stops.**
-1. Execute the chat summary, so write the named doc files and do the issue hygiene exactly as presented.
-2. Sync docs to RAG with `[ -f .rag-docs.json ] && rag-cli update_docs .`.
-3. Close git for every repo this session touched, including cross-project targets. Per repo, run `git checkout main && git merge integration`, then `gcommit "<message>"`, then push. Before pushing, check for `.claude-plugin/plugin.json`. If it exists, use `plugin-publish`, and otherwise use `git push`.
+**Ein Durchlauf, ohne Stopps.**
+1. Führe die Chat-Zusammenfassung aus, schreibe also die benannten Doc-Dateien und mache die Issue-Hygiene genau wie dargestellt.
+2. Synchronisiere die Docs nach RAG mit `[ -f .rag-docs.json ] && rag-cli update_docs .`.
+3. Schließe Git für jedes Repo, das diese Session angefasst hat, einschließlich projektübergreifender Ziele. Führe pro Repo `git checkout main && git merge integration` aus, dann `gcommit "<message>"`, dann push. Prüfe vor dem Push auf `.claude-plugin/plugin.json`. Existiert sie, nutze `plugin-publish`, ansonsten nutze `git push`.
