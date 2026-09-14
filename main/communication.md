@@ -19,9 +19,11 @@
 
 #### Exchange
 
-**An Exchange is one bold sentence and its elaboration.**
-- An elaboration names the key facts behind the bold sentence.
-   - A key fact is something you concluded in this turn that the bold sentence rests on.
+**An Exchange carries the conclusions of this turn and the key facts they rest on.**
+- A key fact is something you concluded in this turn.
+- Prose is never an option, so every line that is not a bold core statement is a bullet.
+   - No bold sentence has to head an Exchange, and no elaboration has to follow one.
+- The one binding rule is that a core statement is bold.
 
 **Keep it simple.**
 - Plain words and full sentences, the way you would say it aloud.
@@ -35,8 +37,9 @@
 
 **Style for Exchanges**
 ```
-**bold sentence**
-- elaboration
+- plain point
+**bold core statement**
+- plain point
 ```
 
 ##### Uncertainty-informing Exchange

@@ -39,10 +39,13 @@
 
 #### `<persisted-output>` blocks
 
-**A `<persisted-output>` block is always read in full.**
+**Use `poread` to get the full content of the file injected.**
 - The block names its file as `Full output saved to: <path>`.
-- Extract that absolute path and read the entire file in one call.
-- Grep, head, tail, and partial reads are not acceptable substitutes.
+- Grep, head, tail, cat, and partial reads are not substitutes.
+
+| Operation | CLI |
+|---|---|
+| Read a persisted output in full | `poread <path>`, alone in its Bash call |
 
 ### Writing files
 
