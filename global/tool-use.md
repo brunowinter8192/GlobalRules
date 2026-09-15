@@ -49,9 +49,14 @@
 
 ### Dateien schreiben
 
-**Eine Datei wird mit einem Heredoc erzeugt, das einen gequoteten Delimiter trägt.**
+**Eine neue Datei wird mit einem Heredoc erzeugt, das einen gequoteten Delimiter trägt.**
 - Die Form ist `cat > <path> <<'EOF'`, dann der Inhalt, dann `EOF`.
 - Der gequotete Delimiter ist zwingend, sonst expandiert die Shell `$` und Backticks im Inhalt.
+- Das Heredoc bleibt dem `Write`-Werkzeug vorgezogen, weil es pro Aufruf messbar weniger kostet und mehrere Dateien in einem Aufruf schreiben kann.
 
-**Eine bestehende Datei wird an ihrer Stelle geändert, nie vollständig neu geschrieben.**
+**Eine bestehende Datei wird mit dem `Edit`-Werkzeug geändert.**
+- `Edit` trägt den alten Text mit, um die Stelle zu finden, und dieser Anker ist der Preis der Adressierung.
+- Über Zeilennummern zu adressieren wäre billiger und ist verworfen, weil Modelle Zeilennummern unzuverlässig treffen und das Gerüst dafür mehr kostet als der Anker.
+
+**Eine bestehende Datei wird nie vollständig neu geschrieben.**
 - Ein vollständiges Neuschreiben sendet den gesamten Inhalt erneut, also wird der Inhalt zweimal bezahlt.

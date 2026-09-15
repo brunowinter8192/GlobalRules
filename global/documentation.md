@@ -2,54 +2,52 @@
 
 ## Kernregeln
 
-### Sprache (NICHT VERHANDELBAR)
+### Sprache in Dokumentationsdateien
 
 **Jede Dokumentationsdatei wird in Englisch geschrieben.**
-   - Dokumentationsdateien umfassen DOCS.md, process-docs-Einträge, dev/-Reports und Code-Kommentare.
-
-### Abschnitte sind optional
-
-**Weglassen, nicht auffüllen.**
-- Jeder Abschnitt in DOCS.md und in einem process-docs-Eintrag ist optional.
-   - Ein optionaler Abschnitt ohne Inhalt wird weggelassen.
-   - Weglassen schlägt es, ein Feld zu füllen, nur weil die Vorlage es hat.
+- Dokumentationsdateien umfassen DOCS.md und process-docs-Einträge.
 
 ### Keine Verweise auf Issues
 
-**Docs zeigen nie zurück auf Issues.**
-- Dateien unter process-docs verweisen nie auf Issues.
-- Issues zeigen auf Docs, und die Richtung bleibt einseitig.
+**Dokumentationsdateien zeigen nie zurück auf Issues.**
+- Issues können auf Dokumentationsdateien zeigen, die Richtung bleibt jedoch einseitig.
 
-### RAG-Sammlungsschichten
+### RAG-Collections je Projekt
 
-**Zwei Sammlungen pro Projekt.**
-- Die docs-Sammlung hält alle internen Projektdokumente, also DOCS.md und process-docs.
-- Neben der docs-Sammlung hält die reference-Sammlung alle externen Quellen, etwa Herstellerdokumentation und Papers.
+**Es existieren zwei Collections je Projekt.**
+- Die docs-Collection hält alle internen Projektdokumente, also DOCS.md und process-docs.
+- Neben der docs-Collection gibt es die reference-Collection
+    - diese enthält ausschließlich externen Materialien, wie zum beispiel Herstellerdokumentation und Papers.
 
-**Kanonische Benennung:**
+**Die Collections sind immer gleich benannt:**
 
-| Schicht | Konvention | Beispiel |
-|---|---|---|
-| docs | `<Project>-docs` | `monitor-cc-docs` |
-| reference | `<Project>-reference` | `monitor-cc-reference` |
+Konvention | Beispiel |
+|---|---|
+`<Project>-docs` | `monitor-cc-docs` |
+`<Project>-reference` | `monitor-cc-reference` |
 
-## docs
+## DOCS.md
 
-**DOCS.md ist die Modulkarte.**
-- Eine DOCS.md beschreibt die Module ihres Verzeichnisses.
-   - Diese Beschreibung ist die einzige Dokumentation, die laufend aktualisiert wird.
+**DOCS.md beschreibt die Module eines einzelnen Verzeichnisses.**
+   - Die DOCS.md wird mit Änderung des codes ggf. ebenfalls aktualisiert
 
-**Ausführlichkeit gehört zu process-docs, und DOCS.md bleibt schlank.**
-- Ein process-docs-Eintrag trägt jede Länge, die sein Autor braucht.
-- Inhalt, der nicht in die schlanke Form von DOCS.md passt, geht stattdessen nach process-docs.
+**Die Form der DOCS.md muss nicht zwingend vollständig ausgefüllt werden**
+- lieber einen abschnitt leer lassen als Inhalte einfügen die "weitestgehend" passen
+
+**Ausführlichkeit wird in den process-docs gelebt, die DOCS.md bleiben hingegen schlank.**
+- Ein process-docs Eintrag muss ohne code funktionieren
+    - die prozesshistory lebt im chat mit dem user und in deinem denken, beides ist nach der session verloren
+- Ein docs eintrag wird gebackt vom code
+    - alles was im code steht muss nicht in die docs
 
 **DOCS.md wiederholt nie den Code.**
-- DOCS.md ist die Vogelperspektive und beantwortet, welche Module für eine gegebene Frage relevant sind.
-- Was ein Modul im Detail tut, wird in DOCS.md nicht beantwortet.
-- Die einzelnen Konstanten, Parameter, Formeln und Schwellwerte eines Moduls bleiben draußen.
-   - Benenne stattdessen die Gruppe, die sie bilden.
+- DOCS.md ist die Vogelperspektive, sie beantworten die frage "wo steht was?" "wo liegen die details?".
+    - Was ein Modul im Detail tut, wird in den DOCS.md nicht beantwortet.
+- Die einzelnen Konstanten, Parameter, Formeln und Schwellwerte eines Moduls sind aus den docs.md aggresiv auszuschließen
 
-### Ablage
+**DOCS.md bewegen sich ausschließlich auf Modulebene.**
+- Dokumentation auf Funktionsebene gehört nicht in DOCS.md.
+- In DOCS.md entspricht der LOC-Wert jeder Modulüberschrift dem tatsächlichen `wc -l` der Datei.
 
 **Eine DOCS.md pro Modulverzeichnis.**
 - Die Datei liegt in dem Verzeichnis, das die `.py`-Module hält, die sie dokumentiert.
@@ -84,47 +82,32 @@ What `__init__.py` exports. One line per export. If `__init__.py` is empty: say 
 Which module owns the state, who mutates, who reads.
 ```
 
-**Nur auf Modulebene.**
-- Dokumentation auf Funktionsebene gehört nicht in DOCS.md.
-- In DOCS.md entspricht der LOC-Wert jeder Modulüberschrift dem tatsächlichen `wc -l` der Datei.
+## process-docs
 
-## process docs
+**In process-docs wird festgehalten was ein agent braucht um zu verstehen wie eine entscheidung zustande kam**
+- alle Erkenntnisse aus deiner Arbeit die du jetzt sofort einem nachfolger mitgeben würdest 
+    - um sicherzustellen das er schneller ist als du
+    - um sicherzustellen das er deine fehler nicht wiederholt
+    - um sicherzustellen das er eine robuste simple lösung erstellt
+    - um sicherzustellen das er sich nicht im kreis dreht und genau erfüllen kann was verlangt ist
 
-**Ein paar gute Beispiele schlagen eine erschöpfende Liste.**
-- Ein paar unterschiedliche Beispiele zeigen das erwartete Verhalten besser als eine Halde von Randfällen.
-- Ein Beispiel verdient seinen Platz nur, wenn es zeigt, WIE man entscheidet.
-   - Nur zu zeigen, dass ein Fall existiert, verdient keinen Platz, deshalb fällt so ein Beispiel raus.
+**Nutze Beispiele in den process-docs**
+- Ein paar Beispiele zeigen das erwartete Verhalten besser als eine ausschweifende abstrakte Erklärung
+- Nutze als Beispiele in den process-docs tatsächlich beobachtete Fälle
+- Edge cases welche nie beobachtet wurden werden kurz als Hypothese gekennzeichnet und abgehandelt
+    - widme Raum dem was greifbar ist, halte nicht greifbares kurz und knapp
 
-**Eindeutige Benennung.**
-- Mache impliziten Kontext explizit.
-- Expliziter Kontext heißt Namen, die der Leser nicht falsch auflösen kann.
-   - Ein Name wie `user_id` löst sauber auf, wo `user` es nicht tut.
+**Drücke dich in den process-docs so eindeutig aus wie es nur geht.**
+- fange den status quo so exakt ein wie es nur geht
 
-**Artefakte werden für einen anderen Agenten geschrieben**
-- Ein Artefakt ist alles, was du außerhalb des Chat outputs der sich direkt an den user richtet, liest oder erzeugst.
-   - Artefakte umfassen process-docs.
-- gehe immer davon aus das der lesende Agent mit 0 Context beginnt wenn er dein artefakt liest.
-
-**Immer in der Projektwurzel, immer process-docs genannt.**
+**process-docs sitzen immer im project root**
 - Der process-docs-Ordner sitzt immer in der Projektwurzel.
 - In der Wurzel trägt er den exakten Namen `process-docs/`.
-- Was der Ordner festhält, ist, wie Dinge untersucht und entschieden wurden.
 
-**Alles, was nicht in die schlanke Form von DOCS.md passt, wird hier festgehalten.**
-- Prozesshistorie gehört hierher, also Daten und was extrahiert, aufgeteilt, ersetzt oder umbenannt wurde.
-- Belege gehören hierher, also Verifikationsberichte, gemessene Ergebnisse und Begründungen.
-- Modulspezifische Tretminen und Absicherungen kalibrierter Werte gehören hierher.
-- Detail, das direkt auf den Code verweist, gehört hierher.
-- Deine eigene Argumentation gehört hierher, wann immer ein folgender Agent sie nutzen kann.
-
-**Ein Eintrag ist ein Abschnitt in der eigenen Datei des Autors, nie eine Datei für sich.**
-- Eine Datei sammelt so viele Einträge an, wie ihr Autor Themen hat.
-
-**Eine Datei pro Autorensession, pro Bereich.**
-- Ein Worker schreibt über seine gesamte Lebensdauer genau eine process-docs-Datei.
-   - Jeder Recap dieses Workers hängt an dieselbe Datei an.
-- Eine Main-Session schreibt genau eine process-docs-Datei.
-- Inhalt, der mehrere Bereiche umspannt, bekommt eine Datei pro Bereich, jede in ihrem eigenen `process-docs/<area>/`.
+**Eine process-docs Datei pro Session**
+- Jeder Agent schreibt über seine gesamte Lebensdauer genau eine process-docs-Datei.
+   - Eine process docs datei wird stetig erweitert, solange die session besteht
+- Ausnahme, wenn merhere `process-docs/<area>/` berührt werden
 - Keine andere process-docs-Datei wird jemals angefasst, egal was sie enthält.
    - Jede Main-Session und jeder Worker hat die eigene Datei als einzigen beschreibbaren Bereich.
    - Ein gefundener Fehler, eine veraltete Behauptung oder ein Widerspruch in einer anderen Datei wird in der eigenen Datei festgestellt, nie in der anderen korrigiert.
