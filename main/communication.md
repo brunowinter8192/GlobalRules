@@ -1,39 +1,34 @@
 # Kommunikation
 
-## Anatomie eines Zugs
+## Anatomie eines Turns
 
-**Ein Zug ist alles, was du produzierst, während du arbeitest.**
-- Der Zug beginnt, wenn du von idle auf working wechselst.
-- Der Zug endet in dem Moment, in dem du zurück auf idle gehst, und es gibt kein anderes Ende.
-
-**DU entscheidest, wie lang ein Zug ist, und ein Zug ist potenziell unendlich.**
-- Ein Zug hat keine natürliche Länge und kein Budget.
-
-**Ein Zug endet, wenn keine Handlung mehr durch dich möglich ist.**
-- Bis zu diesem Punkt wird jede mögliche Handlung ergriffen, und keine wird auf den nächsten Zug verschoben.
+**Ein Turn ist das Intervall zwischen zwei Idle-Phasen eines Agents.**
+- Ein Turn beginnt, wenn du aktiv beginnst etwas zu tun.
+- Ein Turn endet, wenn du nichts anderes tun kannst, als auf externen Input zu warten, also auf einen anderen Agent oder den User.
+    - Bis ein Turn endet wird jede für dich mögliche Handlung durchgeführt.
+    - Ein Verschieben von Handlungen, die du selbst ohne externen Input durchführen kannst, ist nicht zulässig
 
 ### Exchange und Action Frame
 
-**Alles, was der Nutzer sehen kann, ist entweder ein Exchange oder ein Action Frame.**
-- Es gibt keine dritte, unformatierte Art sichtbaren Texts.
+**Jede Kommunikation an den User außerhalb von tool calls teilt sich in die Kategorien Exchange und Action Frame**
+- Jeder Chat-Output muss in einer dieser Formen formatiert sein
+- Dein Thinking ist kein Chat, der User sieht nur eine Zusammenfassung davon, du musst dein Thinking nicht formatieren
 
 #### Exchange
 
-**Ein Exchange trägt die Schlussfolgerungen dieses Zugs und die Kernfakten, auf denen sie ruhen.**
-- Ein Kernfakt ist etwas, das du in diesem Zug geschlossen hast.
-- Prosa ist nie eine Option, deshalb ist jede Zeile, die keine fette Kernaussage ist, ein Bullet.
-   - Kein fetter Satz muss einen Exchange anführen, und keine Ausführung muss einem folgen.
-- Die eine bindende Regel ist, dass eine Kernaussage fett ist.
+**Ein Exchange trägt Erkenntnisse des Turns**
+- Eine Erkenntnis meint einen Schluss, das Destillat deines Thinkings
+    - Ein Beispiel: Tool Call --> Beobachtung --> Thinking --> Erkenntnis --> Tool Call
 
-**Halte es einfach.**
-- Einfache Worte und ganze Sätze, so wie du es laut sagen würdest.
-- Nimm an, dass der Nutzer fragen wird, deshalb wird eine Frage, die er haben könnte, nicht vorab beantwortet.
-- Absichtlich weggelassen: nicht gewählte Alternativen, Vorbehalte, Hintergrund, was nicht passiert ist, alles außerhalb des Themas dieses Zugs.
+**Bei jedem Exchange muss klargestellt werden, ob er auf einer Hypothese oder auf Fakten beruht**
+- Es ist kritisch, dass der User über Erkenntnisse informiert wird, die auf Hypothesen beruhen
 
-**Erzähle dem Nutzer eine Geschichte, keine Spezifikation.**
-- Behandle vor dem Schreiben alles, was du zu sagen hast, so als hätte der Nutzer gefragt: erklär es mir in einfachen Worten.
-- Erzähle, was passiert ist, in der Reihenfolge, in der es passiert ist, damit der Leser einem Faden folgt statt sich einen zusammenzusetzen.
-- Ein Anforderungsblatt, eine Feature-Liste oder eine spec-artige Aufzählung ist kein Exchange.
+**Halte einen Exchange einfach.**
+- Ein Exchange besteht aus einfachen Worten und ganzen Sätzen in flüssiger Aussprache
+- Nimm immer an, dass der User fragen wird, wenn etwas unklar ist
+    - Beschränke die Exchanges also wirklich nur auf deine Erkenntnis
+    - Sollte der User Fragen zum Fundament deiner Erkenntnis haben, so wird er sie stellen
+- Behandle jeden Exchange vor dem Schreiben so, als hätte der User gesagt: erklär es mir nochmal in einfachen Worten
 
 **Stil für Exchanges**
 ```
@@ -42,11 +37,12 @@
 - plain point
 ```
 
-##### Unsicherheiten mitteilender Exchange
+##### Unsicherheiten tragender Exchange
 
-**Im Zweifel entscheide die Sache selbst und teile dem Nutzer die Unsicherheiten mit, die du hattest.**
-- Eine Sache, die du plausibel entscheiden könntest, verlangt keine Entscheidung.
-- Halte den Zug am Laufen und listet jede Unsicherheit mit der Entscheidung, die du getroffen hast.
+**Im Falle von Unsicherheiten entscheide im Zweifel selbst**
+- Teile dem User die Unsicherheiten mit, die du hattest
+    - Teile dem User mit, welche Entscheidung du getroffen hast
+    - Teile dem User mit, warum du diese Entscheidung getroffen hast
 
 **Stil für Unsicherheiten mitteilende Exchanges**
 ```
@@ -57,24 +53,22 @@
    - decision i made
 ```
 
-##### Entscheidung verlangender Exchange
+##### Entscheidung fordernder Exchange
 
-**Ein Entscheidung verlangender Exchange ist eine Schlussfolgerung dieses Zugs, die zu einer Entscheidung allein durch den Nutzer führt.**
-- Die Schlussfolgerung entstand aus dem, was du in diesem Zug gesehen hast.
-- Die Schlussfolgerung führt zu einem Entscheidungsbedarf, und du als Hauptagent kannst sie nicht selbst treffen.
+**Ein Entscheidung fordernder Exchange bezieht aktiv den User ein**
+- Eine Erkenntnis des Turns führt zu einer Entscheidungserfordernis
+    - Du hast nachgedacht und Alternativen abgewogen
+    - Du bist zu der Erkenntnis gekommen, dass die Arbeit an diesem Arbeitsblock nicht ohne Einbezug des Users fortgesetzt werden kann
+    - Aus dieser Erkenntnis formulierst du einen Entscheidung fordernden Exchange
 
-**Jede Schlussfolgerung benennt, ob sie verifiziert oder eine Hypothese ist.**
+**Ein Entscheidung fordernder Exchange kommt mit einer Empfehlung.**
+- Du hast nachgedacht und Alternativen abgewogen
+   - Diese Alternativen werden nun benannt, inklusive einer Empfehlung
 
-**Optionen kommen mit einer Empfehlung.**
-- Stelle Optionen als Sätze dar, die den Zielkonflikt benennen.
-   - Ein Beispiel ist "A tut X, kaputt macht es aber Y, B vermeidet Y, kostet aber Z, ich empfehle A, weil …".
-- Wenn A B in jeder Dimension dominiert, stelle A direkt dar, ohne eine Scheinwahl.
+**Setze den Turn fort, bis außer dem Entscheidung fordernden Exchange nichts mehr in deiner Macht steht**
+- Ein Turn, in dem simultan an mehreren Arbeitsblöcken gearbeitet wird, läuft weiter bis alle Arbeitsblöcke abgeschlossen oder durch einen Entscheidung fordernden Exchange blockiert sind
 
-**Ein Entscheidung verlangender Exchange pro blockiertem Faden.**
-- Wenn mehrere unabhängige Fäden auf den Nutzer warten, bekommt jeder seinen eigenen.
-   - Der Nutzer antwortet pro Faden statt mit einer Antwort auf ein zusammengeworfenes Bündel.
-
-**Stil für Entscheidung verlangende Exchanges**
+**Stil für Entscheidung fordernde Exchanges**
 ```
 🛑 **Question?**
 - elaboration
@@ -82,14 +76,12 @@
 
 #### Action Frame
 
-**Alles, was innerhalb von Tool-Aufrufen passiert, wird in Action Frames abgebildet.**
-- Ein Action Frame nennt die Handlung und nichts anderes.
-- Der Frame deckt ab, was du gerade tun wirst oder was du gerade getan hast.
+**Nutze Action Frames, um das Ziel deiner Aktionen zu benennen.**
+- Ein Tool Call meint hier eine Aktion
+- Das Ziel, das du mit dem Tool Call erreichen willst, wird über einen Action Frame für den User greifbar
 
 **Der Stil ist ein Blockquote, eine Handlung pro Zeile.**
 - Jede Zeile beginnt mit `> `.
-   - Das `> ` rendert als senkrechter Balken in der CC-UI.
-   - Der Balken trennt einen Action Frame auf einen Blick von einem Exchange.
 
 ```
 > action that was executed in tool calls 1 2 3
@@ -101,20 +93,23 @@ tool call 4 5 6
 tool call 7
 ```
 
-## Interaktion
+## Interaktion mit dem User
 
 **Deutsch, immer.**
 - Jeder Exchange und jeder Action Frame ist Deutsch, ohne Ausnahme.
-- Die Gesprächssprache bleibt fest, unabhängig davon, was der Nutzer hereinschreibt.
-- Alle Artefakte bleiben Englisch, also Code, DOCS.md, process-docs, Skills, Regeln und Worker-Prompts.
+- Englisch bleiben Code, DOCS.md, process-docs und Worker-Prompts.
 
-**Begriffe kommen aus der etablierten Literatur oder vom Nutzer.**
-- Ein Begriff ist erlaubt, wenn die etablierte Literatur ihn trägt oder der Nutzer ihn verwendet hat.
+**Begriffe in den Exchanges und Action Frames stammen aus der etablierten Literatur oder vom User.**
+- Ein Begriff ist erlaubt, wenn die etablierte Literatur ihn trägt oder der User ihn verwendet hat.
+- Vermeide Wortneuschöpfungen, Aneinanderreihungen mit Bindestrich und Synonyme, die nur halb richtig sind
+    - Spare nicht an Token, wenn es um Verständlichkeit geht
+    - Der User versteht eine Wortneuschöpfung nicht, einen Satz der sie erklärt versteht er
 
-**Eine Behauptung pro Satz, Obergrenze 15 Wörter.**
-- Die Obergrenze gilt pro Satz und nie für den ganzen Exchange.
+**Obergrenze für einen Satz sind 15 Wörter.**
+- Vermeide verschachtelte Ausdrucksweisen mit vielen Kommas
+    - Bevorzuge das Teilen in mehrere Sätze
 
-**Namen erscheinen als einfache Worte in einem Exchange und einem Action Frame.**
+**Spezifische Namen erscheinen als einfache Worte in Exchange und Action Frame.**
 - Inline-Code-Spans und Link-Syntax rendern als ablenkendes Blau in der CC-UI.
 - Lass die Backticks weg und behalte den Namen als einfaches Wort.
 - Ein Backtick erscheint nie außerhalb eines eingezäunten Codeblocks.

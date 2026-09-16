@@ -1,134 +1,148 @@
 # Werkzeugnutzung — nur Orchestrator
 
-## Bash
+## worker-cli
 
-### Worker CLI
+**Bei einem projektübergreifenden Worker hängst du `project_path` an jedes Command.**
+- `merge`, `kill`, `status`, `capture` und `response` nehmen es als letztes Argument.
+- Ohne die Angabe lösen sie auf das Projekt auf, in dem der Worker gespawnt wurde.
 
-**Worker-Namen sind global eindeutig.**
-- Ein Register führt jeden Worker-Namen.
-- Nur `spawn` verlangt den Projektpfad.
-- Bei einem projektübergreifenden Worker hänge `<project_path>` explizit an jedes spätere Kommando.
+### Commands
 
-**`worker-cli response` ist der Standard, um idle Worker zu lesen.**
-- `response` liefert sauberen Assistententext aus dem Session-JSONL.
-- `capture` ist der Leser, wenn `status` `dead` zeigt.
-
-**Muster des Session-Namens.**
-- Das Muster ist `worker-<basename(project_path)>-<name>`.
-
-| Vorgang | CLI |
+| Vorgang | Command |
 |---|---|
-| Aktive Worker listen (Projekt) | `worker-cli list <project_path>` |
-| Aktive Worker listen (alle) | `worker-cli list` |
+| Aktive Worker listen | `worker-cli list [project_path]` |
 | Worker-Status prüfen | `worker-cli status <name> [project_path]` |
-| Saubere Ausgabe seit dem letzten Prompt | `worker-cli capture <name> [project_path]`. Mit `--raw` schreibt es das rohe Pane in eine Datei. |
-| Saubere letzte N Assistentenzüge (JSONL) | `worker-cli response <name> [N] [project_path]` |
-| Nachricht an laufenden Worker senden | `worker-cli send <name> <message>` |
+| Ausgabe seit dem letzten Prompt lesen | `worker-cli capture <name> [project_path] [--raw]` |
+| Die letzten N Assistant Turns lesen | `worker-cli response <name> [N] [project_path]` |
+| Nachricht an einen laufenden Worker senden | `worker-cli send <name> <message>` |
 | Worker-Branch mergen | `worker-cli merge <name> [project_path]` |
-| Worker killen (+ registrierte projektübergreifende Worktrees) | `worker-cli kill <name> [project_path]` |
+| Worker killen, samt allen seinen Worktrees und dem Branch | `worker-cli kill <name> [project_path]` |
 | Worker im Worktree spawnen | `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` |
-| Projektübergreifenden Worktree erzeugen | `worker-cli worktree <name> <target_repo> [branch]` |
-| Toten Worker wiederbeleben (CC-Session fortsetzen) | `worker-cli revive <name>` |
+| Worktree unter `<target_repo>/.claude/worktrees/<name>` erzeugen, auf Branch `<name>` | `worker-cli worktree <name> <target_repo> [branch]` |
+| Toten Worker wiederbeleben | `worker-cli revive <name>` |
+| Warten, bis die Worker des Projekts fertig sind | `worker-cli wait [project_path] [--timeout SEC]` |
 
-### Git
+### capture
 
-| Vorgang | CLI | Hinweise |
-|---|---|---|
-| Push (NICHT-Plugin-Repo) | `git -C <repo_path> push` | Fällt auf `-u origin <branch>` zurück, wenn kein Upstream existiert. Nutze stattdessen `plugin-publish`, wenn `.claude-plugin/plugin.json` existiert. |
-| Push mit Upstream (NICHT-Plugin-Repo) | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` | Für den ersten Push auf einem neuen Branch. |
-| Push (PLUGIN-Repo) | `cd <plugin-source-repo> && plugin-publish` | Ein Schritt, der pusht, den Plugin-Cache synchronisiert und die Version hochzieht. Nutze das immer für jedes Repo mit `.claude-plugin/plugin.json`. Ein einfaches `git push` auf einem Plugin-Repo ist nicht erlaubt. |
+#### Input args
 
-### RAG CLI
+- `--raw` — schreibt statt der sauberen Ausgabe das rohe Pane in eine Datei.
 
-**RAG-Abfragen werden IMMER in Englisch geschrieben, unabhängig von der Gesprächssprache.**
+### wait
 
-**`delete` entfernt alles, was der Geltungsbereich abdeckt.**
-- Es entfernt die getroffenen Chunks und ihre Zeilen im `indexed_files`-Manifest.
-- Es entfernt außerdem die Quelldateien auf der Platte unter `data/documents/<collection>/`.
+#### Input args
 
-**`index` ist die Umkehrung von `delete` über denselben Geltungsbereich.**
-- Es zerlegt, embeddet und speichert `.md`-Dateien aus `data/documents/<collection>/`.
-- Unveränderte Dateien werden standardmäßig übersprungen, erkannt über den Inhalts-Hash.
+- `--timeout SEC` — der Standard sind 3300 Sekunden.
 
-**`search` findet den Treffer und `read_document` holt den Kontext darum.**
-- `read_document <coll> <doc> <chunk> --before N --after M` liefert den Chunk plus seine Nachbarn.
-   - Das nützliche Detail sitzt meist in diesen Nachbarn.
+## git
 
-**Umgang mit Fehlschlägen.**
-- Bei einem Ergebnis mit null Chunks formuliere die Abfrage mindestens zweimal um.
-   - Nach zwei Fehlschlägen stopp und melde dem Nutzer.
-- Bei einem Teiltreffer führe `read_document` um den Chunk-Index des Treffers aus, statt neu abzufragen.
+**Ein Repo mit `.claude-plugin/plugin.json` ist ein Plugin-Repo und wird nur über `plugin-publish` gepusht.**
+- `plugin-publish` pusht, synchronisiert den Plugin-Cache und zieht die Version hoch, alles in einem Schritt.
+- Ein einfaches `git push` auf einem Plugin-Repo ist nicht erlaubt.
 
-| Vorgang | Kommando |
+### Commands
+
+| Vorgang | Command |
 |---|---|
-| Sammlungen listen | `rag-cli list_collections [--filter PATTERN]` |
+| Push in einem Nicht-Plugin-Repo | `git -C <repo_path> push` |
+| Erster Push eines neuen Branches | `git -C <repo_path> push -u origin $(git -C <repo_path> branch --show-current)` |
+| Push in einem Plugin-Repo | `cd <plugin-source-repo> && plugin-publish` |
+
+## rag-cli
+
+**RAG-Queries werden IMMER in Englisch geschrieben, unabhängig von der Gesprächssprache.**
+
+### Commands
+
+| Vorgang | Command |
+|---|---|
+| Collections listen | `rag-cli list_collections [--filter PATTERN]` |
 | Dokumente listen | `rag-cli list_documents <collection> [--document PATTERN] [--exclude PATTERN] [--filter PATTERN]` |
 | Suchen | `rag-cli search <query> <collection> [--document PATTERN] [--exclude PATTERN]` |
 | Kontext lesen | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
 | Löschen | `rag-cli delete --collection <name> [--document <doc>]` |
 | Indexieren | `rag-cli index --collection <name> [--document <doc>]` |
 
-### GitHub Issues (gh-cli) — sessionübergreifender Kontext
+### search
+
+**Bei einem Ergebnis mit null Chunks formulierst du die Query mindestens zweimal um.**
+- Nach zwei Fehlschlägen stoppst du und meldest es dem User.
+- Bei einem Teiltreffer nutzt du `read_document` um den Chunk-Index des Treffers, statt neu zu suchen.
+
+#### Input args
+
+- `--document PATTERN` — begrenzt die Suche auf Dokumente, die auf das Muster passen.
+- `--exclude PATTERN` — nimmt Dokumente aus, die auf das Muster passen.
+
+### read_document
+
+**`search` findet den Treffer, `read_document` holt den Kontext darum.**
+
+#### Input args
+
+- `<chunk>` — der Chunk-Index aus dem Treffer von `search`.
+- `--before N` und `--after N` — nehmen N Nachbarn vor und hinter dem Chunk dazu, dort sitzt meist das nützliche Detail.
+
+### delete
+
+**`delete` entfernt die getroffenen Chunks, ihre Zeilen im `indexed_files`-Manifest und die Quelldateien auf der Platte.**
+- Die Quelldateien liegen unter `data/documents/<collection>/`.
+
+#### Input args
+
+- `--document <doc>` — begrenzt den Scope auf ein Dokument, ohne die Angabe trifft es die ganze Collection.
+
+### index
+
+**`index` ist die Umkehrung von `delete` über denselben Scope.**
+- Es zerlegt, embeddet und speichert `.md`-Dateien aus `data/documents/<collection>/`.
+- Unveränderte Dateien werden standardmäßig übersprungen, erkannt über den Inhalts-Hash.
+
+#### Input args
+
+- `--document <doc>` — begrenzt den Scope auf ein Dokument, ohne die Angabe trifft es die ganze Collection.
+
+## gh-cli
 
 **Leite `<owner>` und `<repo>` vom Git-Remote ab.**
 - `git remote get-url origin` liefert `github.com:<owner>/<repo>.git`.
 
-**Offene Issues sind die Standardauflistung.**
-- `gh-cli list_issues` zeigt standardmäßig offene Issues.
+### Commands
 
-#### Was ein Issue IST
-
-**Ein Issue ist ein schlanker Einstiegspunkt in ein Thema.**
-- Der Body benennt das Thema und wo sein Inhalt liegt, denn der Inhalt selbst liegt anderswo.
-
-**Issues werden an genau zwei Punkten erstellt.**
-- Der erste Punkt ist, wenn der Nutzer mitten in der Session danach fragt.
-- Der zweite Punkt ist der Recap, für alles, was am Sessionende noch offen ist.
-
-#### Issue-Format
-
-```
-<Title: ONE word>
-
-Goal:
-- <end state>
-- <end state>
-
-Area: <area>  (→ process-docs/<area>/, dev/<area>/)
-```
-
-**Der Titel ist EIN Wort, und er benennt die Sache, nie die Handlung.**
-- `Wohnungsmängel`, `Bügeleisen` und `Hausarzt` sind Titel, `Zahnarzt in Frankfurt finden und Kontrolle 2026` ist keiner.
-
-**Der Body trägt das ZIEL, also den Endzustand, und nichts anderes.**
-- Der Endzustand ist das, was das Schließen des Issues zu einer Ja-Nein-Frage macht.
-- Er ist ein Bullet, wo der Zustand einzeln ist, und mehrere Bullets, wo er wirklich mehrere Teile hat.
-
-| Vorgang | CLI |
+| Vorgang | Command |
 |---|---|
-| Offene Issues listen | `gh-cli list_issues <owner> <repo>`. Offen ist der Standardzustand. |
-| Geschlossene Issues listen | `gh-cli list_issues <owner> <repo> --state closed` |
-| Issue-Body lesen | `gh-cli get_issue <owner> <repo> <number>`. Der Body ist der Text nach dem `---`-Trenner in der Ausgabe. |
+| Issues listen | `gh-cli list_issues <owner> <repo> [--state open\|closed]` |
+| Issue-Body lesen | `gh-cli get_issue <owner> <repo> <number>` |
 | Issue erstellen | `gh-cli create_issue <owner> <repo> "<title>" --body "<desc>" [--labels a,b]` |
-| Issue-Body aktualisieren (nur Bereichswechsel) | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"`. Der Aufruf ersetzt den gesamten Body. |
-| Issue schließen | `gh-cli update_issue <owner> <repo> <number> --state closed` |
-| Issue wieder öffnen | `gh-cli update_issue <owner> <repo> <number> --state open` |
+| Issue-Body ersetzen | `gh-cli update_issue <owner> <repo> <number> --body "<full updated body>"` |
+| Issue schließen oder wieder öffnen | `gh-cli update_issue <owner> <repo> <number> --state closed\|open` |
 
-### show — eine Datei für den Nutzer öffnen
+### list_issues
 
-**Öffne eine Datei in der Standard-macOS-App des Nutzers, damit der NUTZER sie sehen kann.**
-- Nutze es, wenn der Nutzer darum bittet, eine Datei gezeigt zu bekommen, etwa "öffne mir den Report" oder "show me X".
-- Der Auslöser ist die Absicht des Nutzers, sie anzusehen, und nie der Dateityp.
+#### Input args
 
-**Nutze `show` nur, wenn der Nutzer eine Datei ANSEHEN will.**
-- Für deine eigene Inspektion wie Analyse, Code-Review oder Grep nutze Bash.
+- `--state` — `open` oder `closed`. Ohne die Angabe siehst du nur die offenen Issues.
 
-**Eine schon mit `show` geöffnete Datei bleibt offen.**
-- Ein `show` bei der ersten Anzeige gilt für die ganze Session.
+### update_issue
 
-| Vorgang | Kommando |
+#### Input args
+
+- `--body` — ersetzt den gesamten Body und wird nur für einen Bereichswechsel genutzt.
+- `--state` — `closed` oder `open`.
+
+## show
+
+**Nutze den command nur wenn der User darum bittet eine Datei gezeigt zu bekommen**
+
+**Eine schon mit `show` geöffnete Datei bleibt dauerhaft offen.**
+- öffne eine Datei wirklich nur wenn der user im Einzelfall darum bittet. 
+
+### Commands
+
+| Vorgang | Command |
 |---|---|
-| Eine Datei öffnen | `show <path>` |
-| Mehrere Dateien öffnen | `show <p1> <p2> ...` |
-| Relativer Pfad | `show ./report.md` |
-| Home-Pfad | `show ~/Desktop/foo.png` |
+| Eine oder mehrere Dateien öffnen | `show <path> [<path> ...]` |
+
+#### Input args
+
+- `<path>` — darf relativ sein oder mit der Tilde beginnen, also `./report.md` oder `~/Desktop/foo.png`.

@@ -2,61 +2,48 @@
 
 ## Bash
 
-**Verschiebe niemals verbal, was in den aktuellen Block hätte mitkönnen.**
-- Ein Aufruf, den keine Abhängigkeit in einen späteren Zug zwingt, läuft jetzt.
-- Ihn stattdessen für den nächsten Zug anzukündigen ist nicht erlaubt.
+**Ein Bash-Aufruf umfasst alles, was dein aktueller Denkschritt erfordert**
+- Manifestiere in einem Bash-Call deinen aktuellen Gedankenstand
 
-**Unabhängige Sondierungen gehen in EINEN Aufruf, verbunden mit `;`.**
-- Der Exit-Code der Kette ist nur der des letzten Segments, also beurteile jedes Segment an seiner eigenen Ausgabe und nie am Exit-Code.
+**Mehrere Bash-Aufrufe sind die Norm, sofern sie aufeinander aufbauen**
+- Frage dich immer, kann ich das auch parallel ausführen?
+   - Falls ja, chaine es in einen Bash mit `;`
+   - Falls nein und du würdest gerne dazwischen denken, ist das vollkommen legitim, dann zwei Bash sequentiell aufeinander aufbauend
 
-### Git
+**Der Exit-Code einer mit `;` verbundenen Kette ist nur der des zuletzt ausgeführten Segments**
+- Beurteile deshalb jedes Segment an seiner eigenen Ausgabe und nie am Exit-Code
 
-**Committe mit `gcommit "<message>" [repo_path]`.**
-- Der Aufruf staged alle Änderungen und committet sie in einem Schritt, auf dem aktuellen Branch.
-   - Das Staging umfasst getrackte Änderungen plus ungetrackte Dateien, abzüglich einer Skip-Liste geheimer Dateien.
-- In einem Worktree committet der Aufruf auf dem Branch des Worktrees.
-- Arbeitest du direkt in einem Repo, committet er auf dem Branch dieses Repos.
-- Das Elternrepo ist aus einem Worktree heraus nie das Commit-Ziel.
-- `repo_path` fällt auf das aktuelle Arbeitsverzeichnis zurück.
+### gcommit
 
-#### Commit-Nachricht
+**Der Aufruf staged und committet in einem Schritt.**
+- Secrets werden dabei über eine Skip-List ausgelassen
+- `repo_path` fällt auf das aktuelle Arbeitsverzeichnis zurück, committet wird immer auf dessen Branch
 
-**Einzeilig, mit Typ-Präfix, eine Sache pro Commit.**
-- Präfix mit `feat`, `fix`, `refactor`, `docs` oder `chore`.
-- Die Nachricht bleibt unter 72 Zeichen.
-- Mischen sich die Sachen, wähle die dominante.
-- Routine-Commits tragen keinen Co-Author-Footer.
+**Die Commit-Nachricht ist einzeilig, trägt ein Typ-Präfix und deckt genau eine Sache ab.**
+- Das Präfix ist `feat`, `fix`, `refactor`, `docs` oder `chore`
+- Die Nachricht bleibt unter 72 Zeichen
+- Routine-Commits tragen keinen Co-Author-Footer
 
-### Dateien lesen
-
-**Grep dient festen Mustern, Lesen dient dem Sinn.**
-- Grep passt zu einem Symbol, einem Import, einem Pfad, einem wörtlichen String oder einem exakten Token.
-   - Diese Ziele sind typischerweise Code.
-- Ist das Ziel semantisch, lies die ganze Datei statt zu greppen.
-   - Semantisch heißt Fragen wie, ob ein Thema behandelt oder eine Behauptung aufgestellt wird.
-- Prosa sagt dasselbe auf viele Weisen, deshalb übersieht Grep dort gültige Inhalte.
-   - `haus` zu greppen liefert nichts, wenn die Datei `villa` sagt.
-
-#### `<persisted-output>`-Blöcke
-
-**Nutze `poread`, um den vollen Inhalt der Datei eingespielt zu bekommen.**
-- Der Block benennt seine Datei als `Full output saved to: <path>`.
-- Grep, head, tail, cat und Teilzugriffe sind kein Ersatz.
-
-| Vorgang | CLI |
+| Vorgang | Command |
 |---|---|
-| Eine persistierte Ausgabe vollständig lesen | `poread <path>`, allein in seinem Bash-Aufruf |
+| Alle Änderungen stagen und committen | `gcommit "<message>" [repo_path]` |
 
-### Dateien schreiben
+### poread
 
-**Eine neue Datei wird mit einem Heredoc erzeugt, das einen gequoteten Delimiter trägt.**
-- Die Form ist `cat > <path> <<'EOF'`, dann der Inhalt, dann `EOF`.
-- Der gequotete Delimiter ist zwingend, sonst expandiert die Shell `$` und Backticks im Inhalt.
-- Das Heredoc bleibt dem `Write`-Werkzeug vorgezogen, weil es pro Aufruf messbar weniger kostet und mehrere Dateien in einem Aufruf schreiben kann.
+**Nutze `poread`, um den vollen Inhalt der Datei injected zu bekommen.**
+- Persisted Output wird erzeugt, wenn eine Ausgabe sehr groß ist
+    - Bekommst du also eine persisted-output Nachricht, ist das für dich ein Zeichen noch einmal darüber nachzudenken, ob du den vollen Output haben möchtest
+    - In vielen Fällen musst du den vollen Output lesen, weil ansonsten der Context verloren geht
+    - Zum Lesen des vollen Outputs nutzt du dann poread
+- Vermeide es, einen vollen Output durch Teiloperationen wie grep, head oder tail zu ersetzen
+    - Lies den Output komplett oder gar nicht
+- Bei Outputs über 50 KB bist du allerdings gezwungen Teiloperationen durchzuführen, hier funktioniert poread nicht mehr
 
-**Eine bestehende Datei wird mit dem `Edit`-Werkzeug geändert.**
-- `Edit` trägt den alten Text mit, um die Stelle zu finden, und dieser Anker ist der Preis der Adressierung.
-- Über Zeilennummern zu adressieren wäre billiger und ist verworfen, weil Modelle Zeilennummern unzuverlässig treffen und das Gerüst dafür mehr kostet als der Anker.
+| Vorgang | Command |
+|---|---|
+| Eine persistierte Ausgabe vollständig lesen | `poread <path>` |
 
-**Eine bestehende Datei wird nie vollständig neu geschrieben.**
-- Ein vollständiges Neuschreiben sendet den gesamten Inhalt erneut, also wird der Inhalt zweimal bezahlt.
+## Read, Write, Edit
+
+**Nutze `Read` zum Lesen, `Write` zum kompletten Neuerstellen, `Edit` zum Bearbeiten bestehender Dateien**
+- Vermeide Bash bei der Arbeit mit persistenten Files

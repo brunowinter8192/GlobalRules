@@ -1,24 +1,15 @@
 # Konvention für das dev/-Verzeichnis
 
-## Ablage der Ausgaben
+**In welchem dev/-Ordner du arbeitest richtet sich ausschließlich nach der Area, in der sich die Session bewegt**
+- Unterordner von dev/ sind exakt so benannt wie die zugehörige Area
+- Ein dev/-Ordner hat immer eine zugehörige Area, während eine Area nicht zwangsläufig einen zugehörigen dev/-Ordner haben muss
 
-**Ein dev-Skript schreibt seinen Report nach `dev/<area>/`.**
-- Stattdessen auf die Konsole zu schreiben ist nicht erlaubt.
-- Innerhalb von `dev/<area>/` geht der Report nach `md/`, `csv/` oder `png/`, gewählt nach Ausgabetyp.
-- Die Report-Datei trägt einen beschreibenden Namen, der auf das erzeugende Skript zurückführt.
+**dev/ hält Entwicklungsskripte für Experimente aller Art.**
+- In dev/ kannst du dich grundsätzlich frei entfalten, es gibt nur wenige Restriktionen:
+    - Alles was in dev/ liegt ist persistent, Inhalte die ein folgender Agent also unter keinen Umständen brauchen kann, gehören nach /tmp/
+    - Inhalt in Wort und Schrift gehört in die process-docs, ausgenommen ist der von einem Skript erzeugte Report
 
-**Datenausgaben bleiben von Reports getrennt.**
-- Skripte erzeugen auch Datenausgaben, etwa Rohkorpora.
-   - Datenausgaben gehen in einen eigenen, nach Typ benannten Ordner, zum Beispiel `jsonl/`.
-- Datenordner mischen sich nie in `md/`.
-
-**Reports und Daten ordnen sich in `dev/<area>/` nach Thema.**
-- Ein dev-Bereich und ein process-docs-Bereich zum selben Thema teilen einen Namen.
-
-## Staging
-
-**Einmal-Skripte leben im Worktree oder in /tmp/ und werden nie gestaged.**
-- Baue Forensik und Einmal-Assertions im Worktree oder unter /tmp/.
-   - Stage sie beim Merge ausdrücklich nicht.
-- Eine Einmal-Assertion, die zum Regressionswächter wird, geht in eine bestehende dev/-Testdatei ein.
-   - Eine neue Datei pro Fix ist nicht erlaubt.
+**Ein dev-Skript welches einen Report erzeugt, muss den Report in einem dafür vorgesehenen Unterverzeichnis ablegen**
+- Es können beliebige Ordner wie `md/`, `csv/` oder `png/` angelegt werden, abhängig vom Format des Outputs
+- Die Report-Datei trägt einen Namen, der auf das erzeugende Skript zurückführt
+    - Es muss zweifelsfrei identifizierbar sein, welches Skript welchen Report erzeugt hat

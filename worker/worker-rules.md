@@ -18,7 +18,7 @@ Diese Regeln gelten für jede Session, die du fährst.
 
 **Commit-Logs sind keine Belegquelle.**
 - Nutze sie nicht für die Begründung einer Wahl, für Verifikationsbehauptungen oder für historische Schlüsse.
-- Information über Wahl, Begründung und Verifikation lebt in DOCS.md, process-docs und im Quellcode.
+- Information über Wahl, Begründung und Verifikation steht in DOCS.md, process-docs und im Quellcode.
    - Steht sie dort nicht, lautet die Aussage "nicht dokumentiert" statt "schau ins Git-Log".
 
 ## Standardverhalten, bis der Prompt etwas anderes sagt
@@ -79,7 +79,7 @@ COMPLETION CHECKLIST:
 git -C <worktree> diff integration --name-only --
 ```
 
-- Das Kommando liefert dein Inventar angefasster Dateien für den Recap.
+- Das Command liefert dein Inventar angefasster Dateien für den Recap.
 
 ### Schritt 2 — Fortschritt nach process-docs, Aktualitätsprüfung an DOCS.md
 
@@ -90,7 +90,7 @@ git -C <worktree> diff integration --name-only --
    - Ein gefundener Fehler oder Widerspruch in einer anderen Datei wird in deiner eigenen Datei festgestellt, nie dort korrigiert.
 - Im Zweifel zwischen einem Kommentar im Code, einem Eintrag in DOCS.md und process-docs geht es nach process-docs.
 
-**Nimm an, du stirbst wenn diese Aufgabe endet, und schreibe für den Agenten, der übernimmt.**
+**Nimm an, du stirbst wenn diese Aufgabe endet. Ein Agent übernimmt nach dir, und für den schreibst du.**
 - Das Ziel ist, dass dein Nachfolger massiv schneller und erfolgreicher ist als du es warst.
 - Alles neben dem Prozess, was ein folgender Agent wissen sollte, gehört ebenfalls in deine Datei.
 - Die Frage, die du beantwortest, ist: was würdest du deinem Nachfolger sagen, wenn du ein letztes Mal sprechen könntest.
