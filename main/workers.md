@@ -91,6 +91,8 @@
 - Mache deine Anforderungen explizit.
 - Mache explizit wie der Worker testen soll und wie im Anschluss verifiziert wird.
 
+**Eine Nachricht per `send` trägt immer den vollen Text, nie nur einen Verweis auf eine Datei.**
+
 **Lasse dem Worker Spielraum in der Interpretation.**
 - Richte nur harte Fakten an den Worker, niemals Interpretationen.
     - Der Worker soll deine Ideen challengen, indem er eigenständig zu Lösungen kommt.
