@@ -59,7 +59,7 @@
 | Collections listen | `rag-cli list_collections [--filter PATTERN]` |
 | Dokumente listen | `rag-cli list_documents <collection> [--document PATTERN] [--exclude PATTERN] [--filter PATTERN]` |
 | Suchen | `rag-cli search <query> <collection> [--document PATTERN] [--exclude PATTERN]` |
-| Kontext lesen | `rag-cli read_document <collection> <doc.md> <chunk> [--before N] [--after N]` |
+| Chunks erweitern | `rag-cli expand_chunks <collection> <doc.md> <chunk> [--before N] [--after N]` |
 | Löschen | `rag-cli delete --collection <name> [--document <doc>]` |
 | Indexieren | `rag-cli index --collection <name> [--document <doc>]` |
 
@@ -67,16 +67,18 @@
 
 **Bei einem Ergebnis mit null Chunks formulierst du die Query mindestens zweimal um.**
 - Nach zwei Fehlschlägen stoppst du und meldest es dem User.
-- Bei einem Teiltreffer nutzt du `read_document` um den Chunk-Index des Treffers, statt neu zu suchen.
+- Bei einem Teiltreffer nutzt du `expand_chunks` um den Chunk-Index des Treffers, statt neu zu suchen.
 
 #### Input args
 
 - `--document PATTERN` — begrenzt die Suche auf Dokumente, die auf das Muster passen.
 - `--exclude PATTERN` — nimmt Dokumente aus, die auf das Muster passen.
 
-### read_document
+### expand_chunks
 
-**`search` findet den Treffer, `read_document` holt den Kontext darum.**
+**`search` findet den Treffer, `expand_chunks` holt den Kontext darum.**
+- `expand_chunks` liefert immer nur die angeforderten Nachbarchunks, nie das ganze Dokument.
+- Der Weg zu mehr Kontext aus einer indexierten Datei ist immer `expand_chunks`, nie das `Read`-Tool auf die Quelldatei.
 
 #### Input args
 
@@ -132,10 +134,10 @@
 
 ## show
 
-**Nutze den command nur wenn der User darum bittet eine Datei gezeigt zu bekommen**
+**Nutze den Command nur wenn der User darum bittet eine Datei gezeigt zu bekommen.**
 
 **Eine schon mit `show` geöffnete Datei bleibt dauerhaft offen.**
-- öffne eine Datei wirklich nur wenn der user im Einzelfall darum bittet. 
+- Öffne eine Datei wirklich nur wenn der User im Einzelfall darum bittet.
 
 ### Commands
 
