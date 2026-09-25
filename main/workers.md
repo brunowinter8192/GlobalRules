@@ -287,7 +287,7 @@ Gap 3 — <gap in one line> — reddit
     - Löse das vor dem Spawnen, durch Rebase von integration auf main oder durch Merge von main nach integration.
 3. Worker spawnen.
     3.1 Schreibe den Prompt nach `/tmp/spawn-worker-<project>-<name>.md`.
-    3.2 Führe `worker-cli spawn <name> <prompt_file> <project_path> [model]` aus.
+    3.2 Führe `worker-cli spawn <name> <prompt_file>` aus.
 
 ### Step 3 — Cross Model Check je Milestone
 
@@ -328,12 +328,11 @@ Gap 3 — <gap in one line> — reddit
 
 ### Step 7 — Merge, für alle Milestones auf einmal
 
-1. Kopiere heraus was nur im Worktree existiert.
+1. `worker-cli merge <name>` mergt die Branches des Workers in jedem seiner Repos in den dortigen aktuellen Branch.
+    - Der aktuelle Branch ist `integration`, und der Worker samt Worktree bleibt am Leben.
+2. Kopiere vor jedem `worker-cli kill` heraus, was nur im Worktree existiert.
     - Gitignorierte Dateien und extrahierte Konfigurationen existieren nur im Worktree.
-    - Der Merge löscht den Worktree, solche Dateien wären also verloren.
-2. `worker-cli merge <name> [project_path]` mergt den Branch in den aktuellen Branch.
-    - Der aktuelle Branch ist `integration`, und der Worker bleibt am Leben.
-    - Bei einem projektübergreifenden Worker ist `project_path` zwingend.
+    - `kill` löscht den Worktree, solche Dateien wären also verloren.
 
 ---
 

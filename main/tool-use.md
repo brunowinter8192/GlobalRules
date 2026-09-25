@@ -2,25 +2,26 @@
 
 ## worker-cli
 
-**Bei einem projektübergreifenden Worker hängst du `project_path` an jedes Command.**
-- `merge`, `kill`, `status`, `capture` und `response` nehmen es als letztes Argument.
-- Ohne die Angabe lösen sie auf das Projekt auf, in dem der Worker gespawnt wurde.
+**worker-cli findet Projekt, Repos und Modell eines Workers immer selbst.**
+- Kein Command nimmt einen Projektpfad oder ein Modell an.
+- Der einzige Pfad ist `<target_repo>` bei `worktree`.
+- Ein überzähliges Argument bricht ab und nennt die richtige Form.
 
 ### Commands
 
 | Vorgang | Command |
 |---|---|
-| Aktive Worker listen | `worker-cli list [project_path]` |
-| Worker-Status prüfen | `worker-cli status <name> [project_path]` |
-| Ausgabe seit dem letzten Prompt lesen | `worker-cli capture <name> [project_path] [--raw]` |
-| Die letzten N Assistant Turns lesen | `worker-cli response <name> [N] [project_path]` |
+| Aktive Worker listen | `worker-cli list` |
+| Worker-Status prüfen | `worker-cli status <name>` |
+| Ausgabe seit dem letzten Prompt lesen | `worker-cli capture <name> [--raw]` |
+| Die letzten N Assistant Turns lesen | `worker-cli response <name> [N]` |
 | Nachricht an einen laufenden Worker senden | `worker-cli send <name> <message>` |
-| Worker-Branch mergen | `worker-cli merge <name> [project_path]` |
-| Worker killen, samt allen seinen Worktrees und dem Branch | `worker-cli kill <name> [project_path]` |
-| Worker im Worktree spawnen | `worker-cli spawn <name> <prompt_file> <project_path> [model] [--no-worktree]` |
+| Worker-Branches in allen seinen Repos mergen | `worker-cli merge <name>` |
+| Worker killen, samt allen seinen Worktrees und Branches | `worker-cli kill <name>` |
+| Worker im Worktree des aktuellen Projekts spawnen | `worker-cli spawn <name> <prompt_file>` |
 | Worktree unter `<target_repo>/.claude/worktrees/<name>` erzeugen, auf Branch `<name>` | `worker-cli worktree <name> <target_repo> [branch]` |
 | Toten Worker wiederbeleben | `worker-cli revive <name>` |
-| Warten, bis die Worker des Projekts fertig sind | `worker-cli wait [project_path] [--timeout SEC]` |
+| Warten, bis die Worker des aktuellen Projekts fertig sind | `worker-cli wait [--timeout SEC]` |
 
 ### capture
 
