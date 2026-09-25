@@ -11,5 +11,6 @@
 
 **Ein dev-Skript welches einen Report erzeugt, muss den Report in einem dafür vorgesehenen Unterverzeichnis ablegen.**
 - Es können beliebige Ordner wie `md/`, `csv/` oder `png/` angelegt werden, abhängig vom Format des Outputs.
+- Das Unterverzeichnis liegt immer auf derselben Ebene wie das Skript, das den Report erzeugt.
 - Die Report-Datei trägt einen Namen, der auf das erzeugende Skript zurückführt.
     - Es muss zweifelsfrei identifizierbar sein, welches Skript welchen Report erzeugt hat.

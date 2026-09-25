@@ -13,20 +13,21 @@
 **Der Exit-Code einer mit `;` verbundenen Kette ist nur der des zuletzt ausgeführten Segments.**
 - Beurteile deshalb jedes Segment an seiner eigenen Ausgabe und nie am Exit-Code.
 
-### gcommit
+### Commit
 
-**Der Aufruf staged und committet in einem Schritt.**
-- Secrets werden dabei über eine Skip-List ausgelassen.
-- `repo_path` fällt auf das aktuelle Arbeitsverzeichnis zurück, committet wird immer auf dessen Branch.
+**Ein Commit staged und committet in einem einzigen Bash-Aufruf.**
+- `git add -A` staged alles, was nicht in der `.gitignore` steht.
+- Der Pfad hinter `-C` ist immer das Repo, in das committet wird, committet wird auf dessen aktuellen Branch.
 
 **Die Commit-Nachricht ist einzeilig, trägt ein Typ-Präfix und deckt genau eine Sache ab.**
 - Das Präfix ist `feat`, `fix`, `refactor`, `docs` oder `chore`.
+    - Das folgt Conventional Commits (Conventional Commits 1.0.0, 2019).
 - Die Nachricht bleibt unter 72 Zeichen.
 - Routine-Commits tragen keinen Co-Author-Footer.
 
 | Vorgang | Command |
 |---|---|
-| Alle Änderungen stagen und committen | `gcommit "<message>" [repo_path]` |
+| Alle Änderungen stagen und committen | `git -C <repo_path> add -A && git -C <repo_path> commit -m "<message>"` |
 
 ### poread
 

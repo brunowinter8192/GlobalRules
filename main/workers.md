@@ -62,7 +62,7 @@
 2. Merge abgeschlossene, aber nicht gemergte Commits vom toten Branch nach `integration`.
 3. Kille den toten Worker.
 4. Spawne den Nachfolger mit einem Prompt aus Dateien, dem Meilenstein und der Stelle, wo er aufnimmt.
-5. Prüfe die erste Antwort des Nachfolgers gegen den Punkt, wo der tote Worker aufhörte, wie in Phase 2 Step 2.
+5. Prüfe die erste Antwort des Nachfolgers gegen den Punkt, wo der tote Worker aufhörte, wie in Phase 2 Step 3.
 
 **Stirbt ein Worker während seines Recaps, übernimmst du.**
 1. Führe zuerst `worker-cli capture <name>` aus und lies das Pane.
@@ -99,6 +99,7 @@
 - Richte nur harte Fakten an den Worker, niemals Interpretationen.
     - Der Worker soll deine Ideen challengen, indem er eigenständig zu Lösungen kommt.
 - Interpretationen laufen nur in eine Richtung: Worker --> du --> User.
+- Deine Interpretation würde den Worker sonst verankern, das ist der Anchoring Effect (Amos Tversky, Daniel Kahneman, 1974).
 
 **Lasse dem Worker Spielraum in der Umsetzung.**
 - Du steuerst und lenkst den Worker, nicht erwünscht sind exakte Vorgaben wie zum Beispiel:
@@ -114,13 +115,13 @@
 - `📋 Phase 1 — Step 1: Session Scope`
 - `📋 Phase 1 — Step 2: Process Investigation`
 - `📋 Phase 1 — Step 3: Code Investigation & Gap Analysis`
-- `📋 Phase 1 — Step 4: Deliverables & Milestones`
-- `🔨 Phase 2 — Step 1: Dispatch`
-- `🔨 Phase 2 — Step 2: Evaluate`
-- `🔨 Phase 2 — Step 3: Go`
-- `🔨 Phase 2 — Step 4: Review`
-- `🔨 Phase 2 — Step 5: Recap`
-- `🔨 Phase 2 — Step 6: Merge`
+- `🔨 Phase 2 — Step 1: Deliverables & Milestones`
+- `🔨 Phase 2 — Step 2: Spawn`
+- `🔨 Phase 2 — Step 3: Cross Model Check`
+- `🔨 Phase 2 — Step 4: Implementation`
+- `🔨 Phase 2 — Step 5: Review`
+- `🔨 Phase 2 — Step 6: Recap`
+- `🔨 Phase 2 — Step 7: Merge`
 
 ---
 
@@ -302,7 +303,7 @@ Gap 3 — <gap in one line> — reddit
 2. Während der Worker arbeitet, gehe gedanklich schon einmal den genauen Code durch, den du vom Worker erwartest.
 3. Setze ein worker wait, gehe idle bis der Worker dich weckt.
 
-### Step 4 — Code Review je Milestone
+### Step 5 — Code Review je Milestone
 
 1. Führe `worker-cli response <name>` aus.
 2. Lies den vollständigen Diff des Workers über Bash. Der kanonische Command ist:
@@ -315,9 +316,9 @@ Gap 3 — <gap in one line> — reddit
     - Nach funktionaler Korrektheit.
     - Nach Einhaltung der § Code-Standards deines System-Prompts.
 5. Werden Probleme gefunden, behandle sie wie einen Milestone und gehe mit diesen Problemen zurück zu Step 2.
-6. Besteht der Review, gehe zu Step 5.
+6. Besteht der Review, gehe zu Step 6.
 
-### Step 5 — Recap je Milestone
+### Step 6 — Recap je Milestone
 
 1. Sende `worker-cli send <name> "recap"`.
     - Gib dem Worker IMMER die Area mit in der er seine process-docs schreibt.
@@ -325,7 +326,7 @@ Gap 3 — <gap in one line> — reddit
 2. Beschränke deinen Review ausschließlich auf die DOCS.md-Dateien.
     - Bewerte die Arbeit des Workers nach Einhaltung der § DOCS.md deines System-Prompts.
 
-### Step 6 — Merge, für alle Milestones auf einmal
+### Step 7 — Merge, für alle Milestones auf einmal
 
 1. Kopiere heraus was nur im Worktree existiert.
     - Gitignorierte Dateien und extrahierte Konfigurationen existieren nur im Worktree.
@@ -378,5 +379,5 @@ Gap 3 — <gap in one line> — reddit
 4. Aktualisiere die Issue-Bodys bearbeiteter Issues bzw. schließe Issues wenn abgeschlossen.
 5. Synchronisiere die Docs nach RAG mit `[ -f .rag-docs.json ] && rag-cli update_docs .`.
 6. Schließe Git für jedes Repo, das diese Session angefasst hat, einschließlich projektübergreifender Ziele.
-    6.1 Führe pro Repo `git checkout main && git merge integration` aus, dann `gcommit "<message>"`, dann push.
+    6.1 Führe pro Repo `git checkout main && git merge integration` aus, dann push.
     - Prüfe vor dem Push auf `.claude-plugin/plugin.json`. Existiert sie, nutze `plugin-publish`, ansonsten nutze `git push`.

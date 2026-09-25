@@ -41,9 +41,13 @@ Konvention | Beispiel |
     - Alles was im Code steht muss nicht in die Docs.
 
 **DOCS.md wiederholt nie den Code.**
+- Das folgt dem Prinzip Don't Repeat Yourself (Andrew Hunt, David Thomas, 1999).
 - DOCS.md ist die Vogelperspektive und beantwortet die Frage "wo steht was?" und "wo liegen die Details?".
     - Was ein Modul im Detail tut, wird in den DOCS.md nicht beantwortet.
 - Die einzelnen Konstanten, Parameter, Formeln und Thresholds eines Moduls sind aus den DOCS.md aggressiv auszuschließen.
+    - Ausgenommen sind Namen, über die ein Modul mit anderen Prozessen kommuniziert, zum Beispiel Umgebungsvariablen und CLI-Flags.
+        - Solche Namen gehören zur Schnittstelle des Moduls, nicht zu seiner Implementierung (David Parnas, 1972).
+        - Beispiel: "**Reads:** `MONITOR_CC_ROOT` aus der Umgebung" ist erlaubt.
 
 **DOCS.md beschreiben ausschließlich Module.**
 - Dokumentation auf Funktionsebene gehört nicht in DOCS.md.
@@ -90,9 +94,11 @@ Which module owns the state, who mutates, who reads.
     - Um sicherzustellen dass er deine Fehler nicht wiederholt.
     - Um sicherzustellen dass er eine robuste simple Lösung erstellt.
     - Um sicherzustellen dass er sich nicht im Kreis dreht und genau erfüllen kann was verlangt ist.
+- process-docs übernehmen die Rolle von Architecture Decision Records (Michael Nygard, 2011).
 
 **Nutze Beispiele in den process-docs.**
 - Ein paar Beispiele zeigen das erwartete Verhalten besser als eine ausschweifende abstrakte Erklärung.
+    - Das folgt dem Prinzip Specification by Example (Gojko Adzic, 2011).
 - Nutze als Beispiele in den process-docs tatsächlich beobachtete Fälle.
 - Edge Cases welche nie beobachtet wurden werden kurz als Hypothese gekennzeichnet und abgehandelt.
     - Widme Raum dem was greifbar ist, halte nicht Greifbares kurz und knapp.
@@ -111,6 +117,7 @@ Which module owns the state, who mutates, who reads.
 - Keine andere process-docs Datei wird jemals editiert, egal was sie enthält.
    - Jeder Agent hat die eigene Datei als einzigen beschreibbaren Bereich.
    - Ein gefundener Fehler, eine veraltete Behauptung oder ein Widerspruch in einer anderen process-docs Datei wird in der eigenen process-docs Datei festgestellt, nie in der anderen korrigiert.
+   - Das entspricht Architecture Decision Records, eine neue Entscheidung ersetzt eine alte, statt sie zu ändern (Michael Nygard, 2011).
 
 **Keine Gegenwartsbehauptungen über den "aktuellen" Stand in einer process-docs Datei.**
 - Nutze nicht das Wording aktueller Stand in den process-docs, nutze stattdessen ein Datum.

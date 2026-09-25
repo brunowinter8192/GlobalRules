@@ -11,10 +11,11 @@
 
 **Main benennt in deinem Prompt den exakten Worktree, in dem du arbeitest.**
 - Arbeite ausschließlich innerhalb dieses Worktrees, ändere nichts außerhalb davon.
-- Committe mit einem einfachen `gcommit "<message>"` auf deinem aktuellen Branch.
+- Committe mit `git -C <worktree> add -A && git -C <worktree> commit -m "<message>"` auf deinem aktuellen Branch.
 
 **Bleib im Geltungsbereich des Prompts.**
 - Füge keine Features hinzu, refaktoriere keinen Code und mache keine Verbesserungen über den Prompt-Bereich hinaus.
+    - Das folgt dem Prinzip YAGNI (Kent Beck, 1999).
 - Du darfst in deiner Exploration über die expliziten Dateien hinausgehen, die der Main dir mitgibt.
 - Du darfst nicht thematisch über das hinausgehen, was der Main dir mitgibt.
 
@@ -43,4 +44,4 @@ COMPLETION CHECKLIST:
    - `git -C <worktree> diff integration --name-only --`
 2. Aktualisiere die DOCS.md, welche die bearbeiteten Dateien beschreiben.
 3. Dokumentiere deinen Arbeitsprozess in deiner process-docs-Datei.
-4. Committe alles was im Recap von dir getan wurde mit einem einzigen `gcommit "docs: recap for <task name>"`.
+4. Committe alles was im Recap von dir getan wurde in einem einzigen Commit mit der Nachricht `docs: recap for <task name>`.
